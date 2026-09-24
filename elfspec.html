@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mastering ELF — Which Spec Is Which?</title>
+<style>
+:root{
+--bg:#0b1020; --bg2:#121a33; --card:#161f3d; --card2:#1b2549;
+--ink:#e8ecf8; --dim:#9aa6c9; --line:#2a3563;
+--read:#2ee6a8; --skim:#ffc24b; --ref:#5aa9ff; --skip:#ff6b8b; --dup:#c084fc;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#070b18 0%,var(--bg) 40%,#0a1226 100%);
+color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
+header{padding:60px 22px 46px;background:
+radial-gradient(900px 340px at 12% -10%,rgba(46,230,168,.20),transparent 60%),
+radial-gradient(800px 320px at 88% 0%,rgba(192,132,252,.20),transparent 60%),
+linear-gradient(180deg,#0a1024,#0b1020);
+border-bottom:1px solid var(--line)}
+header .wrap{padding-bottom:0}
+h1{margin:0 0 10px;font-size:2.45rem;line-height:1.15;letter-spacing:-.5px;
+background:linear-gradient(92deg,#2ee6a8,#5aa9ff 45%,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--dim);font-size:1.05rem;max-width:80ch;margin:0}
+h2{margin:54px 0 6px;font-size:1.5rem;letter-spacing:-.2px}
+h2 .num{color:var(--ref);font-variant-numeric:tabular-nums;margin-right:.5rem;opacity:.8}
+h3{margin:30px 0 8px;font-size:1.12rem}
+.lede{color:var(--dim);margin:0 0 20px;max-width:88ch}
+a{color:#7cc4ff;text-decoration:none;border-bottom:1px solid rgba(124,196,255,.3)}
+a:hover{border-bottom-color:#7cc4ff}
+code{background:#0a122b;border:1px solid var(--line);padding:1px 6px;border-radius:5px;font-size:.87em;color:#ffd9a0}
+
+/ layer diagram /
+.layers{display:grid;gap:12px;margin:22px 0 8px}
+.layer{border-radius:14px;padding:16px 20px;border:1px solid var(--line);position:relative;overflow:hidden}
+.layer b{display:block;font-size:1.05rem;margin-bottom:3px}
+.layer span{color:var(--dim);font-size:.94rem}
+.l1{background:linear-gradient(90deg,rgba(46,230,168,.16),rgba(46,230,168,.03));border-color:rgba(46,230,168,.35)}
+.l2{background:linear-gradient(90deg,rgba(90,169,255,.16),rgba(90,169,255,.03));border-color:rgba(90,169,255,.35)}
+.l3{background:linear-gradient(90deg,rgba(192,132,252,.16),rgba(192,132,252,.03));border-color:rgba(192,132,252,.35)}
+.l4{background:linear-gradient(90deg,rgba(255,194,75,.14),rgba(255,194,75,.03));border-color:rgba(255,194,75,.32)}
+
+/ badges /
+.b{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.74rem;font-weight:700;
+letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.b-read{background:rgba(46,230,168,.16);color:var(--read);border:1px solid rgba(46,230,168,.45)}
+.b-skim{background:rgba(255,194,75,.14);color:var(--skim);border:1px solid rgba(255,194,75,.42)}
+.b-ref{background:rgba(90,169,255,.14);color:var(--ref);border:1px solid rgba(90,169,255,.42)}
+.b-skip{background:rgba(255,107,139,.13);color:var(--skip);border:1px solid rgba(255,107,139,.4)}
+.b-dup{background:rgba(192,132,252,.15);color:var(--dup);border:1px solid rgba(192,132,252,.45)}
+.b-live{background:rgba(46,230,168,.1);color:var(--read);border:1px solid rgba(46,230,168,.35)}
+.b-frozen{background:rgba(154,166,201,.12);color:var(--dim);border:1px solid rgba(154,166,201,.3)}
+
+/ cards /
+.cards{display:grid;gap:16px;margin-top:18px}
+.card{background:linear-gradient(160deg,var(--card),var(--card2));border:1px solid var(--line);
+border-radius:16px;padding:18px 20px;border-left:5px solid var(--line)}
+.card.read{border-left-color:var(--read)} .card.skim{border-left-color:var(--skim)}
+.card.ref{border-left-color:var(--ref)} .card.skip{border-left-color:var(--skip)}
+.card.dup{border-left-color:var(--dup)}
+.card h4{margin:0 0 2px;font-size:1.08rem}
+.card .file{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;color:#ffd9a0}
+.meta{color:var(--dim);font-size:.85rem;margin:4px 0 10px}
+.meta em{font-style:normal;color:#c5cfee}
+.card p{margin:8px 0}
+.verdict{margin-top:12px;padding:10px 13px;border-radius:10px;background:rgba(255,255,255,.035);
+border:1px dashed var(--line);font-size:.93rem}
+.verdict b{color:#fff}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+
+/ table /
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:16px}
+table{border-collapse:collapse;width:100%;font-size:.91rem;min-width:760px}
+th{background:#0f1730;text-align:left;padding:11px 13px;color:#bcc8ee;font-size:.78rem;
+text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}
+td{padding:10px 13px;border-bottom:1px solid rgba(42,53,99,.55);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(90,169,255,.05)}
+td.f{font-family:ui-monospace,Menlo,monospace;font-size:.84rem;color:#ffd9a0;white-space:nowrap}
+
+/ callouts /
+.callout{border-radius:14px;padding:16px 20px;margin:20px 0;border:1px solid}
+.warn{background:rgba(255,107,139,.08);border-color:rgba(255,107,139,.35)}
+.tip{background:rgba(46,230,168,.07);border-color:rgba(46,230,168,.32)}
+.note{background:rgba(192,132,252,.07);border-color:rgba(192,132,252,.32)}
+.callout b.t{display:block;margin-bottom:6px;font-size:.95rem;letter-spacing:.02em}
+
+/ path /
+.path{counter-reset:step;display:grid;gap:14px;margin-top:18px}
+.step{position:relative;padding:16px 20px 16px 62px;border-radius:14px;
+background:linear-gradient(160deg,var(--card),var(--card2));border:1px solid var(--line)}
+.step::before{counter-increment:step;content:counter(step);position:absolute;left:16px;top:15px;
+width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;
+background:linear-gradient(135deg,#2ee6a8,#5aa9ff);color:#07122a}
+.step b{display:block;margin-bottom:3px}
+.step span{color:var(--dim);font-size:.93rem}
+.kicker{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+ul{margin:8px 0 8px 0;padding-left:20px} li{margin:5px 0}
+footer{margin-top:60px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim);font-size:.87rem}
+.pill-legend{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 0}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="kicker">A field guide to the ELF paper trail</div>
+<h1>Which ELF spec should I actually read?</h1>
+<p class="sub">Every document at <code>refspecs.linuxfoundation.org/elf/</code>, plus Sun's Linker and Libraries Guide and the modern x86-64 psABI — sorted into <em>read it</em>, <em>skim it</em>, <em>keep as reference</em>, and <em>don't bother</em>. Metadata below was verified by downloading each PDF.</p>
+<div class="pill-legend">
+<span class="b b-read">Read it</span>
+<span class="b b-skim">Skim it</span>
+<span class="b b-ref">Reference only</span>
+<span class="b b-skip">Skip unless targeting it</span>
+<span class="b b-dup">Duplicate file</span>
+</div>
+</div></header>
+
+<div class="wrap">
+
+<h2><span class="num">01</span>The one idea that removes the confusion</h2>
+<p class="lede">There is no single "ELF specification". ELF is defined in <b>layers</b>, and every file in that directory sits on exactly one layer. Once you know which layer a document belongs to, the whole list stops looking like a pile of near-duplicates.</p>
+
+<div class="layers">
+<div class="layer l1"><b>Layer 1 — gABI (generic ABI)</b>
+<span>The processor-independent core: ELF header, sections, segments, symbol table, relocation <em>mechanics</em>, dynamic linking, program loading. This is "ELF" proper — Chapters 4 and 5 of the System V ABI. <b>~90% of what you need to master is here.</b></span></div>
+<div class="layer l2"><b>Layer 2 — psABI (processor supplement)</b>
+<span>Fills in the blanks the gABI deliberately leaves open for each CPU: the <code>e_machine</code> value, the actual relocation types (<code>R_X86_64_PC32</code>…), calling convention, stack layout, PLT/GOT shape, TLS model. One document per architecture.</span></div>
+<div class="layer l3"><b>Layer 3 — OS / vendor supplement</b>
+<span>What a specific OS adds on top: Linux's <code>PT_GNU_STACK</code>, <code>.gnu.hash</code>, symbol versioning, <code>DT_GNU_</code>; Solaris' filters, direct bindings, <code>SUNW_</code> sections. Not in the gABI, not in the psABI.</span></div>
+<div class="layer l4"><b>Layer 4 — the reality layer</b>
+<span>What linkers and loaders actually implement. <code>elf.h</code>, <code>glibc/elf/dl-.c</code>, <code>readelf -a</code>, <code>bfd/elf64-x86-64.c</code>. The specs are quiet or out of date on plenty of things the toolchain does every day.</span></div>
+</div>
+
+<div class="callout tip">
+<b class="t">💡 The short answer</b>
+To master ELF you need <b>three</b> documents, not nineteen: the <b>gABI Chapters 4 & 5</b> (layer 1), the <b>x86-64 psABI v1.0</b> (layer 2), and <b>Sun's Linker and Libraries Guide</b> (layer 3 + the best prose explanation of dynamic linking ever written). Everything else in that directory is a different CPU, an older draft, or a literal duplicate file.
+</div>
+
+<h2><span class="num">02</span>The whole directory at a glance</h2>
+<p class="lede">All 17 PDFs + 1 subdirectory at <code>refspecs.linuxfoundation.org/elf/</code>. Note the server timestamps all read 2015-01-28 — that is when the mirror was frozen, <b>not</b> the document dates. Real dates below come from inside each PDF.</p>
+
+<div class="tblwrap"><table>
+<thead><tr><th>File</th><th>What it really is</th><th>Layer</th><th>Real date</th><th>Pages</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td class="f">elf.pdf</td><td>TIS <b>Executable and Linking Format Specification v1.2</b> — the famous standalone "ELF book"</td><td>1</td><td>May 1995</td><td>106</td><td><span class="b b-read">Read it</span></td></tr>
+<tr><td class="f">gabi41.pdf</td><td><b>System V ABI, Edition 4.1</b> (SCO) — the printed generic ABI</td><td>1</td><td>1997</td><td>271</td><td><span class="b b-skim">Skim it</span></td></tr>
+<tr><td class="f">gabi4+/</td><td><b>gABI 4.1+ living draft</b>, HTML, Ch.4 & 5 only — this mirror is the <em>24 April 2001</em> snapshot</td><td>1</td><td>2001 snap</td><td>HTML</td><td><span class="b b-read">Read it</span></td></tr>
+<tr><td class="f">elfspec.pdf</td><td>TIS <b>Portable Formats Specification v1.1</b> — ELF + DWARF 1.1 + OMF in one bundle</td><td>1</td><td>Oct 1993</td><td>262</td><td><span class="b b-skim">Skim it</span></td></tr>
+<tr><td class="f">TIS1.1.pdf</td><td><b>Byte-identical to elfspec.pdf</b> (same MD5) — just a second filename</td><td>1</td><td>Oct 1993</td><td>262</td><td><span class="b b-dup">Duplicate</span></td></tr>
+<tr><td class="f">abi386-4.pdf</td><td>System V ABI <b>Intel386 Supplement, 4th Ed.</b> — the 32-bit x86 psABI</td><td>2</td><td>1997</td><td>377</td><td><span class="b b-ref">Reference</span></td></tr>
+<tr><td class="f">x86_64-abi-0.99.pdf</td><td>AMD64 psABI <b>Draft 0.99.6</b> — the version everyone cited for a decade</td><td>2</td><td>Jul 2012</td><td>128</td><td><span class="b b-skim">Superseded</span></td></tr>
+<tr><td class="f">x86_64-abi-0.98.pdf</td><td>AMD64 psABI Draft 0.98</td><td>2</td><td>Sep 2006</td><td>—</td><td><span class="b b-skip">Historical</span></td></tr>
+<tr><td class="f">x86_64-abi-0.95.pdf</td><td>AMD64 psABI Draft 0.95</td><td>2</td><td>Jan 2005</td><td>—</td><td><span class="b b-skip">Historical</span></td></tr>
+<tr><td class="f">x86_64-abi-0.21.pdf</td><td>x86-64 psABI Draft 0.21 — earliest one kept here</td><td>2</td><td>Sep 2002</td><td>68</td><td><span class="b b-skip">Historical</span></td></tr>
+<tr><td class="f">x86_64-SysV-psABI.pdf</td><td><b>Byte-identical to x86_64-abi-0.21.pdf</b> (same MD5) — misleadingly generic name</td><td>2</td><td>Sep 2002</td><td>68</td><td><span class="b b-dup">Duplicate</span></td></tr>
+<tr><td class="f">IA64-SysV-psABI.pdf</td><td>Intel <b>Itanium</b> processor-specific ABI, doc 245370-003</td><td>2</td><td>May 2001</td><td>72</td><td><span class="b b-skip">Dead arch</span></td></tr>
+<tr><td class="f">elfspec_ppc.pdf</td><td>System V ABI <b>PowerPC Supplement</b> (Zucker/SunSoft, Karhi/IBM)</td><td>2</td><td>Sep 1995</td><td>150</td><td><span class="b b-skip">If PPC</span></td></tr>
+<tr><td class="f">mipsabi.pdf</td><td>System V ABI <b>MIPS RISC Supplement, 3rd Ed.</b> (SCO)</td><td>2</td><td>1996</td><td>258</td><td><span class="b b-skip">If MIPS</span></td></tr>
+<tr><td class="f">ARMELF.pdf</td><td><b>ARM ELF</b>, doc SWS ESPC 0003 <b>B-02</b> — the newer of the two</td><td>2</td><td>Jun 2001</td><td>42</td><td><span class="b b-skip">Obsolete</span></td></tr>
+<tr><td class="f">ARMELFA08.pdf</td><td><b>ARM ELF</b>, doc SWS ESPC 0003 <b>A-08</b> — older revision of the same spec</td><td>2</td><td>Sep 1999</td><td>44</td><td><span class="b b-skip">Obsolete</span></td></tr>
+<tr><td class="f">elf-pa.pdf</td><td><b>PA-RISC</b> ELF supplement v1.43, incl. HP/HP-UX extensions</td><td>2+3</td><td>Oct 1997</td><td>14</td><td><span class="b b-skip">Dead arch</span></td></tr>
+<tr><td class="f">m8-16eabi.pdf</td><td>Motorola <b>8/16-bit embedded ABI</b> (68HC05/08/11/12/16) v2.0</td><td>2</td><td>1998</td><td>21</td><td><span class="b b-skip">Niche</span></td></tr>
+<tr><td class="f">index.html</td><td>The directory page itself</td><td>—</td><td>—</td><td>—</td><td><span class="b b-skip">n/a</span></td></tr>
+</tbody></table></div>
+<p class="meta" style="margin-top:10px">* Both ARM files are superseded by ARM's current <em>ELF for the Arm Architecture</em> (ABI-AA / <code>aaelf32</code>, <code>aaelf64</code>) on developer.arm.com.</p>
+
+<div class="callout warn">
+<b class="t">⚠️ Two files in that directory are literal duplicates — verified by checksum</b>
+<ul>
+<li><code>elfspec.pdf</code> and <code>TIS1.1.pdf</code> → same MD5 <code>ff488bc5…</code>, 262 pages, both the TIS Portable Formats Spec v1.1.</li>
+<li><code>x86_64-SysV-psABI.pdf</code> and <code>x86_64-abi-0.21.pdf</code> → same MD5 <code>7bbafd54…</code>, both Draft 0.21 from 2002. <b>The neutral-looking name is a trap</b>: it is not "the" x86-64 psABI, it is the oldest draft on the server, 23 years stale.</li>
+</ul>
+Half of the "so many files!" feeling is this: duplicate names and four archived drafts of one document.
+</div>
+
+<h2><span class="num">03</span>The documents that matter, in detail</h2>
+
+<div class="cards">
+
+<div class="card read">
+<div class="row"><h4>TIS ELF Specification v1.2</h4><span class="b b-read">Read it — start here</span></div>
+<div class="file">refspecs.linuxfoundation.org/elf/elf.pdf</div>
+<div class="meta">TIS Committee · <em>May 1995</em> · 106 pages · Layer 1 · <span class="b b-frozen">Frozen 1995</span></div>
+<p>The classic. Three chapters — Object Files, Program Loading & Dynamic Linking, C Library — extracted from the System V ABI and its Intel386 supplement and republished standalone. It is short, exceptionally clearly written, and it is the document every ELF tutorial, blog post, and <code>man 5 elf</code> page is secretly paraphrasing.</p>
+<p><b>The catch:</b> it is <b>ELF32 only</b>. There is no <code>Elf64_Ehdr</code> in it, no <code>ELFCLASS64</code> discussion, nothing about the many later additions (extended section numbering, <code>SHT_GNU_*</code>, TLS, <code>DT_GNU_HASH</code>, section groups).</p>
+<div class="verdict"><b>Verdict:</b> read it cover to cover — it's a weekend, not a month — but read it knowing it is the <em>1995</em> picture. Then patch your mental model with the living gABI below. Nothing in it is <em>wrong</em>; it's just the 32-bit subset.</div>
+</div>
+
+<div class="card read">
+<div class="row"><h4>gABI 4.1+ — System V ABI, living DRAFT (Ch. 4 & 5)</h4><span class="b b-read">Read it — the real reference</span></div>
+<div class="file">sco.com/developers/gabi/latest/contents.html  ·  mirror: refspecs.linuxfoundation.org/elf/gabi4+/contents.html</div>
+<div class="meta">SCO → Caldera → Xinuos · <em>latest draft: 10 June 2013</em> · HTML · Layer 1 · <span class="b b-live">Most current gABI</span></div>
+<p>This is <b>the</b> canonical modern definition of ELF. Only Chapters 4 (Object Files) and 5 (Program Loading and Dynamic Linking) were ever maintained after Edition 4.1 — those are precisely the ELF chapters — and they accumulated 16 years of amendments: <code>Elf64_</code> types, <code>SHT_GROUP</code>, <code>SHN_XINDEX</code> extended numbering, <code>STT_TLS</code> / <code>PT_TLS</code>, <code>PT_GNU_</code>, <code>SHF_COMPRESSED</code>, symbol visibility (<code>STV_HIDDEN</code>…), the reserved OS/processor ranges, and the registry of <code>e_machine</code> values.</p>
+<div class="callout note" style="margin:12px 0 0"><b class="t">Version trap</b> The LF mirror <code>gabi4+/</code> is the <b>24 April 2001</b> snapshot. The SCO/Xinuos site serves the <b>10 June 2013</b> one. Same URL shape, 12 years apart — always prefer the <code>sco.com</code> one, and read its <a href="https://www.sco.com/developers/gabi/latest/revision.html">Revision History</a> page, which is a superb changelog of how ELF grew.</div>
+<div class="verdict"><b>Verdict:</b> read after the TIS book, then keep it open permanently. It's the diff between "ELF in 1995" and "ELF as your linker implements it."</div>
+</div>
+
+<div class="card read">
+<div class="row"><h4>ELF Object File Format v4.3 DRAFT — Xinuos</h4><span class="b b-read">Read it — the newest gABI</span></div>
+<div class="file">gabi.xinuos.com/elf.pdf</div>
+<div class="meta">Xinuos, Inc. · <em>4 September 2025</em> · 83 pages · Layer 1 · <span class="b b-live">Newest of all</span></div>
+<p>Not on the refspecs mirror at all, so most people never find it. Xinuos took the gABI ELF chapters, reformatted them as a proper standalone PDF, and put out v4.3 for public review in 2025. It is the same material as the living draft above, better typeset and slightly further along.</p>
+<div class="verdict"><b>Verdict:</b> if you want <em>one</em> modern PDF of the core spec, this is it. Use the HTML gABI when you want to link to a specific paragraph, this when you want to read.</div>
+</div>
+
+<div class="card read">
+<div class="row"><h4>AMD64 psABI v1.0 (x86-64)</h4><span class="b b-read">Read it — your CPU's half</span></div>
+<div class="file">gitlab.com/x86-psABIs/x86-64-ABI · the <code>abi.pdf</code> CI artifact you linked</div>
+<div class="meta">Lu, Matz, Girkar, Hubička, Jaeger, Mitchell · <em>12 March 2025, Version 1.0</em> · 154 pages · Layer 2 · <span class="b b-live">Current & maintained</span></div>
+<p>After 20 years of "Draft 0.9x", the x86-64 psABI finally shipped a <b>1.0</b>. This is where the things the gABI refuses to say live: the SysV calling convention (the <code>INTEGER</code>/<code>SSE</code>/<code>MEMORY</code> argument classification algorithm), the red zone, <code>%rbp</code>/stack frame rules, the full relocation table, the PLT/GOT/IFUNC machinery, all four TLS models, the medium/large code models, and the LP64 vs ILP32 (x32) split.</p>
+<p>The URL you have is a <b>CI job artifact</b> — those expire. Prefer the <a href="https://gitlab.com/x86-psABIs/x86-64-ABI/-/releases">Releases page</a> or build <code>abi.pdf</code> from the LaTeX sources in the repo.</p>
+<div class="verdict"><b>Verdict:</b> essential, and it replaces <code>x86_64-abi-0.99.pdf</code> on the refspecs mirror (Draft 0.99.6, 2012). Read ch. 3 (low-level system info) and ch. 4–5 closely; chapters on Fortran etc. you can ignore.</div>
+</div>
+
+<div class="card read">
+<div class="row"><h4>Sun/Oracle — Linker and Libraries Guide</h4><span class="b b-read">Read it — the missing manual</span></div>
+<div class="file">filibeto.org/sun/lib/solaris10-docs/817-1984.pdf</div>
+<div class="meta">Sun Microsystems · Part No. 817‑1984‑10, <em>January 2005</em> · 352 pages · Layers 1+3+4 · <span class="b b-frozen">Solaris 10 era</span></div>
+<p>The single best <b>explanatory</b> ELF document ever written, and the one people most often miss. The formal specs tell you what a field <em>is</em>; this tells you what the link-editor and the runtime linker <em>do with it</em> and <em>why</em>. Chapter 6 is a full ELF reference in its own right, but the real value is the surrounding narrative: symbol resolution order, interposition, lazy binding step by step, <code>RPATH</code>/<code>RUNPATH</code> search rules, versioning (Sun invented ELF symbol versioning; glibc adopted it), initialization/finalization ordering, relocation processing.</p>
+<div class="verdict"><b>Verdict:</b> read chapters 1–6 even though you're on Linux. Mentally tag the <code>SUNW_</code>/filter/direct-binding parts as Solaris-only. It will teach you more working ELF intuition than any other single PDF here.</div>
+</div>
+
+<div class="card skim">
+<div class="row"><h4>System V ABI Edition 4.1 (gabi41.pdf)</h4><span class="b b-skim">Skim — historical base</span></div>
+<div class="file">refspecs.linuxfoundation.org/elf/gabi41.pdf · also sco.com/developers/devspecs/gabi41.pdf</div>
+<div class="meta">The Santa Cruz Operation · <em>1997</em> · 271 pages · Layer 1 · <span class="b b-frozen">Superseded by the 4.1+ draft</span></div>
+<p>The complete printed generic ABI — and "generic ABI" meant far more than ELF: system libraries, the C library interface, formats and protocols, the whole System V application environment. Chapters 4 and 5 are the ELF part, and those are exactly the chapters that were later carved out and maintained as the 4.1+ living draft.</p>
+<div class="verdict"><b>Verdict:</b> don't read it as your ELF spec — it's 1997 and pre-ELF64. Skim Ch. 4–5 once if you like seeing the original wording, then use the 4.1+ draft instead. Genuinely useful only for archaeology: "was this field always here, or added later?"</div>
+</div>
+
+<div class="card skim">
+<div class="row"><h4>TIS Portable Formats Spec v1.1 (elfspec.pdf = TIS1.1.pdf)</h4><span class="b b-skim">Skim — for the DWARF half</span></div>
+<div class="file">refspecs.linuxfoundation.org/elf/elfspec.pdf</div>
+<div class="meta">TIS Committee · <em>October 1993</em> · 262 pages · Layer 1 · <span class="b b-frozen">Oldest here</span></div>
+<p>The bundle <code>elf.pdf</code> was later extracted from: ELF (v1.1) + <b>DWARF Debugging Information Format v1.1</b> + <b>OMF</b> (Intel's Object Module Format). Its ELF section is an older revision than <code>elf.pdf</code>'s v1.2.</p>
+<div class="verdict"><b>Verdict:</b> skip its ELF part (use v1.2), and don't use its DWARF part either — DWARF 1 is long dead; go to <a href="https://dwarfstd.org/">dwarfstd.org</a> for DWARF 5. Worth 10 minutes only for the historical context of how ELF, DWARF and OMF were standardized together.</div>
+</div>
+
+<div class="card ref">
+<div class="row"><h4>Intel386 psABI, 4th Edition (abi386-4.pdf)</h4><span class="b b-ref">Reference</span></div>
+<div class="file">refspecs.linuxfoundation.org/elf/abi386-4.pdf</div>
+<div class="meta">SCO · <em>1997</em> · 377 pages · Layer 2 · <span class="b b-frozen">Superseded</span></div>
+<p>The 32-bit x86 processor supplement — <code>R_386_32</code>, <code>R_386_PC32</code>, <code>R_386_GOTPC</code>, the cdecl calling convention, the classic PLT layout. If you ever read 32-bit disassembly or wonder why the x86-64 psABI keeps saying "differences from the Intel386 ABI", this is the other half of that sentence.</p>
+<div class="verdict"><b>Verdict:</b> look things up in it; don't read it. For live 32-bit work use the maintained <a href="https://gitlab.com/x86-psABIs/i386-ABI">i386 psABI on GitLab</a> (or <a href="https://uclibc.org/docs/psABI-i386.pdf">psABI-i386 v1.1</a>) instead — this 1997 edition predates TLS and modern PIC conventions.</div>
+</div>
+
+<div class="card skip">
+<div class="row"><h4>Everything else: PowerPC, MIPS, ARM×2, Itanium, PA-RISC, M68HC</h4><span class="b b-skip">Skip unless you target that chip</span></div>
+<div class="file">elfspec_ppc.pdf · mipsabi.pdf · ARMELF.pdf · ARMELFA08.pdf · IA64-SysV-psABI.pdf · elf-pa.pdf · m8-16eabi.pdf</div>
+<div class="meta">1995–2001 · Layer 2 · <span class="b b-frozen">Archived</span></div>
+<p>These are seven <em>different CPUs'</em> copies of the same job the x86-64 psABI does for you. They exist on the mirror because the Linux Foundation archived one psABI per architecture the LSB once covered. Reading them teaches you nothing new about ELF itself — the layer-1 content is identical by construction; only relocation types and calling conventions differ.</p>
+<p>Two of them are also stale even for their own architecture: <code>ARMELF.pdf</code> (2001) and <code>ARMELFA08.pdf</code> (1999) are two revisions of one old ARM document, both replaced by ARM's current <code>aaelf32</code>/<code>aaelf64</code>. <code>IA64</code> and <code>PA-RISC</code> are dead architectures.</p>
+<div class="verdict"><b>Verdict:</b> skip all seven. Open exactly one, once, and only if you port something to that chip — and even then check whether a newer psABI exists upstream first (ARM, RISC-V, LoongArch, s390x all maintain their own now).</div>
+</div>
+
+</div>
+
+<h2><span class="num">04</span>What's outdated, and what replaced it</h2>
+<p class="lede">The refspecs mirror is an <b>archive frozen in January 2015</b>. It is excellent for finding historical documents and terrible as a source of current truth. The mapping:</p>
+
+<div class="tblwrap"><table>
+<thead><tr><th>If you have…</th><th>Status</th><th>Use instead</th></tr></thead>
+<tbody>
+<tr><td class="f">elf/gabi4+/ (2001 snapshot)</td><td><span class="b b-skim">12 years behind</span></td><td><a href="https://www.sco.com/developers/gabi/latest/contents.html">gabi/latest</a> (2013) or <a href="https://gabi.xinuos.com/elf.pdf">Xinuos v4.3</a> (2025)</td></tr>
+<tr><td class="f">gabi41.pdf (1997)</td><td><span class="b b-skip">Pre-ELF64</span></td><td>Same as above — the 4.1+ draft <em>is</em> its successor</td></tr>
+<tr><td class="f">elf.pdf — TIS 1.2 (1995)</td><td><span class="b b-skim">32-bit only, but still worth reading</span></td><td>Read it, then diff against the current gABI</td></tr>
+<tr><td class="f">x86_64-abi-0.99.pdf (2012)</td><td><span class="b b-skim">Superseded</span></td><td><a href="https://gitlab.com/x86-psABIs/x86-64-ABI/-/releases">x86-64 psABI v1.0</a> (2025)</td></tr>
+<tr><td class="f">x86_64-SysV-psABI.pdf</td><td><span class="b b-skip">Trap: it's Draft 0.21 from 2002</span></td><td>Same — v1.0 on GitLab</td></tr>
+<tr><td class="f">abi386-4.pdf (1997)</td><td><span class="b b-ref">Historical</span></td><td><a href="https://gitlab.com/x86-psABIs/i386-ABI">i386 psABI on GitLab</a></td></tr>
+<tr><td class="f">ARMELF*.pdf (1999/2001)</td><td><span class="b b-skip">Obsolete</span></td><td>ARM ABI-AA <code>aaelf32</code> / <code>aaelf64</code> on developer.arm.com</td></tr>
+<tr><td class="f">817-1984.pdf (Solaris 10, 2005)</td><td><span class="b b-live">Still excellent</span></td><td>Optionally the Oracle Solaris 11 edition (<a href="https://docs.oracle.com/cd/E26505_01/pdf/E26506.pdf">E26506</a>, 2013)</td></tr>
+<tr><td class="f">Old x86-64.org/documentation/abi.pdf links</td><td><span class="b b-skip">Dead host</span></td><td>GitLab <code>x86-psABIs</code> — the project moved</td></tr>
+</tbody></table></div>
+
+<div class="callout warn">
+<b class="t">⚠️ The biggest gap: none of these describe Linux</b>
+The gABI reserves ranges for OS extensions; Linux fills them in and documents them essentially nowhere authoritative. <code>PT_GNU_STACK</code>, <code>PT_GNU_RELRO</code>, <code>PT_GNU_PROPERTY</code>, <code>.gnu.hash</code>, <code>DT_GNU_HASH</code>, <code>STB_GNU_UNIQUE</code>, <code>R_X86_64_IRELATIVE</code>/IFUNC, GNU symbol versioning, build-IDs, <code>DT_RELR</code> — for these your real references are <code>/usr/include/elf.h</code>, the <a href="https://sourceware.org/binutils/">binutils</a> and <a href="https://sourceware.org/glibc/">glibc</a> sources, the <a href="https://groups.google.com/g/generic-abi">generic-abi mailing list</a>, and <a href="https://maskray.me/blog/">MaskRay's blog</a>. Expect to read code, not specs.
+</div>
+
+<h2><span class="num">05</span>A concrete path to mastering ELF</h2>
+<p class="lede">Roughly in order. Steps 1–4 are the core; everything after is depth.</p>
+
+<div class="path">
+<div class="step"><b>Read <code>man 5 elf</code> once, then forget it</b><span>It's a field-by-field cheat sheet, great for recall, useless for understanding. It's also where your list of sources came from — that bibliography is the man page's "SEE ALSO", not a curriculum.</span></div>
+<div class="step"><b>Read TIS ELF v1.2 (<code>elf.pdf</code>) end to end</b><span>106 pages. This builds the actual mental model: sections vs. segments, the two views of the same file, the symbol table, how relocation works, how the dynamic linker bootstraps. Do it with <code>readelf -a /bin/ls</code> open in another window.</span></div>
+<div class="step"><b>Read the current gABI Ch. 4 & 5, plus its Revision History</b><span>Xinuos v4.3 PDF or <code>sco.com/developers/gabi/latest</code>. This is where you pick up ELF64, TLS, section groups, visibility, compressed sections, extended section indices — everything the 1995 book predates.</span></div>
+<div class="step"><b>Read the x86-64 psABI v1.0, chapters 3–5</b><span>Now relocation stops being abstract. You'll understand why <code>-fPIC</code> changes codegen, what the GOT and PLT physically are, what <code>R_X86_64_GOTPCRELX</code> relaxation means, and how the four TLS models differ.</span></div>
+<div class="step"><b>Read Sun's Linker and Libraries Guide, ch. 1–6</b><span>The "why" layer. Symbol resolution and interposition, lazy binding, versioning, init/fini ordering, runpath semantics. This is what turns spec knowledge into linker intuition.</span></div>
+<div class="step"><b>Read <code>/usr/include/elf.h</code> straight through</b><span>~3000 lines. It is, in practice, the most complete and most current ELF "spec" on your machine — every constant from every supplement plus all the GNU extensions no document covers.</span></div>
+<div class="step"><b>Build things and read the tools</b><span>Parse an ELF yourself in C or Python; write a tiny static linker; hand-craft a minimal ELF executable; then read <code>glibc/elf/rtld.c</code> and <code>dl-reloc.c</code>. <code>readelf -a</code>, <code>objdump -dr</code>, <code>eu-readelf</code>, <code>LD_DEBUG=all ./prog</code> are your microscope.</span></div>
+<div class="step"><b>Follow the living edge</b><span>The <a href="https://groups.google.com/g/generic-abi">generic-abi</a> group is where new ELF features are actually proposed and argued (this is where <code>SHF_COMPRESSED</code>, <code>DT_RELR</code>, <code>PT_GNU_PROPERTY</code> came from). MaskRay's articles on linkers and relocations are the best modern writing on the subject.</span></div>
+</div>
+
+<div class="callout tip" style="margin-top:28px">
+<b class="t">✅ If you only keep four bookmarks</b>
+<ul>
+<li><a href="https://refspecs.linuxfoundation.org/elf/elf.pdf">elf.pdf</a> — TIS ELF 1.2, the readable classic (32-bit)</li>
+<li><a href="https://gabi.xinuos.com/elf.pdf">gabi.xinuos.com/elf.pdf</a> — current gABI ELF, v4.3 (2025)</li>
+<li><a href="https://gitlab.com/x86-psABIs/x86-64-ABI/-/releases">x86-64 psABI v1.0</a> — your architecture's half</li>
+<li><a href="https://www.filibeto.org/sun/lib/solaris10-docs/817-1984.pdf">817-1984.pdf</a> — Sun's Linker and Libraries Guide, the "why"</li>
+</ul>
+</div>
+
+<footer>
+Document dates, page counts and duplicate detection were taken from the PDFs themselves (<code>pdfinfo</code>, <code>pdftotext</code>, <code>md5sum</code>), not from the directory listing — the 2015-01-28 timestamps on refspecs are mirror-sync dates. Generated 22 September 2026.
+</footer>
+
+</div>
+</body>
+</html>
