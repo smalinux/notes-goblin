@@ -1,233 +1,227 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Reverse Engineering Roadmap</title>
-  <style>
-    html {
-      color: #1a1a1a;
-      background-color: #fdfdfd;
-    }
-    body {
-      margin: 0 auto;
-      max-width: 36em;
-      padding-left: 50px;
-      padding-right: 50px;
-      padding-top: 50px;
-      padding-bottom: 50px;
-      hyphens: auto;
-      overflow-wrap: break-word;
-      text-rendering: optimizeLegibility;
-      font-kerning: normal;
-    }
-    @media (max-width: 600px) {
-      body {
-        font-size: 0.9em;
-        padding: 12px;
-      }
-      h1 {
-        font-size: 1.8em;
-      }
-    }
-    @media print {
-      html {
-        background-color: white;
-      }
-      body {
-        background-color: transparent;
-        color: black;
-        font-size: 12pt;
-      }
-      p, h2, h3 {
-        orphans: 3;
-        widows: 3;
-      }
-      h2, h3, h4 {
-        page-break-after: avoid;
-      }
-    }
-    p {
-      margin: 1em 0;
-    }
-    a {
-      color: #1a1a1a;
-    }
-    a:visited {
-      color: #1a1a1a;
-    }
-    img {
-      max-width: 100%;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      margin-top: 1.4em;
-    }
-    h5, h6 {
-      font-size: 1em;
-      font-style: italic;
-    }
-    h6 {
-      font-weight: normal;
-    }
-    ol, ul {
-      padding-left: 1.7em;
-      margin-top: 1em;
-    }
-    li > ol, li > ul {
-      margin-top: 0;
-    }
-    blockquote {
-      margin: 1em 0 1em 1.7em;
-      padding-left: 1em;
-      border-left: 2px solid #e6e6e6;
-      color: #606060;
-    }
-    code {
-      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
-      font-size: 85%;
-      margin: 0;
-      hyphens: manual;
-    }
-    pre {
-      margin: 1em 0;
-      overflow: auto;
-    }
-    pre code {
-      padding: 0;
-      overflow: visible;
-      overflow-wrap: normal;
-    }
-    .sourceCode {
-     background-color: transparent;
-     overflow: visible;
-    }
-    hr {
-      background-color: #1a1a1a;
-      border: none;
-      height: 1px;
-      margin: 1em 0;
-    }
-    table {
-      margin: 1em 0;
-      border-collapse: collapse;
-      width: 100%;
-      overflow-x: auto;
-      display: block;
-      font-variant-numeric: lining-nums tabular-nums;
-    }
-    table caption {
-      margin-bottom: 0.75em;
-    }
-    tbody {
-      margin-top: 0.5em;
-      border-top: 1px solid #1a1a1a;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    th {
-      border-top: 1px solid #1a1a1a;
-      padding: 0.25em 0.5em 0.25em 0.5em;
-    }
-    td {
-      padding: 0.125em 0.5em 0.25em 0.5em;
-    }
-    header {
-      margin-bottom: 4em;
-      text-align: center;
-    }
-    #TOC li {
-      list-style: none;
-    }
-    #TOC ul {
-      padding-left: 1.3em;
-    }
-    #TOC > ul {
-      padding-left: 0;
-    }
-    #TOC a:not(:hover) {
-      text-decoration: none;
-    }
-    code{white-space: pre-wrap;}
-    span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
-    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-    /* The extra [class] is a hack that increases specificity enough to
-       override a similar rule in reveal.js */
-    ul.task-list[class]{list-style: none;}
-    ul.task-list li input[type="checkbox"] {
-      font-size: inherit;
-      width: 0.8em;
-      margin: 0 0.8em 0.2em -1.6em;
-      vertical-align: middle;
-    }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reverse Engineering Roadmap</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 70px; }
+  code, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  a { color: var(--accent); }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 8px; font-size: 38px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 720px; margin: 0 auto; font-size: 16px; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 22px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0d1117;
+  }
+  h2.sec .hint { color: var(--dim); font-weight: 400; font-size: 14px; margin-left: auto; }
+  .c1{background:var(--accent)} .c2{background:var(--orange)} .c3{background:var(--green)}
+  .c4{background:var(--yellow)} .c5{background:var(--purple)} .c6{background:var(--pink)}
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 16px 12px; margin: 14px 0;
+  }
+
+  ol.steps { margin: 10px 0 6px; padding-left: 0; list-style: none; counter-reset: none; }
+  ol.steps li {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 7px 4px; border-bottom: 1px solid #21262d;
+  }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps .num {
+    flex: none; min-width: 30px; text-align: right; font-weight: 700; font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+  }
+  .s1 .num { color: var(--accent); } .s2 .num { color: var(--orange); }
+  .s3 .num { color: var(--green); } .s4 .num { color: var(--yellow); }
+  .s5 .num { color: var(--purple); }
+  ol.steps b { color: #fff; }
+  ol.steps .d { color: var(--dim); }
+
+  .callout {
+    border-left: 3px solid var(--yellow); background: #191d13aa; border-radius: 0 8px 8px 0;
+    padding: 9px 14px; margin: 10px 0; font-size: 13.5px; color: #d8e0c9;
+  }
+  .callout.blue { border-color: var(--accent); background: #12233c88; color: #cfe0f5; }
+  .callout.green { border-color: var(--green); background: #11261a88; color: #d3ecd9; }
+  .callout b { color: #fff; }
+
+  .svgbox { margin: 20px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 26px 0 6px; }
+  .toc a {
+    text-decoration: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+    background: #161b22; border: 1px solid var(--border); color: var(--dim);
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+</style>
 </head>
 <body>
-<h1 id="reverse-engineering-roadmap">Reverse Engineering Roadmap</h1>
-<h2 id="foundations">Foundations</h2>
-<ol type="1">
-<li>ELF format</li>
-<li>Understand program execution and program load</li>
-<li>Stack &amp; functions</li>
-<li>Assembly</li>
-<li>C language — most RE targets compiled C/C++. Read C, know how
-compilers translate it</li>
-<li>Memory layout — heap, stack, globals, virtual memory, paging,
-ASLR</li>
-<li>Calling conventions — SysV, stdcall, fastcall, how args/returns
-pass</li>
-<li>CPU architecture — registers, flags, x86-64 first, then ARM64</li>
-<li>Endianness, data types, structs in memory, alignment/padding</li>
-</ol>
-<h2 id="tooling">Tooling</h2>
-<ol start="10" type="1">
-<li>Disassemblers — Ghidra (free), IDA, Binary Ninja</li>
-<li>Debuggers — GDB (+ pwndbg/GEF), x64dbg on Windows</li>
-<li><code>objdump</code>, <code>readelf</code>, <code>strings</code>,
-<code>nm</code>, <code>ltrace</code>, <code>strace</code>,
-<code>xxd</code></li>
-<li>Radare2/rizin — optional but good for scripting</li>
-<li>Hex editors, patching binaries</li>
-</ol>
-<h2 id="core-skills">Core skills</h2>
-<ol start="15" type="1">
-<li>Decompiler output reading — map pseudo-C back to asm</li>
-<li>Recognize compiler patterns — loops, switch tables, inlined memcpy,
-optimizations</li>
-<li>Static vs dynamic analysis — when to use each</li>
-<li>Symbol stripping — RE without function names</li>
-<li>Linking &amp; loading — PLT/GOT, relocations, dynamic linker,
-<code>LD_PRELOAD</code></li>
-</ol>
-<h2 id="intermediate">Intermediate</h2>
-<ol start="20" type="1">
-<li>C++ RE — vtables, name mangling, STL patterns</li>
-<li>Anti-debugging &amp; obfuscation — detect + bypass (packers,
-<code>ptrace</code> tricks)</li>
-<li>File formats beyond ELF — PE (Windows), Mach-O, firmware blobs</li>
-<li>Syscalls &amp; OS internals — Linux syscall table, kernel/user
-boundary</li>
-<li>Crypto identification — spot AES/RSA/XOR constants in binaries</li>
-</ol>
-<h2 id="advanced-specialization">Advanced / specialization</h2>
-<ol start="25" type="1">
-<li>Vulnerability basics — buffer overflow, format string, UAF (helps
-understand what you read)</li>
-<li>Scripting for RE — Python + Ghidra scripting / Capstone /
-pwntools</li>
-<li>Emulation — QEMU, Unicorn engine</li>
-<li>Symbolic execution — angr (optional, powerful)</li>
-<li>Malware analysis OR embedded/firmware OR game hacking — pick a
-track</li>
-</ol>
-<h2 id="practice">Practice</h2>
-<ul>
-<li>crackmes.one, picoCTF, pwn.college, Nightmare (guyinatuxedo) — do
-these in parallel from day 1, not after theory</li>
-</ul>
-<p>Order matters less than practice volume. Your 1–4 + C + GDB + Ghidra
-= enough to start crackmes today.</p>
+
+<div class="hero">
+  <h1>Reverse Engineering Roadmap</h1>
+  <p>29 numbered skills in five tiers — foundations, tooling, core skills, intermediate, and specialization — with practice running in parallel from day&nbsp;1.</p>
+  <div class="tag">FOUNDATIONS → TOOLING → CORE → INTERMEDIATE → SPECIALIZATION</div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <a href="#found">Foundations 1–9</a>
+  <a href="#tools">Tooling 10–14</a>
+  <a href="#core">Core skills 15–19</a>
+  <a href="#inter">Intermediate 20–24</a>
+  <a href="#adv">Advanced 25–29</a>
+  <a href="#practice">Practice</a>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 920 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b3"/>
+    </marker>
+  </defs>
+  <!-- ascending staircase -->
+  <rect x="20"  y="160" width="150" height="60" rx="10" fill="#12233c" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="95" y="185" text-anchor="middle" fill="#58a6ff" font-size="13" font-weight="700">Foundations</text>
+  <text x="95" y="204" text-anchor="middle" fill="#e6edf3" font-size="11">1–9</text>
+
+  <rect x="205" y="130" width="150" height="60" rx="10" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="280" y="155" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">Tooling</text>
+  <text x="280" y="174" text-anchor="middle" fill="#e6edf3" font-size="11">10–14</text>
+
+  <rect x="390" y="100" width="150" height="60" rx="10" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="465" y="125" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">Core skills</text>
+  <text x="465" y="144" text-anchor="middle" fill="#e6edf3" font-size="11">15–19</text>
+
+  <rect x="575" y="70" width="150" height="60" rx="10" fill="#2b2313" stroke="#e3b341" stroke-width="1.5"/>
+  <text x="650" y="95" text-anchor="middle" fill="#e3b341" font-size="13" font-weight="700">Intermediate</text>
+  <text x="650" y="114" text-anchor="middle" fill="#e6edf3" font-size="11">20–24</text>
+
+  <rect x="760" y="40" width="150" height="60" rx="10" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="835" y="65" text-anchor="middle" fill="#bc8cff" font-size="13" font-weight="700">Advanced</text>
+  <text x="835" y="84" text-anchor="middle" fill="#e6edf3" font-size="11">25–29 · pick a track</text>
+
+  <path d="M 170 175 L 203 168" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 355 145 L 388 138" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 540 115 L 573 108" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 725 85 L 758 78" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- practice rail -->
+  <line x1="20" y1="238" x2="910" y2="238" stroke="#ff7bc6" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="465" y="232" text-anchor="middle" fill="#ff7bc6" font-size="11.5" font-style="italic">practice — crackmes, CTFs — in parallel from day 1, not after theory</text>
+</svg>
+<div class="cap">Order matters less than practice volume.</div>
+</div>
+
+<h2 class="sec" id="found"><span class="n c1">A</span> Foundations <span class="hint">1–9</span></h2>
+<div class="panel">
+  <ol class="steps s1">
+    <li><span class="num">1</span><span><b>ELF format</b></span></li>
+    <li><span class="num">2</span><span><b>Understand program execution and program load</b></span></li>
+    <li><span class="num">3</span><span><b>Stack &amp; functions</b></span></li>
+    <li><span class="num">4</span><span><b>Assembly</b></span></li>
+    <li><span class="num">5</span><span><b>C language</b> <span class="d">— most RE targets compiled C/C++. Read C, know how compilers translate it</span></span></li>
+    <li><span class="num">6</span><span><b>Memory layout</b> <span class="d">— heap, stack, globals, virtual memory, paging, ASLR</span></span></li>
+    <li><span class="num">7</span><span><b>Calling conventions</b> <span class="d">— SysV, stdcall, fastcall, how args/returns pass</span></span></li>
+    <li><span class="num">8</span><span><b>CPU architecture</b> <span class="d">— registers, flags, x86-64 first, then ARM64</span></span></li>
+    <li><span class="num">9</span><span><b>Endianness, data types, structs in memory, alignment/padding</b></span></li>
+  </ol>
+</div>
+
+<h2 class="sec" id="tools"><span class="n c2">B</span> Tooling <span class="hint">10–14</span></h2>
+<div class="panel">
+  <ol class="steps s2">
+    <li><span class="num">10</span><span><b>Disassemblers</b> <span class="d">— Ghidra (free), IDA, Binary Ninja</span></span></li>
+    <li><span class="num">11</span><span><b>Debuggers</b> <span class="d">— GDB (+ pwndbg/GEF), x64dbg on Windows</span></span></li>
+    <li><span class="num">12</span><span><code>objdump</code>, <code>readelf</code>, <code>strings</code>, <code>nm</code>, <code>ltrace</code>, <code>strace</code>, <code>xxd</code></span></li>
+    <li><span class="num">13</span><span><b>Radare2/rizin</b> <span class="d">— optional but good for scripting</span></span></li>
+    <li><span class="num">14</span><span><b>Hex editors, patching binaries</b></span></li>
+  </ol>
+</div>
+
+<h2 class="sec" id="core"><span class="n c3">C</span> Core skills <span class="hint">15–19</span></h2>
+<div class="panel">
+  <ol class="steps s3">
+    <li><span class="num">15</span><span><b>Decompiler output reading</b> <span class="d">— map pseudo-C back to asm</span></span></li>
+    <li><span class="num">16</span><span><b>Recognize compiler patterns</b> <span class="d">— loops, switch tables, inlined memcpy, optimizations</span></span></li>
+    <li><span class="num">17</span><span><b>Static vs dynamic analysis</b> <span class="d">— when to use each</span></span></li>
+    <li><span class="num">18</span><span><b>Symbol stripping</b> <span class="d">— RE without function names</span></span></li>
+    <li><span class="num">19</span><span><b>Linking &amp; loading</b> <span class="d">— PLT/GOT, relocations, dynamic linker, <code>LD_PRELOAD</code></span></span></li>
+  </ol>
+</div>
+
+<h2 class="sec" id="inter"><span class="n c4">D</span> Intermediate <span class="hint">20–24</span></h2>
+<div class="panel">
+  <ol class="steps s4">
+    <li><span class="num">20</span><span><b>C++ RE</b> <span class="d">— vtables, name mangling, STL patterns</span></span></li>
+    <li><span class="num">21</span><span><b>Anti-debugging &amp; obfuscation</b> <span class="d">— detect + bypass (packers, <code>ptrace</code> tricks)</span></span></li>
+    <li><span class="num">22</span><span><b>File formats beyond ELF</b> <span class="d">— PE (Windows), Mach-O, firmware blobs</span></span></li>
+    <li><span class="num">23</span><span><b>Syscalls &amp; OS internals</b> <span class="d">— Linux syscall table, kernel/user boundary</span></span></li>
+    <li><span class="num">24</span><span><b>Crypto identification</b> <span class="d">— spot AES/RSA/XOR constants in binaries</span></span></li>
+  </ol>
+</div>
+
+<h2 class="sec" id="adv"><span class="n c5">E</span> Advanced / specialization <span class="hint">25–29</span></h2>
+<div class="panel">
+  <ol class="steps s5">
+    <li><span class="num">25</span><span><b>Vulnerability basics</b> <span class="d">— buffer overflow, format string, UAF (helps understand what you read)</span></span></li>
+    <li><span class="num">26</span><span><b>Scripting for RE</b> <span class="d">— Python + Ghidra scripting / Capstone / pwntools</span></span></li>
+    <li><span class="num">27</span><span><b>Emulation</b> <span class="d">— QEMU, Unicorn engine</span></span></li>
+    <li><span class="num">28</span><span><b>Symbolic execution</b> <span class="d">— angr (optional, powerful)</span></span></li>
+    <li><span class="num">29</span><span><b>Malware analysis OR embedded/firmware OR game hacking</b> <span class="d">— pick a track</span></span></li>
+  </ol>
+</div>
+
+<h2 class="sec" id="practice"><span class="n c6">F</span> Practice</h2>
+
+<div class="callout blue">
+  <a href="https://crackmes.one">crackmes.one</a>, <a href="https://picoctf.org">picoCTF</a>,
+  <a href="https://pwn.college">pwn.college</a>, <a href="https://github.com/guyinatuxedo/nightmare">Nightmare</a> (guyinatuxedo)
+  — do these <b>in parallel from day 1</b>, not after theory.
+</div>
+<div class="callout green">Order matters less than practice volume. Your <b>1–4 + C + GDB + Ghidra</b> = enough to start crackmes today.</div>
+
+<div class="footer">
+  Part of <a href="https://github.com/smalinux/notes-goblin">notes-goblin</a> 🧌
+</div>
+
+</div>
 </body>
 </html>
