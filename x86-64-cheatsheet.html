@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>x86-64 · The Canonical Cheatsheet</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 20px 70px; }
+  code, pre, .mono, table.ref td:first-child, .op { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  a { color: var(--accent); }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 8px; font-size: 38px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 820px; margin: 0 auto; font-size: 16px; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 22px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0d1117;
+  }
+  .c1{background:var(--accent)} .c2{background:var(--orange)} .c3{background:var(--green)}
+  .c4{background:var(--yellow)} .c5{background:var(--cyan)} .c6{background:var(--pink)}
+  .c7{background:var(--purple)} .c8{background:var(--red)} .c9{background:#7ee787}
+  .c10{background:#d2a8ff} .c11{background:#f0883e} .c12{background:#79c0ff}
+  .c13{background:#56d364} .c14{background:#ffab70}
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 1050px){ .grid2,.grid3{ grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 14px 12px; margin: 14px 0;
+  }
+  .panel h3 { font-size: 15px; margin: 12px 0 8px; color: #dbe6f1; letter-spacing: .2px; }
+  .panel h3 .hint { color: var(--dim); font-weight: 400; font-size: 12.5px; margin-left: 6px; }
+
+  table.ref { border-collapse: collapse; width: 100%; font-size: 12.8px; margin: 6px 0 4px; }
+  table.ref th {
+    background: #1d2534; color: var(--accent); text-align: left; padding: 6px 9px;
+    border: 1px solid var(--border); font-weight: 600; position: sticky; top: 0;
+  }
+  table.ref td { padding: 5px 9px; border: 1px solid var(--border); vertical-align: top; }
+  table.ref tr:nth-child(even) { background: #131922; }
+  table.ref td:first-child { color: #79c0ff; white-space: nowrap; }
+  table.ref.wide td:first-child { color: #79c0ff; }
+  .muted { color: var(--dim); }
+
+  .callout {
+    border-left: 3px solid var(--yellow); background: #191d13aa; border-radius: 0 8px 8px 0;
+    padding: 9px 14px; margin: 10px 0; font-size: 13px; color: #d8e0c9;
+  }
+  .callout.blue { border-color: var(--accent); background: #12233c88; color: #cfe0f5; }
+  .callout.pink { border-color: var(--pink); background: #2a153088; color: #f2d6ea; }
+  .callout b { color: #fff; }
+
+  .vol  { color: var(--orange); font-weight: 700; }
+  .pres { color: var(--purple); font-weight: 700; }
+  .sg { color: var(--pink); }  .un { color: var(--cyan); }
+  .by { color: var(--yellow); font-weight: 700; }
+
+  .svgbox { margin: 14px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 26px 0 6px; }
+  .toc a {
+    text-decoration: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+    background: #161b22; border: 1px solid var(--border); color: var(--dim);
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+  .legendrow { display:flex; flex-wrap:wrap; gap:8px 18px; font-size:12px; color:var(--dim); margin:6px 0; }
+  .legendrow i { display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  kbd { background:#21283b; border:1px solid var(--border); border-radius:4px; padding:0 5px; font-size:.85em; font-family:monospace; color:#adbac7;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>x86-64 · The Canonical Cheatsheet</h1>
+  <p>Intel syntax. One page, every load-bearing table for reading and reversing 64-bit code — registers, flags, addressing, the full instruction set by family, both calling conventions, the condition-code matrix, syscalls, SIMD, encoding, and idioms. Syscall numbers and opcode bytes below were pulled from a live Linux/gcc toolchain.</p>
+  <div class="tag">System V AMD64 + Microsoft x64 · verified on gcc 10.5 / binutils 2.42</div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <a href="#reg">1 Registers</a>
+  <a href="#flags">2 RFLAGS</a>
+  <a href="#addr">3 Addressing</a>
+  <a href="#mov">4 Data movement</a>
+  <a href="#arith">5 Arithmetic</a>
+  <a href="#logic">6 Logic &amp; bits</a>
+  <a href="#flow">7 Control flow</a>
+  <a href="#cc">8 Condition codes</a>
+  <a href="#str">9 String ops</a>
+  <a href="#abi">10 Calling conventions</a>
+  <a href="#sys">11 Syscalls</a>
+  <a href="#simd">12 SIMD / FPU</a>
+  <a href="#enc">13 Encoding</a>
+  <a href="#idiom">14 Idioms &amp; syntax</a>
+</div>
+
+<!-- ============ 1 REGISTERS ============ -->
+<h2 class="sec" id="reg"><span class="n c1">1</span>Registers</h2>
+
+<div class="legendrow">
+  <span><i style="background:var(--orange)"></i>volatile / caller-saved (scratch)</span>
+  <span><i style="background:var(--purple)"></i>preserved / callee-saved</span>
+  <span><i style="background:var(--yellow)"></i>writing the 32-bit name zero-extends to 64</span>
+</div>
+
+<div class="grid2">
+<div class="panel">
+<h3>General-purpose (16) <span class="hint">4 name-widths, one physical register</span></h3>
+<table class="ref">
+<tr><th>64</th><th>32</th><th>16</th><th>8</th><th>SysV role</th><th>Save</th></tr>
+<tr><td>rax</td><td>eax</td><td>ax</td><td>al</td><td>return / syscall# / <code>al</code>=#vec args</td><td class="vol">vol</td></tr>
+<tr><td>rbx</td><td>ebx</td><td>bx</td><td>bl</td><td>—</td><td class="pres">pres</td></tr>
+<tr><td>rcx</td><td>ecx</td><td>cx</td><td>cl</td><td>arg4 · shift count · rep counter</td><td class="vol">vol</td></tr>
+<tr><td>rdx</td><td>edx</td><td>dx</td><td>dl</td><td>arg3 · hi half rdx:rax · remainder</td><td class="vol">vol</td></tr>
+<tr><td>rsi</td><td>esi</td><td>si</td><td>sil</td><td>arg2 · rep source</td><td class="vol">vol</td></tr>
+<tr><td>rdi</td><td>edi</td><td>di</td><td>dil</td><td>arg1 · rep dest</td><td class="vol">vol</td></tr>
+<tr><td>rbp</td><td>ebp</td><td>bp</td><td>bpl</td><td>frame ptr (−O0) / spare</td><td class="pres">pres</td></tr>
+<tr><td>rsp</td><td>esp</td><td>sp</td><td>spl</td><td>stack pointer</td><td class="pres">pres</td></tr>
+<tr><td>r8</td><td>r8d</td><td>r8w</td><td>r8b</td><td>arg5</td><td class="vol">vol</td></tr>
+<tr><td>r9</td><td>r9d</td><td>r9w</td><td>r9b</td><td>arg6</td><td class="vol">vol</td></tr>
+<tr><td>r10</td><td>r10d</td><td>r10w</td><td>r10b</td><td>scratch · syscall arg4</td><td class="vol">vol</td></tr>
+<tr><td>r11</td><td>r11d</td><td>r11w</td><td>r11b</td><td>scratch · syscall clobbers</td><td class="vol">vol</td></tr>
+<tr><td>r12–r15</td><td>r12d…</td><td>r12w…</td><td>r12b…</td><td>long-lived locals</td><td class="pres">pres</td></tr>
+</table>
+</div>
+
+<div class="panel">
+<h3>Special &amp; hidden</h3>
+<table class="ref">
+<tr><th>Reg</th><th>Meaning</th></tr>
+<tr><td>rip</td><td>Instruction pointer. Not directly R/W; changed only by jmp/call/ret. Read only via <code>[rip+disp]</code> (PIE data).</td></tr>
+<tr><td>rflags</td><td>Status + control flags (§2).</td></tr>
+<tr><td>cs ss ds es</td><td>Segment selectors — flat/ignored in long mode (base 0).</td></tr>
+<tr><td>fs</td><td><code>fs:0x28</code>=stack canary; <code>fs:0x0</code>=TLS self-ptr (glibc). Any <code>fs:</code>=thread-local.</td></tr>
+<tr><td>gs</td><td>TLS base on Windows/kernel (per-CPU data in kernel).</td></tr>
+<tr><td>cr0/2/3/4/8</td><td>Control regs (paging, CR3=page-table base, CR2=fault addr). Ring 0 only.</td></tr>
+<tr><td>xmm0–15</td><td>128-bit SSE (float/double + int vectors). §12.</td></tr>
+<tr><td>ymm0–15</td><td>256-bit AVX (lower half = xmm).</td></tr>
+<tr><td>zmm0–31</td><td>512-bit AVX-512 + mask regs k0–k7.</td></tr>
+</table>
+<div class="callout"><b>Partial-register rule:</b> writing a <b>32-bit</b> reg zero-extends to 64 (<code>mov eax,edi</code> clears bits 63–32). Writing <b>16/8-bit</b> merges (upper bits survive). Legacy high-byte <code>ah bh ch dh</code> are unencodable alongside any REX-prefixed register.</div>
+</div>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 150" xmlns="http://www.w3.org/2000/svg">
+  <text x="70"  y="22" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="monospace">63</text>
+  <text x="454" y="22" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="monospace">31</text>
+  <text x="646" y="22" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="monospace">15</text>
+  <text x="742" y="22" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="monospace">7</text>
+  <text x="836" y="22" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0</text>
+  <rect x="70" y="30" width="768" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="40" y="50" font-size="13" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">rax</text>
+  <rect x="454" y="66" width="384" height="30" rx="6" fill="#12291c" stroke="#3fb950"/><text x="424" y="86" font-size="13" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">eax</text>
+  <rect x="70" y="66" width="384" height="30" rx="6" fill="none" stroke="#ff7b72" stroke-dasharray="5 4"/><text x="262" y="86" font-size="11.5" text-anchor="middle" fill="#ff7b72" font-family="sans-serif">32-bit write → these bits become 0</text>
+  <rect x="646" y="102" width="96" height="30" rx="6" fill="#2a1530" stroke="#ff7bc6"/><text x="694" y="122" font-size="12" text-anchor="middle" fill="#ff7bc6" font-weight="bold" font-family="monospace">ah</text>
+  <rect x="742" y="102" width="96" height="30" rx="6" fill="#221a38" stroke="#bc8cff"/><text x="790" y="122" font-size="12" text-anchor="middle" fill="#bc8cff" font-weight="bold" font-family="monospace">al</text>
+  <text x="330" y="122" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">16/8-bit write → upper bits preserved (merge)</text>
+</svg>
+<div class="cap">The aliasing map, valid for every GP register (r8–r15 use the …d/…w/…b names).</div>
+</div>
+
+<!-- ============ 2 RFLAGS ============ -->
+<h2 class="sec" id="flags"><span class="n c2">2</span>RFLAGS</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>Status flags <span class="hint">set by COMPUTE, read by JUMP</span></h3>
+<table class="ref">
+<tr><th>Bit</th><th>Flag</th><th>Set when…</th><th>Tested by</th></tr>
+<tr><td>0</td><td><b>CF</b> carry</td><td>unsigned overflow / borrow; last bit shifted out</td><td>jb/jae, jc/jnc, adc/sbb</td></tr>
+<tr><td>2</td><td>PF parity</td><td>low byte has even # of 1-bits</td><td>jp/jnp (NaN check after float cmp)</td></tr>
+<tr><td>4</td><td>AF aux</td><td>carry out of bit 3 (BCD)</td><td>daa/das only</td></tr>
+<tr><td>6</td><td><b>ZF</b> zero</td><td>result == 0 (or operands equal after cmp)</td><td>je/jne, jz/jnz</td></tr>
+<tr><td>7</td><td><b>SF</b> sign</td><td>result's top bit = 1 (negative)</td><td>js/jns; jl/jge combine w/ OF</td></tr>
+<tr><td>10</td><td>DF dir</td><td><i>control:</i> string ops go downward</td><td>set/clear w/ std/cld</td></tr>
+<tr><td>11</td><td><b>OF</b> overflow</td><td>signed overflow (sign wrong)</td><td>jo/jno; jg/jl combine w/ SF</td></tr>
+</table>
+<div class="callout blue"><b>The four that matter:</b> ZF, CF, SF, OF. <code>cmp a,b</code> computes <code>a−b</code>, discards result, keeps flags. <code>test a,b</code> computes <code>a&amp;b</code> the same way — <code>test r,r</code> is the canonical "is it zero/negative?".</div>
+</div>
+
+<div class="panel">
+<h3>Control / system flags</h3>
+<table class="ref">
+<tr><th>Bit</th><th>Flag</th><th>Meaning</th></tr>
+<tr><td>8</td><td>TF</td><td>trap — single-step (debuggers set this)</td></tr>
+<tr><td>9</td><td>IF</td><td>interrupt enable (usually 1 in user code)</td></tr>
+<tr><td>12–13</td><td>IOPL</td><td>I/O privilege level</td></tr>
+<tr><td>14</td><td>NT</td><td>nested task</td></tr>
+<tr><td>16</td><td>RF</td><td>resume (skip one debug fault)</td></tr>
+<tr><td>17</td><td>VM</td><td>virtual-8086 mode</td></tr>
+<tr><td>18</td><td>AC</td><td>alignment check</td></tr>
+<tr><td>21</td><td>ID</td><td>CPUID available (togglable)</td></tr>
+</table>
+<div class="callout"><b>Never touch flags:</b> <code>mov</code>, <code>lea</code>, <code>push</code>/<code>pop</code>. That's why the compiler slips them between a <code>cmp</code> and its <code>jcc</code> — read <i>past</i> them to find which compare owns a jump. <b>Do touch flags:</b> add/sub/and/or/xor/inc/dec/shifts/cmp/test.</div>
+</div>
+</div>
+
+<!-- ============ 3 ADDRESSING ============ -->
+<h2 class="sec" id="addr"><span class="n c3">3</span>Addressing modes — one formula</h2>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg">
+  <text x="450" y="30" font-size="20" text-anchor="middle" fill="#e6edf3" font-family="monospace" font-weight="bold">[ base + index × scale + disp ]</text>
+  <g font-family="sans-serif" font-size="12.5" text-anchor="middle">
+    <rect x="70"  y="52" width="170" height="54" rx="9" fill="#131f38" stroke="#58a6ff"/>
+    <text x="155" y="74" fill="#58a6ff" font-weight="bold">base</text><text x="155" y="94" fill="#9aa7b3" font-size="11.5">any reg / rip; "which object"</text>
+    <rect x="255" y="52" width="170" height="54" rx="9" fill="#12291c" stroke="#3fb950"/>
+    <text x="340" y="74" fill="#3fb950" font-weight="bold">index</text><text x="340" y="94" fill="#9aa7b3" font-size="11.5">any reg but rsp; "which elem"</text>
+    <rect x="440" y="52" width="170" height="54" rx="9" fill="#2b2410" stroke="#e3b341"/>
+    <text x="525" y="74" fill="#e3b341" font-weight="bold">scale</text><text x="525" y="94" fill="#9aa7b3" font-size="11.5">1·2·4·8 only; "elem size"</text>
+    <rect x="625" y="52" width="205" height="54" rx="9" fill="#2a1530" stroke="#ff7bc6"/>
+    <text x="727" y="74" fill="#ff7bc6" font-weight="bold">disp</text><text x="727" y="94" fill="#9aa7b3" font-size="11.5">signed 8/32-bit const; "which field"</text>
+  </g>
+</svg>
+<div class="cap">Every memory operand is one instance of this. In <code>lea</code> the brackets mean pure arithmetic — no memory touched.</div>
+</div>
+
+<div class="grid2">
+<div class="panel">
+<h3>Legal forms &amp; what they encode</h3>
+<table class="ref">
+<tr><th>Form</th><th>Reads as</th></tr>
+<tr><td>[rax]</td><td>*rax — dereference</td></tr>
+<tr><td>[rax+8]</td><td>*(rax+8) — struct field / stack local</td></tr>
+<tr><td>[rax+rcx]</td><td>base+index</td></tr>
+<tr><td>[rax+rcx*4]</td><td>int array: rax[rcx]</td></tr>
+<tr><td>[rax+rcx*8+16]</td><td>arr[i] inside a struct at +16</td></tr>
+<tr><td>[rip+0x1234]</td><td>PIE global/string (objdump prints target)</td></tr>
+<tr><td>[0x404050]</td><td>absolute (non-PIE / abs32)</td></tr>
+<tr><td>fs:[0x28]</td><td>segment-relative (TLS / canary)</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Size keywords &amp; data</h3>
+<table class="ref">
+<tr><th>Ptr keyword</th><th>Bits</th><th>C type</th><th>Def dir</th></tr>
+<tr><td>BYTE PTR</td><td>8</td><td>char</td><td>db / .byte</td></tr>
+<tr><td>WORD PTR</td><td>16</td><td>short</td><td>dw / .word</td></tr>
+<tr><td>DWORD PTR</td><td>32</td><td>int/float</td><td>dd / .long</td></tr>
+<tr><td>QWORD PTR</td><td>64</td><td>long/ptr/double</td><td>dq / .quad</td></tr>
+<tr><td>XMMWORD PTR</td><td>128</td><td>vector</td><td>—</td></tr>
+<tr><td>YMMWORD PTR</td><td>256</td><td>vector</td><td>—</td></tr>
+</table>
+<div class="callout"><b>Size keyword only needed when ambiguous</b> — e.g. <code>mov QWORD PTR [rax], 1</code> (no register fixes the width). Register operands imply the size.</div>
+</div>
+</div>
+
+<!-- ============ 4 DATA MOVEMENT ============ -->
+<h2 class="sec" id="mov"><span class="n c4">4</span>Data movement</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>Move, extend, address</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>mov d, s</td><td>copy (no flags)</td></tr>
+<tr><td>movzx d, s</td><td>zero-extend 8/16 → wider</td></tr>
+<tr><td>movsx d, s</td><td>sign-extend 8/16 → wider</td></tr>
+<tr><td>movsxd r64, r32</td><td>sign-extend 32 → 64 (signed widen)</td></tr>
+<tr><td>mov r32, r32</td><td>zero-extend 32 → 64 (unsigned widen — free)</td></tr>
+<tr><td>lea d, [expr]</td><td>d = address expr (mul+add, no memory, no flags)</td></tr>
+<tr><td>xchg d, s</td><td>swap (auto-<code>lock</code> if memory!)</td></tr>
+<tr><td>bswap r</td><td>reverse byte order (endian flip)</td></tr>
+<tr><td>movbe d, s</td><td>load/store byte-swapped</td></tr>
+<tr><td>cmovcc d, s</td><td>conditional move (branchless, §8)</td></tr>
+<tr><td>setcc r8</td><td>set byte to 0/1 by condition (§8)</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Stack</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect (stack grows down)</th></tr>
+<tr><td>push s</td><td>rsp −= 8; [rsp] = s</td></tr>
+<tr><td>pop d</td><td>d = [rsp]; rsp += 8</td></tr>
+<tr><td>pushf / popf</td><td>push / pop RFLAGS</td></tr>
+<tr><td>enter n,0</td><td>push rbp; mov rbp,rsp; sub rsp,n (rare)</td></tr>
+<tr><td>leave</td><td>mov rsp,rbp; pop rbp (epilogue)</td></tr>
+<tr><td>call t</td><td>push rip; jmp t</td></tr>
+<tr><td>ret</td><td>pop rip</td></tr>
+</table>
+<div class="callout blue"><b>Sizes:</b> stack ops are always 8-byte in 64-bit mode (no <code>push eax</code>). <b>Alignment:</b> rsp must be 16-byte aligned <i>at every</i> <code>call</code>; since <code>call</code> pushes 8, a function body sees rsp ≡ 8 mod 16 on entry — hence the tell-tale <code>sub rsp,8</code> / extra push to re-align.</div>
+</div>
+</div>
+
+<!-- ============ 5 ARITHMETIC ============ -->
+<h2 class="sec" id="arith"><span class="n c5">5</span>Arithmetic</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>Add / subtract / negate</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect · flags</th></tr>
+<tr><td>add d, s</td><td>d += s</td></tr>
+<tr><td>sub d, s</td><td>d −= s</td></tr>
+<tr><td>adc d, s</td><td>d += s + CF (multi-word add)</td></tr>
+<tr><td>sbb d, s</td><td>d −= s + CF (multi-word sub)</td></tr>
+<tr><td>inc d / dec d</td><td>±1 — <b>does not touch CF</b></td></tr>
+<tr><td>neg d</td><td>d = −d (0 − d)</td></tr>
+<tr><td>xadd d, s</td><td>swap then add (atomic w/ lock)</td></tr>
+<tr><td>adcx / adox</td><td>wide-mul carry chains (crypto)</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Multiply / divide <span class="hint">use rdx:rax</span></h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>imul r, s</td><td>signed r *= s (2-op, truncated)</td></tr>
+<tr><td>imul r, s, imm</td><td>r = s * imm (3-op)</td></tr>
+<tr><td>imul s / mul s</td><td>rdx:rax = rax * s (full 128-bit)</td></tr>
+<tr><td>mulx / (BMI2)</td><td>flag-free full multiply</td></tr>
+<tr><td>div s</td><td><span class="un">unsigned</span> rdx:rax / s → rax, rem rdx</td></tr>
+<tr><td>idiv s</td><td><span class="sg">signed</span> divide, same regs</td></tr>
+</table>
+<div class="callout pink"><b>Division ritual — the type leak:</b> before <code>idiv</code> the dividend's sign must fill rdx via <code>cdq</code>/<code>cqo</code>; before <code>div</code>, rdx is zeroed (<code>xor edx,edx</code>). So <code>cqo;idiv</code>=signed, <code>xor edx,edx;div</code>=unsigned. <b>Constant divisors never emit div</b> — they become <code>imul</code> by a magic reciprocal + shift.</div>
+</div>
+</div>
+
+<div class="panel">
+<h3>Sign-extend accumulator (the div/pointer-math helpers)</h3>
+<table class="ref wide">
+<tr><th>8→16</th><th>16→32</th><th>32→64</th><th>Fill rdx from rax sign</th><th>Encoding note</th></tr>
+<tr><td>cbw</td><td>cwde</td><td>cdqe <span class="muted">(=48 98)</span></td><td>cwd / cdq / <b>cqo</b> <span class="muted">(48 99)</span></td><td class="muted">cqo heralds signed idiv; cdqe widens an int index before <code>[base+idx*s]</code></td></tr>
+</table>
+</div>
+
+<!-- ============ 6 LOGIC & BITS ============ -->
+<h2 class="sec" id="logic"><span class="n c6">6</span>Logic, shifts &amp; bit manipulation</h2>
+
+<div class="grid3">
+<div class="panel">
+<h3>Boolean</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>and d, s</td><td>d &amp;= s</td></tr>
+<tr><td>or d, s</td><td>d |= s</td></tr>
+<tr><td>xor d, s</td><td>d ^= s</td></tr>
+<tr><td>not d</td><td>d = ~d (no flags)</td></tr>
+<tr><td>test a, b</td><td>a &amp; b → flags only</td></tr>
+<tr><td>andn (BMI1)</td><td>d = ~a &amp; b</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Shift / rotate <span class="hint">count = imm or cl</span></h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>shl / sal</td><td>&lt;&lt; (×2ⁿ); 0-fill</td></tr>
+<tr><td>shr</td><td>&gt;&gt; unsigned; 0-fill</td></tr>
+<tr><td>sar</td><td>&gt;&gt; signed; sign-fill</td></tr>
+<tr><td>rol / ror</td><td>rotate left / right</td></tr>
+<tr><td>rcl / rcr</td><td>rotate through CF</td></tr>
+<tr><td>shld / shrd</td><td>double-precision shift</td></tr>
+<tr><td>shlx/shrx/sarx</td><td>flag-free shift (BMI2)</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Bit scan / count / test</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>bt / bts / btr / btc</td><td>test / set / reset / flip bit → CF</td></tr>
+<tr><td>bsf / bsr</td><td>index of lowest / highest 1-bit</td></tr>
+<tr><td>tzcnt / lzcnt</td><td>trailing / leading zero count</td></tr>
+<tr><td>popcnt</td><td>count 1-bits</td></tr>
+<tr><td>blsi/blsr/blsmsk</td><td>lowest-bit tricks (BMI1)</td></tr>
+<tr><td>pext / pdep</td><td>parallel bit gather/scatter (BMI2)</td></tr>
+<tr><td>bzhi / bextr</td><td>zero-high / field extract</td></tr>
+</table>
+</div>
+</div>
+
+<div class="callout"><b>Shift = multiply/divide by 2ⁿ.</b> <code>shl rax,4</code> = ×16; <code>sar</code> (not <code>shr</code>) for signed ÷. <code>sar reg,31</code>/<code>63</code> smears the sign bit into an all-0 or all-1 <b>mask</b> — the seed of branchless abs/min/max. <code>and reg, 2ⁿ−1</code> = unsigned <code>% 2ⁿ</code>.</div>
+
+<!-- ============ 7 CONTROL FLOW ============ -->
+<h2 class="sec" id="flow"><span class="n c7">7</span>Control flow</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>Jumps &amp; calls</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>jmp t</td><td>unconditional (t = label / <code>rax</code> / <code>[mem]</code>)</td></tr>
+<tr><td>jcc t</td><td>conditional (§8) — the only readers of flags</td></tr>
+<tr><td>call t</td><td>push return addr; jmp t</td></tr>
+<tr><td>ret / ret n</td><td>pop rip (+ discard n bytes of args)</td></tr>
+<tr><td>loop / loope / loopne</td><td>dec rcx; jump if rcx≠0 (&amp; ZF)</td></tr>
+<tr><td>jrcxz / jecxz</td><td>jump if rcx/ecx == 0</td></tr>
+<tr><td>int3 (0xCC)</td><td>breakpoint trap (debuggers patch this)</td></tr>
+<tr><td>int 0x80</td><td>legacy 32-bit syscall gate</td></tr>
+<tr><td>syscall</td><td>fast kernel entry (§11)</td></tr>
+<tr><td>ud2 / hlt</td><td>guaranteed #UD / halt (dead-end markers)</td></tr>
+<tr><td>endbr64 <span class="muted">(f3 0f 1e fa)</span></td><td>CET landing pad — semantic no-op, skip it</td></tr>
+<tr><td>nop / multi-byte nop</td><td>padding / alignment — skip it</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Reading structure from jump direction</h3>
+<div class="svgbox" style="margin-top:2px">
+<svg viewBox="0 0 420 160" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff7b72"/></marker>
+  <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3fb950"/></marker></defs>
+  <rect x="40" y="20" width="150" height="26" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="115" y="38" font-size="11" text-anchor="middle" fill="#58a6ff" font-family="monospace">loop head</text>
+  <rect x="40" y="60" width="150" height="26" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="115" y="78" font-size="11" text-anchor="middle" fill="#e3b341" font-family="monospace">body</text>
+  <rect x="40" y="100" width="150" height="26" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="115" y="118" font-size="11" text-anchor="middle" fill="#e3b341" font-family="monospace">cmp / jcc ↑</text>
+  <path d="M195 113 C 250 113, 250 33, 197 33" fill="none" stroke="#ff7b72" stroke-width="2" marker-end="url(#a1)"/>
+  <text x="285" y="76" font-size="11" fill="#ff7b72" font-family="sans-serif">backward =</text>
+  <text x="285" y="90" font-size="11" fill="#ff7b72" font-family="sans-serif" font-weight="bold">LOOP</text>
+  <rect x="40" y="134" width="150" height="22" rx="6" fill="#12291c" stroke="#3fb950"/><text x="115" y="150" font-size="10.5" text-anchor="middle" fill="#3fb950" font-family="monospace">fall-through</text>
+</svg>
+</div>
+<table class="ref">
+<tr><th>Jump shape</th><th>Source construct</th></tr>
+<tr><td>backward jcc</td><td>loop (target = loop head)</td></tr>
+<tr><td>forward jcc</td><td>if / guard (skips the "then")</td></tr>
+<tr><td>forward jmp at block end</td><td>else / break</td></tr>
+<tr><td>cmp/ja + jmp reg</td><td>switch jump-table (§ atlas)</td></tr>
+<tr><td>call [rip+x] / jmp [rip+x]</td><td>PLT stub → dynamic import</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============ 8 CONDITION CODES ============ -->
+<h2 class="sec" id="cc"><span class="n c8">8</span>Condition codes — the master matrix</h2>
+
+<div class="callout pink" style="font-size:13.5px"><b>The single most valuable table in reverse engineering.</b> After <code>cmp a,b</code>, the <span class="sg">g/l</span> family reads the <b>signed</b> story, the <span class="un">a/b</span> family reads the <b>unsigned</b> story. The compiler picked the mnemonic from the C declaration — so the jump you read tells you the variable's type. Each <code>cc</code> exists in three forms: <code>j<i>cc</i></code> (branch), <code>set<i>cc</i></code> (→ 0/1 byte), <code>cmov<i>cc</i></code> (select). Opcodes below are from your assembler.</div>
+
+<div class="grid2">
+<div class="panel">
+<h3><span class="sg">Signed</span> &amp; equality</h3>
+<table class="ref">
+<tr><th>cc</th><th>jmp if</th><th>flags</th><th>j-op</th><th>set/cmov</th></tr>
+<tr><td>e / z</td><td>a == b</td><td>ZF=1</td><td>74</td><td>0f 94 / 0f 44</td></tr>
+<tr><td>ne / nz</td><td>a != b</td><td>ZF=0</td><td>75</td><td>0f 95 / 0f 45</td></tr>
+<tr><td>g / nle</td><td>a &gt; b</td><td>ZF=0·SF=OF</td><td>7f</td><td>0f 9f / 0f 4f</td></tr>
+<tr><td>ge / nl</td><td>a ≥ b</td><td>SF=OF</td><td>7d</td><td>0f 9d / 0f 4d</td></tr>
+<tr><td>l / nge</td><td>a &lt; b</td><td>SF≠OF</td><td>7c</td><td>0f 9c / 0f 4c</td></tr>
+<tr><td>le / ng</td><td>a ≤ b</td><td>ZF=1|SF≠OF</td><td>7e</td><td>0f 9e / 0f 4e</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3><span class="un">Unsigned</span> &amp; single-flag</h3>
+<table class="ref">
+<tr><th>cc</th><th>jmp if</th><th>flags</th><th>j-op</th><th>set/cmov</th></tr>
+<tr><td>a / nbe</td><td>a &gt; b</td><td>CF=0·ZF=0</td><td>77</td><td>0f 97 / 0f 47</td></tr>
+<tr><td>ae / nb / nc</td><td>a ≥ b</td><td>CF=0</td><td>73</td><td>0f 93 / 0f 43</td></tr>
+<tr><td>b / nae / c</td><td>a &lt; b</td><td>CF=1</td><td>72</td><td>0f 92 / 0f 42</td></tr>
+<tr><td>be / na</td><td>a ≤ b</td><td>CF=1|ZF=1</td><td>76</td><td>0f 96 / 0f 46</td></tr>
+<tr><td>s / ns</td><td>sign 1 / 0</td><td>SF</td><td>78/79</td><td>0f 98 / 0f 48</td></tr>
+<tr><td>o / no</td><td>signed ovf</td><td>OF</td><td>70/71</td><td>0f 90 / 0f 40</td></tr>
+<tr><td>p / np</td><td>parity / NaN</td><td>PF</td><td>7a/7b</td><td>0f 9a / 0f 4a</td></tr>
+</table>
+</div>
+</div>
+
+<div class="grid2">
+<div class="callout blue"><b>Why "SF≠OF" = less-than:</b> a negative result (SF=1) usually means a&lt;b, but if the subtraction overflowed (OF=1) the sign is a lie — so truth is <code>SF XOR OF</code>. Short jcc opcodes are <code>7x</code> (±127 bytes); near form is <code>0f 8x</code> (32-bit displacement).</div>
+<div class="callout"><b>Three heuristics:</b> ① <code>ja/jae/jb/jbe</code> ⇒ the compared value was <code>unsigned</code>/pointer/<code>size_t</code>. ② <code>jp</code>/<code>jnp</code> right after <code>ucomisd</code>/<code>comiss</code> ⇒ a <b>NaN check</b>. ③ float compares always use the a/b family (they set flags like unsigned) — never <code>jg</code>/<code>jl</code>.</div>
+</div>
+
+<!-- ============ 9 STRING OPS ============ -->
+<h2 class="sec" id="str"><span class="n c9">9</span>String / block instructions</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>Primitives <span class="hint">rsi=src, rdi=dst, direction = DF</span></h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect (b/w/d/q suffix = width)</th></tr>
+<tr><td>movs</td><td>[rdi] = [rsi]; advance both</td></tr>
+<tr><td>stos</td><td>[rdi] = al/ax/eax/rax; advance rdi</td></tr>
+<tr><td>lods</td><td>al/…/rax = [rsi]; advance rsi</td></tr>
+<tr><td>scas</td><td>cmp rax-family, [rdi]; advance rdi</td></tr>
+<tr><td>cmps</td><td>cmp [rsi], [rdi]; advance both</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Repeat prefixes &amp; direction</h3>
+<table class="ref">
+<tr><th>Prefix</th><th>Meaning</th></tr>
+<tr><td>rep</td><td>repeat rcx times → <b>memcpy</b>(movs) / <b>memset</b>(stos)</td></tr>
+<tr><td>repe / repz</td><td>repeat while equal &amp; rcx≠0 (cmps/scas)</td></tr>
+<tr><td>repne / repnz</td><td>repeat while not-equal → <b>strlen/memchr</b></td></tr>
+<tr><td>cld / std</td><td>DF=0 forward (normal) / DF=1 backward</td></tr>
+<tr><td>lock</td><td>atomic RMW prefix (see idioms)</td></tr>
+</table>
+<div class="callout"><code>rep movsb</code> with rdi=dst rsi=src rcx=n <b>is</b> memcpy; <code>rep stosq</code> zero-filling = memset/bss init. Seeing these = the compiler inlined a libc call.</div>
+</div>
+</div>
+
+<!-- ============ 10 CALLING CONVENTIONS ============ -->
+<h2 class="sec" id="abi"><span class="n c10">10</span>Calling conventions — the two you'll meet</h2>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg">
+  <text x="225" y="24" font-size="14" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="sans-serif">System V AMD64 · Linux/macOS/BSD</text>
+  <text x="675" y="24" font-size="14" text-anchor="middle" fill="#ffa657" font-weight="bold" font-family="sans-serif">Microsoft x64 · Windows</text>
+  <g font-family="monospace" font-size="12.5" text-anchor="middle">
+    <!-- SysV int args -->
+    <rect x="20"  y="40" width="65" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="52" y="60" fill="#58a6ff">rdi</text>
+    <rect x="90"  y="40" width="65" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="122" y="60" fill="#58a6ff">rsi</text>
+    <rect x="160" y="40" width="65" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="192" y="60" fill="#58a6ff">rdx</text>
+    <rect x="230" y="40" width="65" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="262" y="60" fill="#58a6ff">rcx</text>
+    <rect x="300" y="40" width="55" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="327" y="60" fill="#58a6ff">r8</text>
+    <rect x="360" y="40" width="55" height="30" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="387" y="60" fill="#58a6ff">r9</text>
+    <!-- MS int args -->
+    <rect x="470" y="40" width="65" height="30" rx="6" fill="#2b2410" stroke="#ffa657"/><text x="502" y="60" fill="#ffa657">rcx</text>
+    <rect x="540" y="40" width="65" height="30" rx="6" fill="#2b2410" stroke="#ffa657"/><text x="572" y="60" fill="#ffa657">rdx</text>
+    <rect x="610" y="40" width="55" height="30" rx="6" fill="#2b2410" stroke="#ffa657"/><text x="637" y="60" fill="#ffa657">r8</text>
+    <rect x="670" y="40" width="55" height="30" rx="6" fill="#2b2410" stroke="#ffa657"/><text x="697" y="60" fill="#ffa657">r9</text>
+    <text x="800" y="60" fill="#9aa7b3" font-size="11" font-family="sans-serif">only 4 in regs</text>
+  </g>
+  <text x="217" y="88" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">int/ptr args 1–6 · rest on stack right-to-left</text>
+  <text x="597" y="88" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">int args 1–4 · rest on stack</text>
+  <g font-family="monospace" font-size="12" text-anchor="middle">
+    <rect x="20" y="104" width="200" height="26" rx="6" fill="#12291c" stroke="#3fb950"/><text x="120" y="122" fill="#3fb950">xmm0–7 for floats</text>
+    <rect x="470" y="104" width="220" height="26" rx="6" fill="#3a2410" stroke="#ffab70"/><text x="580" y="122" fill="#ffab70">xmm0–3 (paired w/ int slot)</text>
+  </g>
+  <g font-family="sans-serif" font-size="11.5" fill="#9aa7b3">
+    <text x="20" y="152">return: rax (rdx:rax if 128) / xmm0</text>
+    <text x="20" y="170">preserved: rbx rbp r12–r15</text>
+    <text x="20" y="188"><tspan fill="#3fb950" font-weight="bold">128-byte red zone below rsp</tspan> · no shadow space</text>
+    <text x="470" y="152">return: rax / xmm0</text>
+    <text x="470" y="170">preserved: rbx rbp rdi rsi r12–r15 + xmm6–15</text>
+    <text x="470" y="188"><tspan fill="#ff7b72" font-weight="bold">32-byte shadow space</tspan> caller-reserved · no red zone</text>
+  </g>
+</svg>
+<div class="cap">Same ISA, different etiquette. The killer differences: arg registers, rdi/rsi preserved on Windows, shadow space vs red zone.</div>
+</div>
+
+<div class="grid2">
+<div class="panel">
+<h3>System V — full contract</h3>
+<table class="ref">
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>int args</td><td>rdi rsi rdx rcx r8 r9, then stack</td></tr>
+<tr><td>fp args</td><td>xmm0–xmm7 (counted separately)</td></tr>
+<tr><td>varargs</td><td><code>al</code> = # of xmm regs used (before printf-style call)</td></tr>
+<tr><td>return</td><td>rax / rdx:rax / xmm0(:xmm1)</td></tr>
+<tr><td>volatile</td><td>rax rcx rdx rsi rdi r8–r11, all xmm</td></tr>
+<tr><td>preserved</td><td>rbx rbp rsp r12–r15</td></tr>
+<tr><td>stack align</td><td>16-byte at each <code>call</code></td></tr>
+<tr><td>red zone</td><td>128 B below rsp usable by leaf fns</td></tr>
+<tr><td>struct return</td><td>&gt;16 B: hidden ptr in rdi (shifts args)</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Prologue / epilogue silhouettes</h3>
+<table class="ref">
+<tr><th>−O0 (frame ptr)</th><th>−O2 (optimized)</th></tr>
+<tr><td>push rbp</td><td>push rbp/rbx <span class="muted">(if needed)</span></td></tr>
+<tr><td>mov rbp, rsp</td><td>sub rsp, N</td></tr>
+<tr><td>sub rsp, N</td><td>… locals via [rsp+x]</td></tr>
+<tr><td>locals [rbp−x]</td><td>add rsp, N</td></tr>
+<tr><td>leave ; ret</td><td>pop ; ret</td></tr>
+</table>
+<div class="callout blue"><b>Stack canary:</b> <code>mov rax,fs:0x28</code> → <code>[rbp−8]</code> in prologue; epilogue <code>sub rax,fs:0x28; jne __stack_chk_fail</code>. Low byte is always <code>00</code> (NUL-terminates to stop string leaks). Sits between locals and the return address.</div>
+</div>
+</div>
+
+<!-- ============ 11 SYSCALLS ============ -->
+<h2 class="sec" id="sys"><span class="n c11">11</span>Linux syscalls</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>The syscall ABI <span class="hint">differs from function calls!</span></h3>
+<div class="svgbox" style="margin:2px 0">
+<svg viewBox="0 0 440 96" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="monospace" font-size="12" text-anchor="middle">
+    <rect x="10" y="14" width="60" height="28" rx="6" fill="#2a1015" stroke="#ff7b72"/><text x="40" y="33" fill="#ff7b72">rax</text>
+    <rect x="78" y="14" width="52" height="28" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="104" y="33" fill="#58a6ff">rdi</text>
+    <rect x="138" y="14" width="52" height="28" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="164" y="33" fill="#58a6ff">rsi</text>
+    <rect x="198" y="14" width="52" height="28" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="224" y="33" fill="#58a6ff">rdx</text>
+    <rect x="258" y="14" width="56" height="28" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="286" y="33" fill="#e3b341">r10</text>
+    <rect x="322" y="14" width="46" height="28" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="345" y="33" fill="#58a6ff">r8</text>
+    <rect x="376" y="14" width="46" height="28" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="399" y="33" fill="#58a6ff">r9</text>
+  </g>
+  <text x="40" y="58" font-size="9.5" text-anchor="middle" fill="#ff7b72" font-family="sans-serif">number</text>
+  <text x="286" y="58" font-size="9.5" text-anchor="middle" fill="#e3b341" font-family="sans-serif">not rcx!</text>
+  <text x="215" y="82" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">→ result in rax · rcx &amp; r11 destroyed by the CPU</text>
+</svg>
+</div>
+<div class="callout"><b>Two changes from the function ABI:</b> arg 4 is <b>r10</b> (not rcx), and <code>syscall</code> hardware-clobbers <b>rcx</b> (saved rip) and <b>r11</b> (saved flags). Number goes in rax. A bare <code>syscall</code> not routed through the PLT ⇒ static binary or deliberate libc bypass (shellcode / anti-analysis).</div>
+</div>
+<div class="panel">
+<h3>Common numbers <span class="hint">from your <code>unistd_64.h</code></span></h3>
+<table class="ref">
+<tr><th>#</th><th>name</th><th>#</th><th>name</th></tr>
+<tr><td>0</td><td>read</td><td>21</td><td>access</td></tr>
+<tr><td>1</td><td>write</td><td>22</td><td>pipe</td></tr>
+<tr><td>2</td><td>open</td><td>33</td><td>dup2</td></tr>
+<tr><td>3</td><td>close</td><td>39</td><td>getpid</td></tr>
+<tr><td>9</td><td>mmap</td><td>41</td><td>socket</td></tr>
+<tr><td>10</td><td>mprotect</td><td>42</td><td>connect</td></tr>
+<tr><td>11</td><td>munmap</td><td>56</td><td>clone</td></tr>
+<tr><td>12</td><td>brk</td><td>57</td><td>fork</td></tr>
+<tr><td>16</td><td>ioctl</td><td>59</td><td>execve</td></tr>
+<tr><td>101</td><td>ptrace</td><td>60</td><td>exit</td></tr>
+<tr><td>257</td><td>openat</td><td>231</td><td>exit_group</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============ 12 SIMD ============ -->
+<h2 class="sec" id="simd"><span class="n c12">12</span>SIMD &amp; floating point</h2>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="monospace" text-anchor="middle">
+    <rect x="150" y="30" width="80" height="46" rx="9" fill="#221a38" stroke="#bc8cff"/><text x="190" y="52" font-size="18" fill="#bc8cff" font-weight="bold">v</text><text x="190" y="70" font-size="9.5" fill="#9aa7b3">AVX/VEX (absent=SSE)</text>
+    <rect x="240" y="30" width="150" height="46" rx="9" fill="#161b22" stroke="#e6edf3"/><text x="315" y="52" font-size="18" fill="#e6edf3" font-weight="bold">mul</text><text x="315" y="70" font-size="9.5" fill="#9aa7b3">op: add sub mul div sqrt min max</text>
+    <rect x="400" y="30" width="80" height="46" rx="9" fill="#12291c" stroke="#3fb950"/><text x="440" y="52" font-size="18" fill="#3fb950" font-weight="bold">p</text><text x="440" y="70" font-size="9.5" fill="#9aa7b3">p=packed s=scalar</text>
+    <rect x="490" y="30" width="80" height="46" rx="9" fill="#2b2410" stroke="#e3b341"/><text x="530" y="52" font-size="18" fill="#e3b341" font-weight="bold">s</text><text x="530" y="70" font-size="9.5" fill="#9aa7b3">s=single(f32) d=double(f64)</text>
+  </g>
+  <text x="740" y="45" font-size="13" text-anchor="middle" fill="#e6edf3" font-family="monospace">vmulps</text>
+  <text x="740" y="63" font-size="10.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">AVX · packed · single</text>
+  <text x="450" y="102" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">mulsd = scalar double · addss = scalar float · integer vectors: paddd/paddq/pcmpeqb (p + element width)</text>
+</svg>
+<div class="cap">Four glyphs decode most vector mnemonics.</div>
+</div>
+
+<div class="grid3">
+<div class="panel">
+<h3>Move / convert</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>movss / movsd</td><td>scalar f32 / f64</td></tr>
+<tr><td>movaps / movups</td><td>aligned / unaligned 128b</td></tr>
+<tr><td>movdqa / movdqu</td><td>int vector aligned/un</td></tr>
+<tr><td>cvtsi2sd/ss</td><td>int → double/float</td></tr>
+<tr><td>cvttsd2si</td><td>double → int (truncate)</td></tr>
+<tr><td>cvtss2sd</td><td>float → double</td></tr>
+<tr><td>pxor x,x</td><td>zero (float 0.0 / vector)</td></tr>
+<tr><td>vzeroupper</td><td>clear ymm tops (SSE↔AVX boundary)</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Compute &amp; compare</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>add/sub/mul/div ss/sd/ps/pd</td><td>arithmetic</td></tr>
+<tr><td>sqrt·min·max·(s/p)(s/d)</td><td>math</td></tr>
+<tr><td>ucomisd / comiss</td><td>scalar cmp → <b>ZF/CF/PF</b></td></tr>
+<tr><td>cmpps / cmppd</td><td>packed cmp → mask</td></tr>
+<tr><td>andps / xorps</td><td>bitwise (sign tricks)</td></tr>
+<tr><td>shufps / pshufd</td><td>lane permute</td></tr>
+<tr><td>unpck* / insertf128</td><td>interleave / build wide</td></tr>
+<tr><td>vfmadd… (FMA)</td><td>a*b+c fused</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>Reading vector code</h3>
+<table class="ref">
+<tr><th>You see</th><th>Meaning</th></tr>
+<tr><td>3 operands (v…)</td><td>AVX; 2 operands = SSE</td></tr>
+<tr><td>ja/jb after ucomisd</td><td>float compare (unsigned-style)</td></tr>
+<tr><td>jp after cmp</td><td>NaN check</td></tr>
+<tr><td>shuffle storm</td><td>horizontal reduce (sum/dot)</td></tr>
+<tr><td>xmm on stack copy</td><td>16-byte memcpy (not float!)</td></tr>
+<tr><td>3 versions of a loop</td><td>vector body + scalar tail + guard</td></tr>
+</table>
+<div class="callout" style="font-size:12px"><b>x87 FPU</b> (st0–st7 stack, <code>fld/fmul/fstp</code>) appears only for <code>long double</code> or very old code. Normal float/double = SSE.</div>
+</div>
+</div>
+
+<!-- ============ 13 ENCODING ============ -->
+<h2 class="sec" id="enc"><span class="n c13">13</span>Instruction encoding</h2>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 96" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="monospace" font-size="11.5" text-anchor="middle">
+    <rect x="20"  y="24" width="120" height="34" rx="6" fill="#1c2333" stroke="#8b949e"/><text x="80" y="46" fill="#8b949e">prefixes</text>
+    <rect x="146" y="24" width="90"  height="34" rx="6" fill="#2a1015" stroke="#ff7b72"/><text x="191" y="46" fill="#ff7b72">REX</text>
+    <rect x="242" y="24" width="130" height="34" rx="6" fill="#12291c" stroke="#3fb950"/><text x="307" y="46" fill="#3fb950">opcode 1–3B</text>
+    <rect x="378" y="24" width="110" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="433" y="46" fill="#e3b341">ModRM</text>
+    <rect x="494" y="24" width="90"  height="34" rx="6" fill="#221a38" stroke="#bc8cff"/><text x="539" y="46" fill="#bc8cff">SIB</text>
+    <rect x="590" y="24" width="140" height="34" rx="6" fill="#131f38" stroke="#58a6ff"/><text x="660" y="46" fill="#58a6ff">disp 0/1/4B</text>
+    <rect x="736" y="24" width="140" height="34" rx="6" fill="#2a1530" stroke="#ff7bc6"/><text x="806" y="46" fill="#ff7bc6">imm 0/1/2/4/8B</text>
+  </g>
+  <text x="450" y="82" font-size="11" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">all optional except opcode · total length 1–15 bytes</text>
+</svg>
+<div class="cap">The universal template. ModRM's reg/rm and SIB's scale/index/base are the §3 address formula, serialized.</div>
+</div>
+
+<div class="grid2">
+<div class="panel">
+<h3>REX prefix (0x40–0x4F)</h3>
+<table class="ref">
+<tr><th>Bit</th><th>Name</th><th>Meaning</th></tr>
+<tr><td>0.4</td><td>W</td><td>1 = 64-bit operand</td></tr>
+<tr><td>0.2</td><td>R</td><td>hi bit of ModRM.reg (reach r8–r15)</td></tr>
+<tr><td>0.1</td><td>X</td><td>hi bit of SIB.index</td></tr>
+<tr><td>0.0</td><td>B</td><td>hi bit of ModRM.rm / SIB.base</td></tr>
+</table>
+<div class="callout blue"><code>48</code> = REX.W → half of all 64-bit code starts here. <code>48 89</code>/<code>48 8b</code> = 64-bit mov.</div>
+</div>
+<div class="panel">
+<h3>Byte signatures worth memorizing</h3>
+<table class="ref">
+<tr><th>Bytes</th><th>Instruction</th></tr>
+<tr><td>c3</td><td>ret</td></tr>
+<tr><td>55</td><td>push rbp</td></tr>
+<tr><td>55 48 89 e5</td><td>push rbp; mov rbp,rsp (prologue)</td></tr>
+<tr><td>48 89 e5</td><td>mov rbp,rsp</td></tr>
+<tr><td>c9</td><td>leave</td></tr>
+<tr><td>90</td><td>nop</td></tr>
+<tr><td>cc</td><td>int3 (breakpoint / guard fill)</td></tr>
+<tr><td>f3 0f 1e fa</td><td>endbr64</td></tr>
+<tr><td>0f 05</td><td>syscall</td></tr>
+<tr><td>31 c0</td><td>xor eax,eax (=0)</td></tr>
+<tr><td>e8 / e9</td><td>call / jmp rel32</td></tr>
+<tr><td>0f 8x</td><td>jcc near (rel32)</td></tr>
+</table>
+</div>
+</div>
+<div class="callout"><b>Variable length ⇒ disassembler desync.</b> Start one byte off and you get plausible garbage until it re-syncs. Anti-disassembly abuses this with jumps into mid-instruction. Trust function boundaries; use recursive-descent tools (Ghidra) over linear sweep when output looks wrong.</div>
+
+<!-- ============ 14 IDIOMS & SYNTAX ============ -->
+<h2 class="sec" id="idiom"><span class="n c14">14</span>Idioms &amp; the AT&amp;T ↔ Intel bridge</h2>
+
+<div class="grid2">
+<div class="panel">
+<h3>Compiler idioms — the Rosetta stone</h3>
+<table class="ref">
+<tr><th>You see</th><th>It means</th></tr>
+<tr><td>xor r,r / pxor x,x</td><td>= 0 (shortest, breaks dep chain)</td></tr>
+<tr><td>test r,r ; je</td><td>if (!x) / NULL check</td></tr>
+<tr><td>test al,al after call</td><td>check returned bool</td></tr>
+<tr><td>lea r,[r+r*4]</td><td>×5 (mul via address unit)</td></tr>
+<tr><td>imul + shr by const</td><td>division by constant (magic reciprocal)</td></tr>
+<tr><td>sar r,31/63</td><td>sign mask 0 or −1</td></tr>
+<tr><td>cqo;xor;sub</td><td>branchless abs()</td></tr>
+<tr><td>cmovcc / setcc</td><td>ternary / bool (branchless)</td></tr>
+<tr><td>mov r,fs:0x28</td><td>stack canary</td></tr>
+<tr><td>mov edi,edi</td><td>zero upper 32 bits (not a nop)</td></tr>
+<tr><td>and r,2ⁿ−1</td><td>unsigned % 2ⁿ</td></tr>
+<tr><td>shl r,n</td><td>× 2ⁿ</td></tr>
+<tr><td>lock xadd / cmpxchg</td><td>atomic ++ / compare-and-swap</td></tr>
+<tr><td>big round hex const</td><td>bitmask / INT_MAX / sign bit</td></tr>
+<tr><td>endbr64 · nop… · xchg ax,ax</td><td>padding — skip</td></tr>
+</table>
+</div>
+<div class="panel">
+<h3>AT&amp;T vs Intel <span class="hint">same bytes, mirrored</span></h3>
+<table class="ref">
+<tr><th>Intel (this sheet)</th><th>AT&amp;T (objdump default)</th></tr>
+<tr><td>mov rax, rdi</td><td>movq %rdi, %rax</td></tr>
+<tr><td>mov eax, 5</td><td>movl $5, %eax</td></tr>
+<tr><td>mov rax, [rbx+rcx*4+8]</td><td>movq 8(%rbx,%rcx,4), %rax</td></tr>
+<tr><td>lea rax, [rip+0x10]</td><td>leaq 0x10(%rip), %rax</td></tr>
+<tr><td>add QWORD PTR [rax], 1</td><td>addq $1, (%rax)</td></tr>
+</table>
+<div class="callout"><b>Rules:</b> AT&amp;T reverses operands (<code>src, dst</code>), prefixes regs with <code>%</code> and immediates with <code>$</code>, and encodes size in a mnemonic suffix (<code>b/w/l/q</code>). Force Intel: <code>objdump -M intel</code>; in GDB <kbd>set disassembly-flavor intel</kbd>.</div>
+<h3 style="margin-top:14px">Atomics &amp; barriers</h3>
+<table class="ref">
+<tr><th>Instr</th><th>Effect</th></tr>
+<tr><td>lock add/xadd/or…</td><td>atomic read-modify-write</td></tr>
+<tr><td>cmpxchg / cmpxchg16b</td><td>compare-and-swap (lock-free)</td></tr>
+<tr><td>mfence/lfence/sfence</td><td>memory ordering barriers</td></tr>
+<tr><td>pause</td><td>spin-loop hint</td></tr>
+<tr><td>rdtsc / rdrand / cpuid</td><td>timestamp / RNG / feature probe</td></tr>
+</table>
+</div>
+</div>
+
+<div class="footer">
+<b>How to read any function in five passes:</b> ① scan for <span class="mono">call</span>s — args march into rdi/rsi/rdx… just before each one (recover the prototype). ② find backward <span class="mono">jcc</span>s — those are loops. ③ read the <span class="mono">cmp/test → jcc</span> pairs and note g/l vs a/b (signed vs unsigned → the C types). ④ track values moved into rbx/r12–r15 at the top — long-lived locals. ⑤ ignore <span class="mono">endbr64</span>, padding nops, and canary boilerplate. — Ground truth lives in the <i>Intel® SDM Vol. 2</i> (per-instruction reference) and the <i>System V AMD64 ABI</i> / <i>MS x64 ABI</i> docs; this page is the working subset you'll actually reach for. Companion narrative walkthrough: <a href="x86-64-mastery.html">x86-64-mastery.html</a>.
+</div>
+
+</div>
+</body>
+</html>

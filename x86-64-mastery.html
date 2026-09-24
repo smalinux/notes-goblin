@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>x86-64 — The Reverse Engineer's Atlas</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2333;
+    --border: #30363d;
+    --fg: #e6edf3;
+    --dim: #9aa7b3;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #ff7b72;
+    --orange: #ffa657;
+    --purple: #bc8cff;
+    --pink: #ff7bc6;
+    --yellow: #e3b341;
+    --cyan: #39c5cf;
+    --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px 80px; }
+  code, pre, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code {
+    background: #21283b;
+    color: #79c0ff;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: .88em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #c9d1d9;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  a { color: var(--accent); }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 56px 24px 44px;
+    text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 10px;
+    font-size: 40px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 780px; margin: 0 auto; font-size: 17px; }
+  .hero .tag {
+    display: inline-block; margin-top: 18px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px;
+    color: var(--accent); font-size: 13px; letter-spacing: 1px;
+  }
+
+  h2.step {
+    display: flex; align-items: center; gap: 14px;
+    margin: 64px 0 18px; font-size: 26px; letter-spacing: -0.3px;
+  }
+  h3 { margin: 34px 0 10px; font-size: 19px; color: #dbe6f1; }
+  .badge {
+    flex: none; width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20px; color: #0d1117;
+  }
+  .b1 { background: var(--accent); } .b2 { background: var(--orange); }
+  .b3 { background: var(--green); } .b4 { background: var(--yellow); }
+  .b5 { background: var(--cyan); } .b6 { background: var(--pink); }
+  .b7 { background: var(--purple); } .b8 { background: var(--red); }
+  .b9 { background: #7ee787; } .b10 { background: #d2a8ff; }
+  .b11 { background: #f0883e; }
+  .bq { background: linear-gradient(135deg, #ff7bc6, #58a6ff); }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 22px 0;
+  }
+  .keyidea {
+    background: linear-gradient(90deg, #13233c, #1d1533);
+    border: 1px solid #58a6ff44;
+    border-left: 4px solid var(--accent);
+  }
+  .crown {
+    background: linear-gradient(90deg, #2a1530, #131f38);
+    border: 1px solid #ff7bc644;
+    border-left: 4px solid var(--pink);
+  }
+  .warn { border-left: 4px solid var(--yellow); }
+
+  table.data {
+    border-collapse: collapse; width: 100%; margin: 18px 0;
+    font-size: 14.5px;
+  }
+  table.data th {
+    background: #1d2534; color: var(--accent); text-align: left;
+    padding: 10px 14px; border: 1px solid var(--border);
+  }
+  table.data td { padding: 9px 14px; border: 1px solid var(--border); }
+  table.data tr:nth-child(even) { background: #131922; }
+
+  .svgbox { margin: 26px 0; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .caption { color: var(--dim); font-size: 13.5px; margin-top: 8px; font-style: italic; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 13px; color: var(--dim); margin: 8px 0; justify-content:center; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  ul, ol { padding-left: 26px; }
+  li { margin: 7px 0; }
+  strong { color: #fff; }
+  em { color: #cdd9e5; }
+  .footer {
+    margin-top: 70px; padding-top: 24px; border-top: 1px solid var(--border);
+    color: var(--dim); font-size: 14px;
+  }
+  .cmd { color: var(--green); }
+  .addr { color: var(--yellow); }
+  .str { color: var(--pink); }
+  .kw { color: var(--accent); }
+  .cmt { color: #8b949e; }
+  .vol  { color: var(--orange); font-weight: 700; }
+  .pres { color: var(--purple); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>x86-64 — The Reverse Engineer's Atlas</h1>
+  <p>Intel syntax, all the way down. Every byte, register value, flag bit, and address in this atlas was harvested from <code>specimen.c</code> compiled and executed on <em>your</em> machine — rerun any command and watch it agree.</p>
+  <div class="tag">/src/as/specimen &nbsp;·&nbsp; gcc 10.5 -O2 &nbsp;·&nbsp; objdump -M intel &nbsp;·&nbsp; gdb + GEF</div>
+</div>
+
+<div class="wrap">
+
+<p style="margin-top:40px">The specimen is a small C file where every function exists to trigger exactly one assembly pattern you will meet in real reverse engineering: addressing modes, magic-number division, jump tables, canaries, callee-saved shuffles, SIMD lanes. Rebuild it any time:</p>
+
+<pre><code><span class="cmd">gcc -O2 -fno-inline -o specimen specimen.c</span>   <span class="cmt"># the RE-realistic build</span>
+<span class="cmd">gcc -O0 -o specimen-O0 specimen.c</span>            <span class="cmt"># the teaching build (frame pointers)</span>
+<span class="cmd">objdump -d -M intel specimen</span>                 <span class="cmt"># everything below comes from this</span></code></pre>
+
+<div class="card keyidea">
+<strong>The one mental model to hold onto:</strong> the CPU is an infinite loop — <em>fetch the instruction at RIP, execute it, repeat</em> — and every instruction belongs to one of three families: <strong>MOVE</strong> bytes between registers and memory, <strong>COMPUTE</strong> on them (which silently drops breadcrumbs into RFLAGS), or <strong>JUMP</strong> based on those breadcrumbs. That's the entire machine. Everything else — functions, arguments, stack frames, "local variables" — is not hardware; it's <em>social convention</em> (the System&nbsp;V ABI) layered on those three verbs. When you read disassembly you are reading two languages at once: the machine's three verbs, and the compiler's etiquette. This atlas teaches both.
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arY0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker>
+    <marker id="arB0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#58a6ff"/></marker>
+  </defs>
+  <!-- fetch-execute loop -->
+  <rect x="30" y="80" width="180" height="90" rx="14" fill="#131f38" stroke="#58a6ff"/>
+  <text x="120" y="115" font-size="15" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">fetch @ RIP</text>
+  <text x="120" y="140" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">1–15 bytes, variable</text>
+  <path d="M120 80 C 120 30, 300 30, 300 74" fill="none" stroke="#e3b341" stroke-width="2.2" marker-end="url(#arY0)"/>
+  <path d="M300 176 C 300 225, 120 225, 120 172" fill="none" stroke="#e3b341" stroke-width="2.2" marker-end="url(#arY0)"/>
+  <rect x="240" y="80" width="140" height="90" rx="14" fill="#1c2333" stroke="#30363d"/>
+  <text x="310" y="120" font-size="15" text-anchor="middle" fill="#e6edf3" font-weight="bold" font-family="monospace">execute</text>
+  <text x="310" y="143" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">RIP += len</text>
+  <!-- three families -->
+  <rect x="470" y="20" width="400" height="62" rx="12" fill="#12291c" stroke="#3fb950"/>
+  <text x="560" y="46" font-size="14" fill="#3fb950" font-weight="bold" font-family="monospace">MOVE</text>
+  <text x="560" y="66" font-size="12" fill="#9aa7b3" font-family="monospace">mov movzx movsx lea push pop</text>
+  <rect x="470" y="94" width="400" height="62" rx="12" fill="#2b2410" stroke="#e3b341"/>
+  <text x="560" y="120" font-size="14" fill="#e3b341" font-weight="bold" font-family="monospace">COMPUTE</text>
+  <text x="560" y="140" font-size="12" fill="#9aa7b3" font-family="monospace">add sub imul and shr cmp test → RFLAGS</text>
+  <rect x="470" y="168" width="400" height="62" rx="12" fill="#2a1530" stroke="#ff7bc6"/>
+  <text x="560" y="194" font-size="14" fill="#ff7bc6" font-weight="bold" font-family="monospace">JUMP</text>
+  <text x="560" y="214" font-size="12" fill="#9aa7b3" font-family="monospace">jmp jcc call ret ← reads RFLAGS</text>
+  <line x1="384" y1="125" x2="464" y2="125" stroke="#58a6ff" stroke-width="2.2" marker-end="url(#arB0)"/>
+  <text x="424" y="112" font-size="11.5" text-anchor="middle" fill="#58a6ff" font-family="sans-serif">is one of</text>
+</svg>
+<div class="caption">The whole machine: a fetch-execute loop over three instruction families. RFLAGS is the only channel between COMPUTE and JUMP.</div>
+</div>
+
+<h2 class="step"><span class="badge b1">1</span>The register atlas: 16 boxes, 4 name widths, 1 trap</h2>
+
+<p>x86-64 gives you sixteen 64-bit general-purpose registers. Each one answers to four names depending on how much of it you're touching. Here is the anatomy of <code>rax</code> — all four names refer to <em>the same physical register</em>:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+  <!-- bit ruler -->
+  <text x="70"  y="30" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">63</text>
+  <text x="454" y="30" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">31</text>
+  <text x="646" y="30" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">15</text>
+  <text x="742" y="30" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">7</text>
+  <text x="835" y="30" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0</text>
+  <line x1="70" y1="36" x2="70" y2="250" stroke="#30363d" stroke-dasharray="3 4"/>
+  <line x1="454" y1="36" x2="454" y2="250" stroke="#30363d" stroke-dasharray="3 4"/>
+  <line x1="646" y1="36" x2="646" y2="250" stroke="#30363d" stroke-dasharray="3 4"/>
+  <line x1="742" y1="36" x2="742" y2="250" stroke="#30363d" stroke-dasharray="3 4"/>
+  <line x1="838" y1="36" x2="838" y2="250" stroke="#30363d" stroke-dasharray="3 4"/>
+  <!-- rax -->
+  <rect x="70" y="44" width="768" height="38" rx="7" fill="#131f38" stroke="#58a6ff" stroke-width="1.6"/>
+  <text x="40" y="68" font-size="15" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">rax</text>
+  <text x="454" y="68" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">full 64 bits</text>
+  <!-- eax -->
+  <rect x="454" y="94" width="384" height="38" rx="7" fill="#12291c" stroke="#3fb950" stroke-width="1.6"/>
+  <text x="424" y="118" font-size="15" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">eax</text>
+  <rect x="70" y="94" width="384" height="38" rx="7" fill="none" stroke="#ff7b72" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="262" y="118" font-size="12.5" text-anchor="middle" fill="#ff7b72" font-family="sans-serif" font-weight="bold">writing eax ZEROES all of this</text>
+  <!-- ax -->
+  <rect x="646" y="144" width="192" height="38" rx="7" fill="#2b2410" stroke="#e3b341" stroke-width="1.6"/>
+  <text x="616" y="168" font-size="15" text-anchor="middle" fill="#e3b341" font-weight="bold" font-family="monospace">ax</text>
+  <text x="330" y="168" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">writing ax/al MERGES — upper bits survive (partial-register write)</text>
+  <!-- ah al -->
+  <rect x="646" y="194" width="96" height="38" rx="7" fill="#2a1530" stroke="#ff7bc6" stroke-width="1.6"/>
+  <text x="694" y="218" font-size="15" text-anchor="middle" fill="#ff7bc6" font-weight="bold" font-family="monospace">ah</text>
+  <rect x="742" y="194" width="96" height="38" rx="7" fill="#221a38" stroke="#bc8cff" stroke-width="1.6"/>
+  <text x="790" y="218" font-size="15" text-anchor="middle" fill="#bc8cff" font-weight="bold" font-family="monospace">al</text>
+  <text x="330" y="218" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">ah = bits 15–8 · exists only for a/b/c/d; dies if a REX prefix is present</text>
+</svg>
+<div class="caption">One physical register, four names. The red dashed zone is the #1 trap: 32-bit writes clear bits 63–32; 16- and 8-bit writes don't.</div>
+</div>
+
+<p>That asymmetry is not trivia — it's the single most common source of confusion when reading 64-bit disassembly, so we proved it live on your CPU. In <code>maxi</code>, right before <code>mov eax, edi</code> executes, we poisoned <code>rax</code> and <code>rdi</code> from GDB, then single-stepped the real instruction:</p>
+
+<pre><code><span class="cmd">(gdb) set $rax = 0xdeadbeefcafebabe</span>
+<span class="cmd">(gdb) set $rdi = 0x11112222deadbeef</span>
+<span class="cmd">(gdb) x/i $rip</span>
+=> 0x5555555553f6 &lt;maxi+6&gt;:  mov  eax, edi
+<span class="cmd">(gdb) stepi</span>
+after real mov eax,edi: rax = <span class="str">0xdeadbeef</span>        <span class="cmt">← upper 32 bits wiped to zero</span></code></pre>
+
+<p>Only the low 32 bits of <code>rdi</code> were read, and the whole upper half of <code>rax</code> became zero. Two consequences you'll use constantly:</p>
+<ul>
+<li><strong>Compilers prefer 32-bit ops.</strong> <code>mov eax, edi</code> is a free zero-extension to 64 bits and one byte shorter than <code>mov rax, rdi</code>. When you see 32-bit registers in 64-bit code, nothing is wrong — it's the default.</li>
+<li><strong><code>mov edi, edi</code> is not a no-op.</strong> Your own <code>day_name</code> contains one at <code>1430</code> — it zeroes bits 63–32 of <code>rdi</code> so the next instruction can safely use <code>rdi*4</code> as a table index. (Careful: a GDB <code>set $eax=…</code> does <em>not</em> emulate this — only real instructions zero-extend. We hit that gotcha while making this atlas.)</li>
+</ul>
+
+<p>The full atlas — learn the <em>roles</em>, because the roles are how you decompile in your head:</p>
+
+<table class="data">
+<tr><th>64</th><th>32</th><th>16</th><th>8</th><th>System V role</th><th>Survives a call?</th><th>What it means when you see it</th></tr>
+<tr><td class="mono">rax</td><td class="mono">eax</td><td class="mono">ax</td><td class="mono">al</td><td>return value</td><td><span class="vol">no — volatile</span></td><td>after a <code>call</code>: the result. Before <code>syscall</code>: the syscall number. <code>al</code> before varargs call: count of vector registers used.</td></tr>
+<tr><td class="mono">rdi</td><td class="mono">edi</td><td class="mono">di</td><td class="mono">dil</td><td>argument 1</td><td><span class="vol">no</span></td><td>loaded right before a <code>call</code> = first argument. Dest for <code>rep movs/stos</code>.</td></tr>
+<tr><td class="mono">rsi</td><td class="mono">esi</td><td class="mono">si</td><td class="mono">sil</td><td>argument 2</td><td><span class="vol">no</span></td><td>second argument. Source for <code>rep movs</code>.</td></tr>
+<tr><td class="mono">rdx</td><td class="mono">edx</td><td class="mono">dx</td><td class="mono">dl</td><td>argument 3</td><td><span class="vol">no</span></td><td>third argument; high half of 128-bit results (<code>rdx:rax</code> in <code>mul</code>/<code>div</code>); remainder after <code>div</code>.</td></tr>
+<tr><td class="mono">rcx</td><td class="mono">ecx</td><td class="mono">cx</td><td class="mono">cl</td><td>argument 4</td><td><span class="vol">no</span></td><td>fourth argument; <code>cl</code> = variable shift count; <code>rep</code> counter; destroyed by <code>syscall</code> (hardware stores return RIP there).</td></tr>
+<tr><td class="mono">r8</td><td class="mono">r8d</td><td class="mono">r8w</td><td class="mono">r8b</td><td>argument 5</td><td><span class="vol">no</span></td><td>fifth argument.</td></tr>
+<tr><td class="mono">r9</td><td class="mono">r9d</td><td class="mono">r9w</td><td class="mono">r9b</td><td>argument 6</td><td><span class="vol">no</span></td><td>sixth argument. Argument 7+ goes on the stack.</td></tr>
+<tr><td class="mono">r10</td><td class="mono">r10d</td><td class="mono">r10w</td><td class="mono">r10b</td><td>scratch</td><td><span class="vol">no</span></td><td>replaces <code>rcx</code> as argument 4 in the <em>kernel</em> syscall convention; nested-function static chain.</td></tr>
+<tr><td class="mono">r11</td><td class="mono">r11d</td><td class="mono">r11w</td><td class="mono">r11b</td><td>scratch</td><td><span class="vol">no</span></td><td>destroyed by <code>syscall</code> (hardware stores RFLAGS there); favorite PLT/veneer scratch.</td></tr>
+<tr><td class="mono">rbx</td><td class="mono">ebx</td><td class="mono">bx</td><td class="mono">bl</td><td>callee-saved</td><td><span class="pres">yes — preserved</span></td><td>a value the function wants to keep across calls — usually a pointer or loop-carried variable. Watch the <code>push rbx</code>/<code>pop rbx</code> pair.</td></tr>
+<tr><td class="mono">rbp</td><td class="mono">ebp</td><td class="mono">bp</td><td class="mono">bpl</td><td>callee-saved</td><td><span class="pres">yes</span></td><td>frame pointer at <code>-O0</code> (locals are <code>[rbp-X]</code>); just another preserved register at <code>-O2</code>.</td></tr>
+<tr><td class="mono">r12–r15</td><td class="mono">r12d…</td><td class="mono">r12w…</td><td class="mono">r12b…</td><td>callee-saved</td><td><span class="pres">yes</span></td><td>more long-lived locals. The number of <code>push r1X</code> in a prologue ≈ how many variables outlive calls.</td></tr>
+<tr><td class="mono">rsp</td><td class="mono">esp</td><td class="mono">sp</td><td class="mono">spl</td><td>stack pointer</td><td><span class="pres">yes (by contract)</span></td><td>always points at the last pushed qword. Must be 16-byte aligned <em>at every</em> <code>call</code>.</td></tr>
+<tr><td class="mono">rip</td><td colspan="3" class="mono">—</td><td>instruction ptr</td><td>—</td><td>unreadable/unwritable directly; only <code>call/jmp/ret</code> change it, only <code>[rip+disp]</code> reads it.</td></tr>
+<tr><td class="mono">fs</td><td colspan="3" class="mono">—</td><td>TLS base</td><td>—</td><td><code>fs:0x28</code> = the stack canary. Any <code>fs:</code> access = thread-local storage.</td></tr>
+</table>
+
+<div class="card warn">
+<strong>Why there's no <code>sph</code>/<code>dih</code>:</strong> the byte registers <code>ah cH dh bh</code> (bits 15–8) are leftovers from the 8086. Any instruction carrying a REX prefix (needed for <code>r8</code>–<code>r15</code>, <code>spl</code>, <code>dil</code>…) reinterprets those four encodings as <code>spl bpl sil dil</code> instead. So <code>mov ah, r8b</code> is physically unencodable — the two register families can't meet in one instruction. When you see <code>ah</code> in modern code it's almost always <code>lahf</code>-style flag juggling or byte-swapping tricks.
+</div>
+
+<h2 class="step"><span class="badge b2">2</span>One formula rules all memory: <code style="font-size:.65em">[base + index·scale + disp]</code></h2>
+
+<p>Every memory operand in x86-64 — every array access, struct field, local variable, jump table — is one instance of a single hardware formula. Your specimen's <code>index_scale</code> function compiles to exactly one instance of it:</p>
+
+<pre><code>long index_scale(long *arr, long i) { return arr[i]; }
+    1344:  mov  rax, QWORD PTR <span class="str">[rdi + rsi*8]</span>      <span class="cmt">; arr in rdi, i in rsi</span></code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arB2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#58a6ff"/></marker>
+  </defs>
+  <text x="450" y="34" font-size="19" text-anchor="middle" fill="#e6edf3" font-family="monospace" font-weight="bold">[ base &nbsp;+&nbsp; index × scale &nbsp;+&nbsp; disp ]</text>
+  <!-- four part boxes -->
+  <rect x="60"  y="70" width="180" height="96" rx="12" fill="#131f38" stroke="#58a6ff"/>
+  <text x="150" y="98"  font-size="15" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">base</text>
+  <text x="150" y="120" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">any register (or rip)</text>
+  <text x="150" y="140" font-size="12.5" text-anchor="middle" fill="#e6edf3" font-family="monospace">yours: rdi = &amp;arr[0]</text>
+  <rect x="260" y="70" width="180" height="96" rx="12" fill="#12291c" stroke="#3fb950"/>
+  <text x="350" y="98"  font-size="15" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">index</text>
+  <text x="350" y="120" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">any register except rsp</text>
+  <text x="350" y="140" font-size="12.5" text-anchor="middle" fill="#e6edf3" font-family="monospace">yours: rsi = i</text>
+  <rect x="460" y="70" width="180" height="96" rx="12" fill="#2b2410" stroke="#e3b341"/>
+  <text x="550" y="98"  font-size="15" text-anchor="middle" fill="#e3b341" font-weight="bold" font-family="monospace">scale</text>
+  <text x="550" y="120" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">1, 2, 4 or 8 — nothing else</text>
+  <text x="550" y="140" font-size="12.5" text-anchor="middle" fill="#e6edf3" font-family="monospace">yours: 8 = sizeof(long)</text>
+  <rect x="660" y="70" width="180" height="96" rx="12" fill="#2a1530" stroke="#ff7bc6"/>
+  <text x="750" y="98"  font-size="15" text-anchor="middle" fill="#ff7bc6" font-weight="bold" font-family="monospace">disp</text>
+  <text x="750" y="120" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">constant, 8- or 32-bit</text>
+  <text x="750" y="140" font-size="12.5" text-anchor="middle" fill="#e6edf3" font-family="monospace">yours: 0 (omitted)</text>
+  <!-- meanings row -->
+  <text x="150" y="205" font-size="12.5" text-anchor="middle" fill="#58a6ff" font-family="sans-serif">"which object"</text>
+  <text x="350" y="205" font-size="12.5" text-anchor="middle" fill="#3fb950" font-family="sans-serif">"which element"</text>
+  <text x="550" y="205" font-size="12.5" text-anchor="middle" fill="#e3b341" font-family="sans-serif">"element size"</text>
+  <text x="750" y="205" font-size="12.5" text-anchor="middle" fill="#ff7bc6" font-family="sans-serif">"which field"</text>
+  <line x1="150" y1="170" x2="150" y2="192" stroke="#58a6ff" stroke-width="1.6" marker-end="url(#arB2)"/>
+  <line x1="350" y1="170" x2="350" y2="192" stroke="#3fb950" stroke-width="1.6" marker-end="url(#arB2)"/>
+  <line x1="550" y1="170" x2="550" y2="192" stroke="#e3b341" stroke-width="1.6" marker-end="url(#arB2)"/>
+  <line x1="750" y1="170" x2="750" y2="192" stroke="#ff7bc6" stroke-width="1.6" marker-end="url(#arB2)"/>
+  <text x="450" y="250" font-size="14" text-anchor="middle" fill="#e6edf3" font-family="monospace">pointer + i·sizeof + offsetof &nbsp;&nbsp;⇒&nbsp;&nbsp; arr[i] · p-&gt;field · matrix[r][c]</text>
+  <text x="450" y="278" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">Read every bracket as C: base names the object, index·scale walks elements, disp picks the field.</text>
+</svg>
+<div class="caption">The universal address formula. Decompiling in your head = mapping each part back to C.</div>
+</div>
+
+<p>The three specimens, decoded with that lens:</p>
+
+<pre><code><span class="cmt">; int struct_field(struct player *p) { return p->mp; }   — disp alone picks a field</span>
+    1354:  mov  eax, DWORD PTR [rdi<span class="str">+0x4</span>]        <span class="cmt">; mp is 4 bytes into the struct</span>
+
+<span class="cmt">; int matrix(int m[][10], long r, long c) { return m[r][c]; }  — r*10 doesn't fit scale∈{1,2,4,8},</span>
+<span class="cmt">; so the compiler builds ×10 out of two lea's: (r + r*4)*8 = r*40 = r * 10 ints</span>
+    1364:  lea  rax, [rsi+rsi*4]                <span class="cmt">; rax = r*5</span>
+    1368:  lea  rax, [rdi+rax*8]                <span class="cmt">; rax = m + r*40  (= &amp;m[r][0])</span>
+    136c:  mov  eax, DWORD PTR [rax+rdx*4]      <span class="cmt">; load m[r][c]</span></code></pre>
+
+<h3><code>lea</code> — the address formula hijacked for arithmetic</h3>
+
+<p><code>lea</code> (load effective address) computes the bracket <em>without touching memory</em> — it's a 3-operand add-and-multiply that happens to use address syntax. Your <code>lea_math</code>:</p>
+
+<pre><code>long lea_math(long x) { return x * 5 + 7; }
+    1374:  lea  rax, [rdi + rdi*4 + 0x7]        <span class="cmt">; rax = x + x*4 + 7 — no RAM involved</span></code></pre>
+
+<div class="card keyidea">
+<strong>The disambiguation rule you'll use every day:</strong> <code>mov rax, [rdi]</code> <em>dereferences</em> — it reads 8 bytes of memory. <code>lea rax, [rdi+8]</code> only does the <em>math</em> — it's <code>rax = rdi + 8</code>, memory untouched. If a bracket appears in <code>lea</code>, mentally erase the brackets. Compilers love it because it does mul+add+move in one instruction and — unlike <code>add</code> — <strong>doesn't clobber RFLAGS</strong>, so it can sit between a <code>cmp</code> and its <code>jcc</code>. You'll also constantly see <code>lea rdi, [rip+0xXXX]</code> — that's "take the address of this string/global", the position-independent way.</p>
+</div>
+
+<h2 class="step"><span class="badge b3">3</span>How instructions are actually spelled: REX · opcode · ModRM · SIB</h2>
+
+<p>You don't need to hand-assemble, but knowing the byte anatomy pays off in RE: it's how you recognize function boundaries in raw bytes, spot misaligned disassembly, and understand why the same mnemonic has many lengths. Here is your own <code>mov rax, [rdi+rsi*8]</code> — four bytes, fully decoded:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9aa7b3"/></marker>
+  </defs>
+  <!-- byte row -->
+  <rect x="120" y="30" width="150" height="52" rx="9" fill="#ff7b72" opacity=".9"/>
+  <text x="195" y="63" font-size="21" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">48</text>
+  <rect x="290" y="30" width="150" height="52" rx="9" fill="#3fb950" opacity=".9"/>
+  <text x="365" y="63" font-size="21" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">8b</text>
+  <rect x="460" y="30" width="150" height="52" rx="9" fill="#e3b341" opacity=".9"/>
+  <text x="535" y="63" font-size="21" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">04</text>
+  <rect x="630" y="30" width="150" height="52" rx="9" fill="#bc8cff" opacity=".9"/>
+  <text x="705" y="63" font-size="21" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">f7</text>
+  <text x="195" y="105" font-size="13" text-anchor="middle" fill="#ff7b72" font-family="sans-serif" font-weight="bold">REX prefix</text>
+  <text x="365" y="105" font-size="13" text-anchor="middle" fill="#3fb950" font-family="sans-serif" font-weight="bold">opcode: MOV r64, r/m64</text>
+  <text x="535" y="105" font-size="13" text-anchor="middle" fill="#e3b341" font-family="sans-serif" font-weight="bold">ModRM</text>
+  <text x="705" y="105" font-size="13" text-anchor="middle" fill="#bc8cff" font-family="sans-serif" font-weight="bold">SIB</text>
+  <!-- REX bits -->
+  <g font-family="monospace" font-size="14" text-anchor="middle">
+    <rect x="60"  y="140" width="100" height="40" rx="7" fill="#1c2333" stroke="#ff7b72"/>
+    <text x="110" y="165" fill="#9aa7b3">0100</text>
+    <rect x="164" y="140" width="34" height="40" rx="7" fill="#2a1015" stroke="#ff7b72"/>
+    <text x="181" y="165" fill="#ff7b72" font-weight="bold">W=1</text>
+    <rect x="202" y="140" width="34" height="40" rx="7" fill="#1c2333" stroke="#30363d"/>
+    <text x="219" y="165" fill="#566070">R=0</text>
+    <rect x="240" y="140" width="34" height="40" rx="7" fill="#1c2333" stroke="#30363d"/>
+    <text x="257" y="165" fill="#566070">X=0</text>
+    <rect x="278" y="140" width="34" height="40" rx="7" fill="#1c2333" stroke="#30363d"/>
+    <text x="295" y="165" fill="#566070">B=0</text>
+  </g>
+  <text x="186" y="205" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">W: 64-bit operand &nbsp;·&nbsp; R/X/B: high bit of reg / index / base (how r8–r15 are reached)</text>
+  <!-- ModRM bits -->
+  <g font-family="monospace" font-size="14" text-anchor="middle">
+    <rect x="410" y="235" width="80" height="40" rx="7" fill="#2b2410" stroke="#e3b341"/>
+    <text x="450" y="260" fill="#e3b341" font-weight="bold">mod=00</text>
+    <rect x="494" y="235" width="90" height="40" rx="7" fill="#131f38" stroke="#58a6ff"/>
+    <text x="539" y="260" fill="#58a6ff" font-weight="bold">reg=000</text>
+    <rect x="588" y="235" width="90" height="40" rx="7" fill="#1c2333" stroke="#e3b341"/>
+    <text x="633" y="260" fill="#e6edf3" font-weight="bold">rm=100</text>
+  </g>
+  <line x1="535" y1="86" x2="510" y2="230" stroke="#9aa7b3" stroke-width="1.4" marker-end="url(#arE)"/>
+  <text x="450" y="298" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">no disp</text>
+  <text x="539" y="298" font-size="12" text-anchor="middle" fill="#58a6ff" font-family="sans-serif">dest: rax</text>
+  <text x="633" y="298" font-size="12" text-anchor="middle" fill="#e3b341" font-family="sans-serif">"SIB byte follows"</text>
+  <!-- SIB bits -->
+  <g font-family="monospace" font-size="14" text-anchor="middle">
+    <rect x="700" y="235" width="60" height="40" rx="7" fill="#2a1530" stroke="#ff7bc6"/>
+    <text x="730" y="260" fill="#ff7bc6" font-weight="bold">s=11</text>
+    <rect x="764" y="235" width="64" height="40" rx="7" fill="#12291c" stroke="#3fb950"/>
+    <text x="796" y="260" fill="#3fb950" font-weight="bold">i=110</text>
+    <rect x="832" y="235" width="64" height="40" rx="7" fill="#131f38" stroke="#58a6ff"/>
+    <text x="864" y="260" fill="#58a6ff" font-weight="bold">b=111</text>
+  </g>
+  <line x1="705" y1="86" x2="760" y2="230" stroke="#9aa7b3" stroke-width="1.4" marker-end="url(#arE)"/>
+  <text x="730" y="298" font-size="12" text-anchor="middle" fill="#ff7bc6" font-family="sans-serif">×8</text>
+  <text x="796" y="298" font-size="12" text-anchor="middle" fill="#3fb950" font-family="sans-serif">rsi</text>
+  <text x="864" y="298" font-size="12" text-anchor="middle" fill="#58a6ff" font-family="sans-serif">rdi</text>
+  <text x="450" y="340" font-size="15" text-anchor="middle" fill="#e6edf3" font-family="monospace" font-weight="bold">48 8b 04 f7 &nbsp;⇒&nbsp; mov rax, QWORD PTR [rdi + rsi*8]</text>
+</svg>
+<div class="caption">Byte anatomy of <code>index_scale</code>'s only real instruction. mod/reg/rm and scale/index/base are just the formula from Step 2, serialized.</div>
+</div>
+
+<p>The general template every instruction follows (most parts optional): <code>[prefixes] [REX] opcode [ModRM] [SIB] [disp] [imm]</code> — from 1 byte (<code>ret</code> = <code>c3</code>, <code>push rbp</code> = <code>55</code>) to the architectural maximum of <strong>15 bytes</strong>. Practical payoffs:</p>
+
+<ul>
+<li><strong><code>48</code> is everywhere.</strong> Half of 64-bit code starts with <code>48</code> (REX.W). Seeing <code>48 8b</code>/<code>48 89</code> in a hexdump = 64-bit <code>mov</code>. <code>55 48 89 e5</code> = <code>push rbp; mov rbp,rsp</code> — a function prologue signature you can grep raw bytes for.</li>
+<li><strong>Variable length = disassembler desync.</strong> Start disassembling one byte off and you get plausible garbage for a while. Malware exploits this (overlapping instructions); trust function boundaries, not mid-stream guesses.</li>
+<li><strong><code>f3 0f 1e fa</code> = <code>endbr64</code></strong> — a CET landing pad stamped at every indirect-jump target. Pure armor, zero semantics: skip it while reading. Same for the padding zoo between functions: <code>nop WORD PTR [rax+rax*1+0x0]</code>, <code>xchg ax,ax</code>, <code>data16 cs nop</code> — multi-byte NOPs aligning the next function to 16 bytes.</li>
+<li><strong>Two-byte opcodes start with <code>0f</code></strong> — your <code>cmovge</code> is <code>0f 4d c6</code>, all SSE is <code>0f</code>-something. AVX replaces the prefix soup with <code>c4</code>/<code>c5</code> (VEX).</li>
+</ul>
+
+<h2 class="step"><span class="badge b4">4</span>RFLAGS &amp; condition codes: the machine's only memory of a comparison</h2>
+
+<p>There is no "if" instruction. There is <code>cmp</code> (a subtraction that throws away the result but keeps the side effects) and, later, a conditional jump that inspects those side effects. The side effects live in RFLAGS. We captured a real one on your CPU — inside <code>maxi</code>, we forced <code>edi=5, esi=3</code> and stepped over <code>cmp esi, edi</code> (computing 3−5):</p>
+
+<pre><code><span class="cmd">(gdb) set $edi=5 ; set $esi=3 ; stepi</span>       <span class="cmt"># executes: cmp esi, edi   → 3 - 5</span>
+eflags  0x293  [ <span class="str">CF</span> AF <span class="str">SF</span> IF ]              <span class="cmt"># ZF=0 OF=0</span></code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 240" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="monospace" text-anchor="middle">
+    <!-- bit boxes, bit 11 .. 0, x from 60 step 70 -->
+    <rect x="60"  y="60" width="62" height="52" rx="8" fill="#1c2333" stroke="#39c5cf"/>
+    <text x="91"  y="92" font-size="16" fill="#39c5cf" font-weight="bold">OF</text>
+    <rect x="128" y="60" width="62" height="52" rx="8" fill="#1c2333" stroke="#30363d"/>
+    <text x="159" y="92" font-size="16" fill="#8b949e">DF</text>
+    <rect x="196" y="60" width="62" height="52" rx="8" fill="#12291c" stroke="#3fb950"/>
+    <text x="227" y="92" font-size="16" fill="#3fb950" font-weight="bold">IF</text>
+    <rect x="264" y="60" width="62" height="52" rx="8" fill="#1c2333" stroke="#30363d"/>
+    <text x="295" y="92" font-size="16" fill="#8b949e">TF</text>
+    <rect x="332" y="60" width="62" height="52" rx="8" fill="#2a1530" stroke="#ff7bc6" stroke-width="2"/>
+    <text x="363" y="92" font-size="16" fill="#ff7bc6" font-weight="bold">SF</text>
+    <rect x="400" y="60" width="62" height="52" rx="8" fill="#2b2410" stroke="#e3b341"/>
+    <text x="431" y="92" font-size="16" fill="#e3b341" font-weight="bold">ZF</text>
+    <rect x="468" y="60" width="62" height="52" rx="8" fill="#1c2333" stroke="#30363d"/>
+    <text x="499" y="92" font-size="16" fill="#8b949e">AF</text>
+    <rect x="536" y="60" width="62" height="52" rx="8" fill="#1c2333" stroke="#30363d"/>
+    <text x="567" y="92" font-size="16" fill="#8b949e">PF</text>
+    <rect x="604" y="60" width="62" height="52" rx="8" fill="#2a1015" stroke="#ff7b72" stroke-width="2"/>
+    <text x="635" y="92" font-size="16" fill="#ff7b72" font-weight="bold">CF</text>
+    <!-- bit numbers -->
+    <text x="91"  y="48" font-size="11" fill="#9aa7b3">11</text>
+    <text x="159" y="48" font-size="11" fill="#9aa7b3">10</text>
+    <text x="227" y="48" font-size="11" fill="#9aa7b3">9</text>
+    <text x="295" y="48" font-size="11" fill="#9aa7b3">8</text>
+    <text x="363" y="48" font-size="11" fill="#9aa7b3">7</text>
+    <text x="431" y="48" font-size="11" fill="#9aa7b3">6</text>
+    <text x="499" y="48" font-size="11" fill="#9aa7b3">4</text>
+    <text x="567" y="48" font-size="11" fill="#9aa7b3">2</text>
+    <text x="635" y="48" font-size="11" fill="#9aa7b3">0</text>
+    <!-- captured values -->
+    <text x="91"  y="136" font-size="14" fill="#39c5cf">0</text>
+    <text x="159" y="136" font-size="14" fill="#566070">0</text>
+    <text x="227" y="136" font-size="14" fill="#3fb950">1</text>
+    <text x="295" y="136" font-size="14" fill="#566070">0</text>
+    <text x="363" y="136" font-size="15" fill="#ff7bc6" font-weight="bold">1</text>
+    <text x="431" y="136" font-size="14" fill="#e3b341">0</text>
+    <text x="499" y="136" font-size="14" fill="#566070">1</text>
+    <text x="567" y="136" font-size="14" fill="#566070">0</text>
+    <text x="635" y="136" font-size="15" fill="#ff7b72" font-weight="bold">1</text>
+  </g>
+  <g font-family="sans-serif" font-size="11.5" text-anchor="middle" fill="#9aa7b3">
+    <text x="91"  y="168">signed overflow</text>
+    <text x="159" y="168">string direction</text>
+    <text x="227" y="168">interrupts on</text>
+    <text x="295" y="168">single-step</text>
+    <text x="363" y="168">result negative</text>
+    <text x="431" y="168">result zero</text>
+    <text x="499" y="168">BCD carry</text>
+    <text x="567" y="168">low-byte parity</text>
+    <text x="635" y="168">unsigned borrow</text>
+  </g>
+  <text x="450" y="210" font-size="13.5" text-anchor="middle" fill="#e6edf3" font-family="monospace">your capture: 3 − 5 → eflags 0x293 → CF=1 (3&lt;5 unsigned) · SF=1 (result −2) · ZF=0 (not equal) · OF=0</text>
+  <text x="450" y="230" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">Only four matter for reading code: ZF, CF, SF, OF. IF/TF/DF are OS &amp; string machinery.</text>
+</svg>
+<div class="caption">RFLAGS after your real <code>cmp esi, edi</code> with 3 and 5. One subtraction feeds every possible question about a&nbsp;vs&nbsp;b.</div>
+</div>
+
+<div class="card crown">
+<strong>The crown jewel of x86 reverse engineering: condition codes leak the C types.</strong> The CPU doesn't know whether your bytes are signed or unsigned — but the <em>jump mnemonic</em> does. After <code>cmp a, b</code>, "greater/less" (<code>jg jge jl jle</code>) test the <em>signed</em> story (SF, OF), while "above/below" (<code>ja jae jb jbe</code>) test the <em>unsigned</em> story (CF). The compiler chose the mnemonic based on the C declaration — so when you read <code>ja</code>, you just learned the variable was <code>unsigned</code> (or a pointer/size_t); when you read <code>jg</code>, it was signed. Disassembly leaks the type system. Nothing tells you more about the original source for less effort.
+</div>
+
+<table class="data">
+<tr><th>After <code>cmp a, b</code>, jump if…</th><th>Signed (g/l family)</th><th>Flags tested</th><th>Unsigned (a/b family)</th><th>Flags tested</th></tr>
+<tr><td>equal / not equal</td><td class="mono" colspan="4" style="text-align:center">je (jz) · jne (jnz) — ZF, shared by both worlds</td></tr>
+<tr><td>a &gt; b</td><td class="mono">jg</td><td class="mono">ZF=0 and SF=OF</td><td class="mono">ja</td><td class="mono">CF=0 and ZF=0</td></tr>
+<tr><td>a ≥ b</td><td class="mono">jge</td><td class="mono">SF=OF</td><td class="mono">jae (jnc)</td><td class="mono">CF=0</td></tr>
+<tr><td>a &lt; b</td><td class="mono">jl</td><td class="mono">SF≠OF</td><td class="mono">jb (jc)</td><td class="mono">CF=1</td></tr>
+<tr><td>a ≤ b</td><td class="mono">jle</td><td class="mono">ZF=1 or SF≠OF</td><td class="mono">jbe</td><td class="mono">CF=1 or ZF=1</td></tr>
+<tr><td>sign / overflow / parity</td><td class="mono" colspan="4" style="text-align:center">js · jo · jp — direct single-flag tests (jp after float compare = NaN!)</td></tr>
+</table>
+
+<p>Why "SF≠OF" means "less than", in one sentence: normally a negative result (SF=1) means a&lt;b, but if the subtraction <em>overflowed</em> (OF=1) the sign is a lie, so the truth is the XOR of the two. Your capture shows the honest case: SF=1, OF=0 → 3&lt;5 signed; and CF=1 → 3&lt;5 unsigned too.</p>
+
+<h3>The same condition, three consumers</h3>
+
+<p>Every condition code <code>cc</code> exists in three instruction forms, and your specimen has all three:</p>
+
+<pre><code><span class="cmt">; 1. jcc — branch on it (day_name's bounds check)</span>
+    1424:  cmp  edi, 0x6
+    1427:  <span class="kw">ja</span>   14a8            <span class="cmt">; unsigned trick: one ja handles d&lt;0 AND d&gt;6 (see Step 7)</span>
+
+<span class="cmt">; 2. cmovcc — select on it, no branch (maxi: return a > b ? a : b)</span>
+    13f4:  cmp  esi, edi
+    13f6:  mov  eax, edi
+    13f8:  <span class="kw">cmovge</span> eax, esi      <span class="cmt">; if (b >= a) result = b — a ternary with zero branches</span>
+
+<span class="cmt">; 3. setcc — materialize it as 0/1 (is_zero: return x == 0)</span>
+    1404:  xor  eax, eax         <span class="cmt">; clear first — sete only writes 1 byte (al)!</span>
+    1406:  test rdi, rdi
+    1409:  <span class="kw">sete</span> al               <span class="cmt">; al = (x == 0)</span></code></pre>
+
+<div class="card warn">
+<strong><code>test</code> vs <code>cmp</code>, the two flag-setters you'll see most:</strong> <code>cmp a,b</code> is <code>a−b</code> discarded; <code>test a,b</code> is <code>a&amp;b</code> discarded. <code>test reg, reg</code> (same register twice) is the idiomatic "is it zero / is it negative?" — after it, <code>je</code> means "was zero" (NULL check after loading a pointer, error check after a call), <code>js</code> means "was negative". <code>test al, al</code> after a call = checking a returned <code>bool</code>/<code>char</code>. Also remember both <code>xor reg,reg</code> and <code>sub/add/and/or</code> update flags as a side effect, but <code>mov</code>, <code>lea</code>, <code>push/pop</code> <strong>never touch flags</strong> — that's why compilers can schedule them between a <code>cmp</code> and its <code>jcc</code>, and you must read <em>past</em> them to find which comparison a jump belongs to.
+</div>
+
+<h2 class="step"><span class="badge b5">5</span>The System V calling convention: the social contract</h2>
+
+<p>Nothing in the hardware defines "arguments". The System V AMD64 ABI (Linux, macOS, BSD — Windows differs!) says: first six integer/pointer args ride in <code>rdi rsi rdx rcx r8 r9</code>, first eight float/double args in <code>xmm0–xmm7</code> (counted separately), the rest go on the stack right-to-left, and the return comes back in <code>rax</code> (or <code>xmm0</code>). We froze your <code>many_args(1,2,3,4,5,6,7,8)</code> at its first instruction and photographed the contract in action:</p>
+
+<pre><code><span class="cmd">(gdb) break *many_args ; run</span>
+reg args:  rdi=1  rsi=2  rdx=3  rcx=4  r8=5  r9=6
+0x7fffffffd6d8:  0x0000555555555186   <span class="cmt">← [rsp]      return address (pushed by call)</span>
+0x7fffffffd6e0:  0x0000000000000007   <span class="cmt">← [rsp+0x08] argument 7</span>
+0x7fffffffd6e8:  0x0000000000000008   <span class="cmt">← [rsp+0x10] argument 8</span></code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#58a6ff"/></marker>
+    <marker id="arC2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3fb950"/></marker>
+  </defs>
+  <text x="120" y="36" font-size="15" fill="#e6edf3" font-weight="bold" font-family="monospace">many_args(a,…,h)</text>
+  <!-- integer regs -->
+  <g font-family="monospace" font-size="14" text-anchor="middle">
+    <rect x="40"  y="60" width="90" height="44" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="85"  y="87" fill="#58a6ff" font-weight="bold">rdi=1</text>
+    <rect x="140" y="60" width="90" height="44" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="185" y="87" fill="#58a6ff" font-weight="bold">rsi=2</text>
+    <rect x="240" y="60" width="90" height="44" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="285" y="87" fill="#58a6ff" font-weight="bold">rdx=3</text>
+    <rect x="340" y="60" width="90" height="44" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="385" y="87" fill="#58a6ff" font-weight="bold">rcx=4</text>
+    <rect x="440" y="60" width="80" height="44" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="480" y="87" fill="#58a6ff" font-weight="bold">r8=5</text>
+    <rect x="530" y="60" width="80" height="44" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="570" y="87" fill="#58a6ff" font-weight="bold">r9=6</text>
+  </g>
+  <text x="330" y="128" font-size="12.5" text-anchor="middle" fill="#58a6ff" font-family="sans-serif">integer/pointer args 1–6 (verified live above)</text>
+  <!-- stack args -->
+  <g font-family="monospace" font-size="13" text-anchor="middle">
+    <rect x="640" y="38" width="230" height="40" rx="8" fill="#2b2410" stroke="#e3b341"/><text x="755" y="63" fill="#e3b341">[rsp+0x10] = 8   arg 8</text>
+    <rect x="640" y="82" width="230" height="40" rx="8" fill="#2b2410" stroke="#e3b341"/><text x="755" y="107" fill="#e3b341">[rsp+0x08] = 7   arg 7</text>
+    <rect x="640" y="126" width="230" height="40" rx="8" fill="#2a1015" stroke="#ff7b72"/><text x="755" y="151" fill="#ff7b72">[rsp] = return address</text>
+  </g>
+  <text x="755" y="190" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">args 7+ pushed right-to-left; callee reads, never pops</text>
+  <!-- float row -->
+  <g font-family="monospace" font-size="13.5" text-anchor="middle">
+    <rect x="40"  y="215" width="130" height="42" rx="9" fill="#12291c" stroke="#3fb950"/><text x="105" y="241" fill="#3fb950" font-weight="bold">xmm0=1.5</text>
+    <rect x="180" y="215" width="130" height="42" rx="9" fill="#12291c" stroke="#3fb950"/><text x="245" y="241" fill="#3fb950" font-weight="bold">xmm1=0.25</text>
+    <rect x="320" y="215" width="150" height="42" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="395" y="241" fill="#58a6ff" font-weight="bold">rdi=4</text>
+  </g>
+  <text x="270" y="285" font-size="12.5" text-anchor="middle" fill="#3fb950" font-family="sans-serif">mixed(double x, long n, double y): two counters run in parallel —</text>
+  <text x="270" y="303" font-size="12.5" text-anchor="middle" fill="#3fb950" font-family="sans-serif">doubles take xmm0, xmm1 while the long takes rdi</text>
+  <!-- returns -->
+  <rect x="560" y="230" width="140" height="46" rx="9" fill="#221a38" stroke="#bc8cff"/>
+  <text x="630" y="258" font-size="14" text-anchor="middle" fill="#bc8cff" font-weight="bold" font-family="monospace">ret: rax=36</text>
+  <rect x="716" y="230" width="154" height="46" rx="9" fill="#221a38" stroke="#bc8cff"/>
+  <text x="793" y="258" font-size="14" text-anchor="middle" fill="#bc8cff" font-weight="bold" font-family="monospace">ret: xmm0=6.25</text>
+  <text x="715" y="300" font-size="12.5" text-anchor="middle" fill="#bc8cff" font-family="sans-serif">integers return in rax (rdx:rax if 128-bit), floats in xmm0</text>
+  <!-- rules strip -->
+  <rect x="40" y="330" width="830" height="52" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="455" y="352" font-size="13" text-anchor="middle" fill="#e6edf3" font-family="sans-serif">rsp ≡ 16-aligned at every call &nbsp;·&nbsp; al = # of xmm regs used, set before calling varargs (printf) &nbsp;·&nbsp; leaf functions may use 128 bytes <em>below</em> rsp (the red zone) without moving it</text>
+  <text x="455" y="372" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">volatile (caller must not trust): rax rcx rdx rsi rdi r8–r11, all xmm &nbsp;·&nbsp; preserved (callee must restore): rbx rbp rsp r12–r15</text>
+</svg>
+<div class="caption">The System V contract with your live values: <code>many_args</code> got 1–6 in registers, 7 and 8 at [rsp+8] and [rsp+0x10], and returned 36 in rax.</div>
+</div>
+
+<p>The volatile/preserved split is where reverse engineering gets real leverage. Your <code>callee_saved_demo</code> needs <code>a</code> and <code>b</code> to survive the call to <code>greet</code> — watch what the compiler does:</p>
+
+<pre><code>long callee_saved_demo(long a, long b) { greet("demo"); return a*3 + b; }
+    1584:  push rbp              <span class="cmt">; save caller's rbp — I'm about to use it</span>
+    1585:  mov  rbp, rsi         <span class="cmt">; b moves into a PRESERVED register</span>
+    1588:  push rbx              <span class="cmt">; save caller's rbx too</span>
+    1589:  mov  rbx, rdi         <span class="cmt">; a moves into a preserved register</span>
+    158c:  lea  rdi, [rip+0xa9b] <span class="cmt">; arg1 = "demo"</span>
+    1593:  sub  rsp, 0x8         <span class="cmt">; realign: 2 pushes + retaddr = 24 bytes → +8 = 32 ✔</span>
+    1597:  call 1520 &lt;greet&gt;     <span class="cmt">; may destroy rax rcx rdx rsi rdi r8-r11…</span>
+    159c:  lea  rax, [rbx+rbx*2] <span class="cmt">; …but rbx still holds a: rax = a*3</span>
+    15a4:  add  rax, rbp         <span class="cmt">; + b, still alive in rbp</span>
+    15a7:  pop  rbx              <span class="cmt">; restore in reverse order</span>
+    15a8:  pop  rbp
+    15a9:  ret</code></pre>
+
+<div class="card keyidea">
+<strong>Read functions backwards from this contract.</strong> Values marching <em>into</em> <code>rdi/rsi/rdx…</code> before a <code>call</code> are the arguments — that's how you recover prototypes of unnamed functions. A value moved into <code>rbx/r12–r15</code> at the top is a long-lived local. <code>eax</code> examined right after a <code>call</code> is the return value being checked. And at <code>-O2</code>, note what's <em>absent</em>: no frame pointer, no wasted moves — <code>rbp</code> here is just a spare preserved register holding <code>b</code>, nothing to do with frames.
+</div>
+
+<h2 class="step"><span class="badge b6">6</span>Stack frames, the canary, and where everything lives</h2>
+
+<p>The stack grows <em>downward</em> (push = <code>rsp -= 8</code> then store), and a function's frame is just the slice of stack between the return address and wherever <code>rsp</code> stops. Compare the two builds of <code>greet</code> — same C, two dialects:</p>
+
+<pre><code><span class="cmt">;— -O0: the textbook frame —————————————;    ;— -O2: frame pointer optimized out ——————</span>
+push rbp                                      push rbp            <span class="cmt">; (just preserving it)</span>
+mov  rbp, rsp     <span class="cmt">; anchor the frame</span>          <span class="cmt">; args staged into r9, r8, rcx, rdx, rsi…</span>
+sub  rsp, 0x60    <span class="cmt">; room for locals</span>           sub  rsp, 0x50
+mov  [rbp-0x58], rdi                          mov  rax, fs:0x28   <span class="cmt">; canary in…</span>
+mov  rax, fs:0x28                             mov  [rsp+0x48], rax
+mov  [rbp-0x8], rax   <span class="cmt">; canary</span>                <span class="cmt">; locals addressed from RSP, not rbp</span>
+<span class="cmt">; locals at [rbp-X] — easy to read</span>            mov  rbp, rsp       <span class="cmt">; rbp = &amp;buf (reused!)</span>
+…                                             …
+leave             <span class="cmt">; = mov rsp,rbp; pop rbp</span>    add  rsp, 0x50
+ret                                           pop  rbp
+                                              ret</code></pre>
+
+<p>We froze the <code>-O2</code> frame live, right after the canary store, and mapped every byte (all values real):</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff7b72"/></marker>
+    <marker id="arD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9aa7b3"/></marker>
+  </defs>
+  <text x="240" y="30" font-size="13" fill="#9aa7b3" font-family="sans-serif">higher addresses ↑ (caller's territory)</text>
+  <!-- frame slots -->
+  <g font-family="monospace" font-size="13.5">
+    <rect x="180" y="44"  width="420" height="44" rx="8" fill="#2a1015" stroke="#ff7b72"/>
+    <text x="390" y="71" text-anchor="middle" fill="#ff7b72" font-weight="bold">0x55555555520f → main+335 (return address)</text>
+    <rect x="180" y="92"  width="420" height="40" rx="8" fill="#1c2333" stroke="#30363d"/>
+    <text x="390" y="117" text-anchor="middle" fill="#c9d1d9">saved rbp = 0x2</text>
+    <rect x="180" y="136" width="420" height="44" rx="8" fill="#2b2410" stroke="#e3b341" stroke-width="2"/>
+    <text x="390" y="163" text-anchor="middle" fill="#e3b341" font-weight="bold">canary = 0x0d07838cdfa947<tspan fill="#ff7b72">00</tspan></text>
+    <rect x="180" y="184" width="420" height="34" rx="8" fill="#161b22" stroke="#30363d"/>
+    <text x="390" y="206" text-anchor="middle" fill="#566070">8 bytes padding</text>
+    <rect x="180" y="222" width="420" height="120" rx="8" fill="#131f38" stroke="#58a6ff"/>
+    <text x="390" y="262" text-anchor="middle" fill="#58a6ff" font-weight="bold">char buf[64]</text>
+    <text x="390" y="288" text-anchor="middle" fill="#9aa7b3" font-size="12.5">"hello, %s" lands here — attacker-influenced bytes</text>
+    <rect x="180" y="346" width="420" height="52" rx="8" fill="none" stroke="#3fb950" stroke-dasharray="7 5"/>
+    <text x="390" y="378" text-anchor="middle" fill="#3fb950" font-size="12.5">red zone: 128 bytes below rsp, usable by leaf functions</text>
+  </g>
+  <!-- offsets -->
+  <g font-family="monospace" font-size="12.5" text-anchor="end" fill="#9aa7b3">
+    <text x="172" y="71">[rsp+0x58]</text>
+    <text x="172" y="117">[rsp+0x50]</text>
+    <text x="172" y="163">[rsp+0x48]</text>
+    <text x="172" y="286">[rsp]…+0x3f</text>
+  </g>
+  <text x="655" y="240" font-size="13" fill="#e6edf3" font-family="monospace">← rsp = 0x7fffffffd6b0</text>
+  <!-- overflow arrow -->
+  <line x1="640" y1="330" x2="640" y2="70" stroke="#ff7b72" stroke-width="2.6" marker-end="url(#arR)"/>
+  <text x="712" y="150" font-size="13" fill="#ff7b72" font-family="sans-serif" font-weight="bold">overflow writes</text>
+  <text x="712" y="168" font-size="13" fill="#ff7b72" font-family="sans-serif" font-weight="bold">grow upward —</text>
+  <text x="712" y="186" font-size="13" fill="#ff7b72" font-family="sans-serif">must trample the</text>
+  <text x="712" y="204" font-size="13" fill="#ff7b72" font-family="sans-serif">canary before</text>
+  <text x="712" y="222" font-size="13" fill="#ff7b72" font-family="sans-serif">the return address</text>
+  <!-- epilogue check -->
+  <rect x="40" y="410" width="820" height="40" rx="9" fill="#161b22" stroke="#30363d"/>
+  <text x="450" y="435" font-size="13" text-anchor="middle" fill="#c9d1d9" font-family="monospace">epilogue: mov rax,[rsp+0x48] ; sub rax, fs:0x28 ; jne __stack_chk_fail  — mismatch = abort, no ret</text>
+</svg>
+<div class="caption">Your <code>greet</code> frame, photographed live. The canary's low byte is always <code>00</code> — it terminates C strings so string functions can't leak or write past it quietly.</div>
+</div>
+
+<p>And the widest view — where that frame sits in the whole process. This is <code>info proc mappings</code> from your actual run:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="monospace" font-size="12.5">
+    <rect x="60"  y="30" width="330" height="40" rx="8" fill="#2a1015" stroke="#ff7b72"/>
+    <text x="225" y="55" text-anchor="middle" fill="#ff7b72">[stack] 0x7ffffffdd000 ↓ grows down</text>
+    <rect x="60"  y="78" width="330" height="40" rx="8" fill="#221a38" stroke="#bc8cff"/>
+    <text x="225" y="103" text-anchor="middle" fill="#bc8cff">ld-linux + [vdso] 0x7ffff7fc…</text>
+    <rect x="60"  y="126" width="330" height="40" rx="8" fill="#12291c" stroke="#3fb950"/>
+    <text x="225" y="151" text-anchor="middle" fill="#3fb950">libc.so.6 0x7ffff7c00000 (r/rx/r/rw)</text>
+    <rect x="60"  y="196" width="330" height="40" rx="8" fill="#2b2410" stroke="#e3b341"/>
+    <text x="225" y="221" text-anchor="middle" fill="#e3b341">[heap] 0x555555559000 ↑ grows up</text>
+    <rect x="60"  y="244" width="330" height="40" rx="8" fill="#131f38" stroke="#58a6ff"/>
+    <text x="225" y="269" text-anchor="middle" fill="#58a6ff">specimen 0x555555554000 (PIE base)</text>
+    <line x1="225" y1="174" x2="225" y2="190" stroke="#30363d" stroke-dasharray="3 4"/>
+  </g>
+  <g font-family="sans-serif" font-size="12.5" fill="#9aa7b3">
+    <text x="420" y="55">← greet's frame at 0x7fffffffd6b0 lives here</text>
+    <text x="420" y="103">← the dynamic linker; vsyscall page at 0xffffffffff600000</text>
+    <text x="420" y="151">← puts really lives here; PLT jumps land here</text>
+    <text x="420" y="185">← ~46 TB of unmapped nothing between</text>
+    <text x="420" y="221">← malloc's territory</text>
+    <text x="420" y="269">← five mappings: r--/r-x/r--/r--/rw- = headers/code/rodata/relro/data</text>
+  </g>
+  <text x="450" y="315" font-size="12.5" text-anchor="middle" fill="#e3b341" font-family="sans-serif">These exact addresses repeat every GDB run because <strong>GDB disables ASLR</strong> — 0x555555554000 and 0x7ffff7… are its signature no-randomization bases. Outside GDB they shuffle every execution.</text>
+</svg>
+<div class="caption">Your process, from <code>info proc mappings</code>. Code low, heap above it, libraries high, stack highest — with a canyon between.</div>
+</div>
+
+<h2 class="step"><span class="badge b7">7</span>Control-flow shapes: if, loop, switch — learn the silhouettes</h2>
+
+<p>Compilers emit a small number of recognizable shapes. Once you know the silhouettes, you read structure instead of instructions.</p>
+
+<h3>The loop silhouette — <code>sum_array</code></h3>
+
+<pre><code>    14b4:  test rsi, rsi          <span class="cmt">; ── guard: n &lt;= 0?</span>
+    14b7:  jle  14d0              <span class="cmt">;    skip loop entirely (early-out block below)</span>
+    14b9:  lea  rcx, [rdi+rsi*4]  <span class="cmt">; ── setup: rcx = one-past-the-end pointer!</span>
+    14bd:  xor  eax, eax          <span class="cmt">;    s = 0</span>
+    14c0:  movsxd rdx, DWORD PTR [rdi]   <span class="cmt">; ─┐ body: load a[i] (sign-extend int→long)</span>
+    14c3:  add  rdi, 0x4          <span class="cmt">;  │ pointer walks — the compiler killed i!</span>
+    14c7:  add  rax, rdx          <span class="cmt">;  │ s += a[i]</span>
+    14ca:  cmp  rdi, rcx          <span class="cmt">;  │ pointer == end?</span>
+    14cd:  <span class="kw">jne  14c0</span>              <span class="cmt">; ─┘ BACKWARD jump = "this is a loop"</span>
+    14cf:  ret
+    14d0:  xor  eax, eax          <span class="cmt">; the n&lt;=0 path: return 0</span>
+    14d2:  ret</code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker>
+    <marker id="arF2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff7b72"/></marker>
+  </defs>
+  <g font-family="monospace" font-size="13.5" text-anchor="middle">
+    <rect x="40"  y="70" width="150" height="54" rx="10" fill="#131f38" stroke="#58a6ff"/><text x="115" y="102" fill="#58a6ff" font-weight="bold">guard: jle</text>
+    <rect x="240" y="70" width="150" height="54" rx="10" fill="#161b22" stroke="#30363d"/><text x="315" y="102" fill="#c9d1d9">setup</text>
+    <rect x="440" y="70" width="190" height="54" rx="10" fill="#2b2410" stroke="#e3b341" stroke-width="2"/><text x="535" y="95" fill="#e3b341" font-weight="bold">body</text><text x="535" y="114" fill="#9aa7b3" font-size="11.5">14c0–14cd</text>
+    <rect x="700" y="70" width="130" height="54" rx="10" fill="#12291c" stroke="#3fb950"/><text x="765" y="102" fill="#3fb950" font-weight="bold">ret</text>
+  </g>
+  <line x1="192" y1="97" x2="236" y2="97" stroke="#e3b341" stroke-width="2.2" marker-end="url(#arF)"/>
+  <line x1="392" y1="97" x2="436" y2="97" stroke="#e3b341" stroke-width="2.2" marker-end="url(#arF)"/>
+  <line x1="632" y1="97" x2="696" y2="97" stroke="#e3b341" stroke-width="2.2" marker-end="url(#arF)"/>
+  <path d="M600 124 C 600 185, 470 185, 470 128" fill="none" stroke="#ff7b72" stroke-width="2.6" marker-end="url(#arF2)"/>
+  <text x="535" y="192" font-size="13" text-anchor="middle" fill="#ff7b72" font-family="sans-serif" font-weight="bold">jne 14c0 — the backward edge IS the loop</text>
+  <path d="M115 70 C 115 20, 765 20, 765 66" fill="none" stroke="#58a6ff" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arF)"/>
+  <text x="440" y="34" font-size="12" text-anchor="middle" fill="#58a6ff" font-family="sans-serif">n ≤ 0: skip everything</text>
+</svg>
+<div class="caption">Scan any function for backward conditional jumps first — each one is a loop, and its target is the loop head.</div>
+</div>
+
+<p>Two habits of optimized loops to recognize: the compiler <strong>replaced the index with a walking pointer</strong> (no <code>i</code> exists — <code>rdi</code> strides by 4 toward a precomputed end pointer), and the loop condition moved to the <em>bottom</em> (do-while shape) with a guard on top — cheaper than jumping to a test each iteration.</p>
+
+<h3>The switch silhouette — <code>day_name</code>'s jump table</h3>
+
+<pre><code>    1424:  cmp  edi, 0x6
+    1427:  <span class="kw">ja</span>   14a8                       <span class="cmt">; unsigned trick: d&lt;0 wraps to huge → one test kills both sides</span>
+    1429:  lea  rdx, [rip+0xc1c]           <span class="cmt"># 204c — table base, in .rodata</span>
+    1430:  mov  edi, edi                    <span class="cmt">; zero upper 32 (Step 1's "useless" mov!)</span>
+    1432:  movsxd rax, DWORD PTR [rdx+rdi*4]  <span class="cmt">; fetch 32-bit OFFSET, not a pointer</span>
+    1436:  add  rax, rdx                    <span class="cmt">; target = base + offset (PIE-friendly)</span>
+    1439:  notrack jmp rax                  <span class="cmt">; indirect jump into the case blocks</span></code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arJ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker>
+    <marker id="arJ2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff7bc6"/></marker>
+  </defs>
+  <!-- input + bounds -->
+  <rect x="30" y="40" width="170" height="58" rx="10" fill="#131f38" stroke="#58a6ff"/>
+  <text x="115" y="65" font-size="14" text-anchor="middle" fill="#58a6ff" font-family="monospace" font-weight="bold">edi = d</text>
+  <text x="115" y="86" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">cmp edi, 6</text>
+  <rect x="30" y="210" width="170" height="52" rx="10" fill="#2a1015" stroke="#ff7b72"/>
+  <text x="115" y="234" font-size="13" text-anchor="middle" fill="#ff7b72" font-family="monospace" font-weight="bold">ja → default</text>
+  <text x="115" y="252" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">14a8: "???"</text>
+  <line x1="115" y1="98" x2="115" y2="206" stroke="#ff7b72" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arJ2)"/>
+  <!-- table -->
+  <g font-family="monospace" font-size="12" text-anchor="middle">
+    <rect x="280" y="30" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="52" fill="#e3b341">[204c] 0: −0xbfc → 1450 "Sun"</text>
+    <rect x="280" y="68" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="90" fill="#e3b341">[2050] 1: −0xc0c → 1440 "Mon"</text>
+    <rect x="280" y="106" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="128" fill="#e3b341">[2054] 2: −0xbec → 1460 "Tue"</text>
+    <rect x="280" y="144" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="166" fill="#e3b341">[2058] 3: −0xbdc → 1470 "Wed"</text>
+    <rect x="280" y="182" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="204" fill="#e3b341">[205c] 4: −0xbbc → 1490 "Thu"</text>
+    <rect x="280" y="220" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="242" fill="#e3b341">[2060] 5: −0xbac → 14a0 "Fri"</text>
+    <rect x="280" y="258" width="300" height="34" rx="6" fill="#2b2410" stroke="#e3b341"/><text x="430" y="280" fill="#e3b341">[2064] 6: −0xbcc → 1480 "Sat"</text>
+  </g>
+  <line x1="204" y1="69" x2="276" y2="120" stroke="#e3b341" stroke-width="2.2" marker-end="url(#arJ)"/>
+  <text x="228" y="70" font-size="11.5" fill="#9aa7b3" font-family="sans-serif">d ≤ 6</text>
+  <!-- target blocks -->
+  <g font-family="monospace" font-size="12.5" text-anchor="middle">
+    <rect x="680" y="90" width="190" height="46" rx="9" fill="#12291c" stroke="#3fb950"/>
+    <text x="775" y="110" fill="#3fb950" font-weight="bold">1460: lea rax,"Tue"</text>
+    <text x="775" y="128" fill="#9aa7b3">ret</text>
+  </g>
+  <line x1="584" y1="123" x2="676" y2="113" stroke="#e3b341" stroke-width="2.4" marker-end="url(#arJ)"/>
+  <text x="630" y="103" font-size="11.5" fill="#e3b341" font-family="sans-serif">jmp rax</text>
+  <text x="775" y="170" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">each case block: 16 bytes,</text>
+  <text x="775" y="188" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">nop-padded, order shuffled</text>
+  <text x="775" y="206" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">(Mon's block sits first!)</text>
+  <text x="450" y="322" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">table entries are <em>signed 32-bit offsets from the table itself</em> (movsxd + add rdx) — position-independent, half the size of pointers</text>
+</svg>
+<div class="caption">Your jump table at <code>.rodata:0x204c</code>, decoded entry by entry. <code>cmp/ja</code> + <code>lea rip-rel</code> + <code>movsxd</code> + <code>jmp rax</code> = "this was a switch".</div>
+</div>
+
+<div class="card warn">
+<strong>The <code>ja</code> bounds trick is a mini signed/unsigned masterclass:</strong> <code>d</code> is a signed <code>int</code>, but the compiler tests <code>cmp edi,6; ja default</code> — an <em>unsigned</em> compare. A negative <code>d</code> reinterpreted as unsigned becomes huge (≥ 0x80000000), so one unsigned test rejects both <code>d &gt; 6</code> and <code>d &lt; 0</code>. When you see <code>ja</code> right before an indirect jump, it's a switch bounds check, and the case count is the immediate + 1.</p>
+</div>
+
+<p>The if/else silhouette barely needs a diagram once you've internalized Step 4: <code>cmp/test</code> → <code>jcc</code> over the "then" block, optional <code>jmp</code> over the "else". At <code>-O2</code> short ifs usually vanish into <code>cmov</code>/<code>setcc</code> (branchless), so a real branch surviving in optimized code hints the compiler thought it unpredictable or the sides too big.</p>
+
+<h2 class="step"><span class="badge b8">8</span>Widths and extensions: how C's integer rules look in metal</h2>
+
+<p>Mixing widths is where silent bugs and RE misreadings live. The machine has exactly three widening strategies — and your specimen used all of them:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3fb950"/></marker>
+    <marker id="arW2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff7bc6"/></marker>
+  </defs>
+  <g font-family="monospace" font-size="13.5" text-anchor="middle">
+    <!-- sources -->
+    <rect x="40" y="50" width="180" height="46" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="130" y="78" fill="#58a6ff" font-weight="bold">u32 in edi</text>
+    <rect x="40" y="130" width="180" height="46" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="130" y="158" fill="#58a6ff" font-weight="bold">i32 in edi</text>
+    <rect x="40" y="210" width="180" height="46" rx="9" fill="#131f38" stroke="#58a6ff"/><text x="130" y="238" fill="#58a6ff" font-weight="bold">i8 at [rdi]</text>
+    <!-- dests -->
+    <rect x="620" y="50" width="250" height="46" rx="9" fill="#12291c" stroke="#3fb950"/><text x="745" y="78" fill="#3fb950" font-weight="bold">00000000│value</text>
+    <rect x="620" y="130" width="250" height="46" rx="9" fill="#2a1530" stroke="#ff7bc6"/><text x="745" y="158" fill="#ff7bc6" font-weight="bold">ssssssss│value</text>
+    <rect x="620" y="210" width="250" height="46" rx="9" fill="#2a1530" stroke="#ff7bc6"/><text x="745" y="238" fill="#ff7bc6" font-weight="bold">ssssssssssssss│v</text>
+  </g>
+  <line x1="224" y1="73" x2="616" y2="73" stroke="#3fb950" stroke-width="2.4" marker-end="url(#arW)"/>
+  <text x="420" y="62" font-size="13" text-anchor="middle" fill="#3fb950" font-family="monospace" font-weight="bold">mov eax, edi — free zero-extend</text>
+  <line x1="224" y1="153" x2="616" y2="153" stroke="#ff7bc6" stroke-width="2.4" marker-end="url(#arW2)"/>
+  <text x="420" y="142" font-size="13" text-anchor="middle" fill="#ff7bc6" font-family="monospace" font-weight="bold">movsxd rax, edi — sign copies</text>
+  <line x1="224" y1="233" x2="616" y2="233" stroke="#ff7bc6" stroke-width="2.4" marker-end="url(#arW2)"/>
+  <text x="420" y="222" font-size="13" text-anchor="middle" fill="#ff7bc6" font-family="monospace" font-weight="bold">movsx rax, BYTE PTR [rdi]</text>
+  <text x="450" y="288" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">your three widen functions, verbatim: unsigned→mov, signed→movsx(d) — the mnemonic tells you the C type, again</text>
+</svg>
+<div class="caption">The extension family. <code>movzx</code> exists for 8/16-bit sources; 32→64 zero-extension is just a plain 32-bit <code>mov</code>.</div>
+</div>
+
+<p>The in-place cousins act on the accumulator family only, and the division ritual depends on them:</p>
+
+<table class="data">
+<tr><th>Instruction</th><th>Effect</th><th>Where you'll meet it</th></tr>
+<tr><td class="mono">cbw / cwde / cdqe</td><td class="mono">al→ax → eax → rax (sign, in place)</td><td>widening a local before pointer math</td></tr>
+<tr><td class="mono">cwd / cdq / cqo</td><td class="mono">sign of ax/eax/rax fills dx/edx/rdx</td><td><strong>the herald of signed division</strong> — your <code>absolute</code> uses <code>cqo</code></td></tr>
+<tr><td class="mono">cqo ; idiv rcx</td><td>signed divide rdx:rax → quot rax, rem rdx</td><td><code>cqo/cdq</code> before <code>idiv</code> = signed <code>/</code> or <code>%</code></td></tr>
+<tr><td class="mono">xor edx,edx ; div rcx</td><td>unsigned divide</td><td>zeroed rdx before <code>div</code> = unsigned — type leak #3</td></tr>
+</table>
+
+<h2 class="step"><span class="badge b9">9</span>The compiler idiom Rosetta stone</h2>
+
+<p>Optimizing compilers speak in idioms — fixed phrases that mean something quite different from their literal instructions. This table is the heart of "reading assembly like C". Every row marked ● was pulled from your own specimen's disassembly:</p>
+
+<table class="data">
+<tr><th>You see</th><th>It means</th><th>Why / notes</th></tr>
+<tr><td class="mono">● xor eax, eax</td><td class="mono">eax = 0</td><td>2 bytes vs 5 for <code>mov eax,0</code>; also breaks CPU dependency chains. Ubiquitous.</td></tr>
+<tr><td class="mono">● test rdi, rdi ; je …</td><td class="mono">if (!ptr) / if (x == 0)</td><td>AND with itself only sets flags. <code>js</code> variant = "if negative".</td></tr>
+<tr><td class="mono">● lea rax, [rdi+rdi*4]</td><td class="mono">x * 5</td><td>lea = mul/add without flags. ×3, ×5, ×9 direct; ×10 = two leas (your <code>matrix</code>).</td></tr>
+<tr><td class="mono">● imul rax, rdi ; shr rax, 35<br>(after mov edi, 0xcccccccd)</td><td class="mono">x / 10</td><td>Magic-number division — walkthrough below. Constant divisors never emit <code>div</code>.</td></tr>
+<tr><td class="mono">● sar edx, 31</td><td class="mono">sign mask: 0 or −1</td><td>Arithmetic shift smears the sign bit; the all-ones mask feeds branchless tricks.</td></tr>
+<tr><td class="mono">● cqo ; xor rax,rdx ; sub rax,rdx</td><td class="mono">labs(x)</td><td>Your <code>absolute</code>: (x XOR mask) − mask negates iff mask=−1. No branch.</td></tr>
+<tr><td class="mono">● (sar,shr,lea) ; and ; sub</td><td class="mono">x % 8 (signed)</td><td>Signed modulo must round toward zero, so a bias built from the sign mask wraps the simple <code>and eax,7</code>. Unsigned % 2ⁿ is just the <code>and</code>.</td></tr>
+<tr><td class="mono">● cmovge / sete / ja-vs-jg</td><td class="mono">ternary / bool / type leak</td><td>Steps 4 &amp; 7.</td></tr>
+<tr><td class="mono">● mov rax, fs:0x28</td><td class="mono">stack canary</td><td>Any fs: access = thread-local storage; offset 0x28 is glibc's canary slot.</td></tr>
+<tr><td class="mono">● mov edi, edi</td><td class="mono">zero bits 63–32 of rdi</td><td>Not a no-op! (Step 1.)</td></tr>
+<tr><td class="mono">● endbr64 / nop WORD PTR […] / xchg ax,ax</td><td>nothing</td><td>CET landing pads and alignment padding. Train your eyes to skip them.</td></tr>
+<tr><td class="mono">shl rax, 4 ; add/or rax, …</td><td class="mono">x*16 + y</td><td>Index into array of 16-byte structs; shifts are multiplies by 2ⁿ.</td></tr>
+<tr><td class="mono">rep movsb / rep stosq</td><td class="mono">memcpy / memset</td><td>rdi=dest rsi=src rcx=count; DF decides direction (cld = forward).</td></tr>
+<tr><td class="mono">pxor xmm0, xmm0</td><td class="mono">0.0 (or zero vector)</td><td>The float twin of <code>xor eax,eax</code> — your <code>mixed</code> does it before <code>cvtsi2sd</code>.</td></tr>
+<tr><td class="mono">add rsp, 8 … or sub rsp, 8 around a call</td><td>alignment, not data</td><td>Keeping rsp ≡ 16 at the call (your <code>callee_saved_demo</code>).</td></tr>
+<tr><td class="mono">mov reg, 0x7fffffff… / 0x80000000…</td><td class="mono">INT_MAX / sign-bit mask</td><td>Big round hex constants are almost always masks or limits — decode them.</td></tr>
+</table>
+
+<div class="card crown">
+<strong>Crown-jewel walkthrough: why <code>x / 10</code> is a multiply.</strong> Division is ~20–40 cycles; multiplication ~3. So for any <em>constant</em> divisor the compiler precomputes a fixed-point reciprocal. Your <code>div10</code>:
+<pre style="margin:14px 0"><code>    1384:  mov  eax, edi              <span class="cmt">; zero-extend x to 64 bits (Step 1!)</span>
+    1386:  mov  edi, 0xcccccccd       <span class="cmt">; ⌈2³⁵ / 10⌉ — "0.1" in fixed-point</span>
+    138b:  imul rax, rdi              <span class="cmt">; 64-bit product = x · (2³⁵/10)</span>
+    138f:  shr  rax, 0x23             <span class="cmt">; ÷ 2³⁵  ⇒  floor(x/10), exact for all u32</span></code></pre>
+The math: <code>0xcccccccd = 3435973837 = ⌈2³⁵/10⌉</code>, so <code>(x·0xcccccccd) &gt;&gt; 35 = x·(2³⁵/10)/2³⁵ ≈ x/10</code>, and the ceiling guarantees exactness for every 32-bit x. Verified live: your program printed <code>div10(1234) = 123</code>. <strong>RE recipe:</strong> when you meet <code>imul</code> with an ugly constant followed by a shift, the divisor is <code>round(2^(32+shift) / magic)</code> — for <code>0xcccccccd</code>, shift 3 (35−32): 2³⁵/0xcccccccd ≈ 9.99999… → <strong>10</strong>. Repeating-pattern constants are the tell: <code>0xcccccccd</code>→10, <code>0xaaaaaaab</code>→3 or 6, <code>0x92492493</code>→7, <code>0x38e38e39</code>→9 or 18.
+</div>
+
+<h2 class="step"><span class="badge b10">10</span>SIMD: xmm/ymm/zmm and how to decode the alphabet soup</h2>
+
+<p>All floating point in x86-64 goes through the vector registers — there is no separate "float unit" in normal compiled code (the ancient x87 stack only appears for <code>long double</code>). So even scalar <code>double</code> math lives in <code>xmm0…</code>, and the ABI returns floats in <code>xmm0</code>. The registers nest like the GPRs do:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+  <text x="80"  y="34" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">511</text>
+  <text x="466" y="34" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">255</text>
+  <text x="652" y="34" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">127</text>
+  <text x="836" y="34" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0</text>
+  <!-- zmm -->
+  <rect x="80" y="44" width="760" height="40" rx="8" fill="#221a38" stroke="#bc8cff" stroke-width="1.6"/>
+  <text x="45" y="69" font-size="14" text-anchor="middle" fill="#bc8cff" font-weight="bold" font-family="monospace">zmm0</text>
+  <text x="270" y="69" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">512 bits — AVX-512 (zmm0–31, +k0–7 masks)</text>
+  <!-- ymm -->
+  <rect x="460" y="94" width="380" height="40" rx="8" fill="#12291c" stroke="#3fb950" stroke-width="1.6"/>
+  <text x="428" y="119" font-size="14" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">ymm0</text>
+  <text x="560" y="119" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">256 — AVX</text>
+  <!-- xmm -->
+  <rect x="650" y="144" width="190" height="40" rx="8" fill="#131f38" stroke="#58a6ff" stroke-width="1.6"/>
+  <text x="618" y="169" font-size="14" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">xmm0</text>
+  <text x="745" y="169" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">128 — SSE</text>
+  <!-- lane splits -->
+  <g font-family="monospace" font-size="11.5" text-anchor="middle">
+    <rect x="460" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="483" y="226" fill="#e3b341">f7</text>
+    <rect x="507.5" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="531" y="226" fill="#e3b341">f6</text>
+    <rect x="555" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="578" y="226" fill="#e3b341">f5</text>
+    <rect x="602.5" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="626" y="226" fill="#e3b341">f4</text>
+    <rect x="650" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="673" y="226" fill="#e3b341">f3</text>
+    <rect x="697.5" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="721" y="226" fill="#e3b341">f2</text>
+    <rect x="745" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341"/><text x="768" y="226" fill="#e3b341">f1</text>
+    <rect x="792.5" y="204" width="47.5" height="34" fill="#2b2410" stroke="#e3b341" stroke-width="2.4"/><text x="816" y="226" fill="#e3b341" font-weight="bold">f0</text>
+  </g>
+  <text x="380" y="226" font-size="12.5" text-anchor="end" fill="#e3b341" font-family="sans-serif">ymm as 8 packed floats (your dot product) —</text>
+  <text x="650" y="264" font-size="12.5" fill="#9aa7b3" font-family="sans-serif" text-anchor="middle">scalar (…ss/…sd) ops touch ONLY lane f0 and ignore the rest</text>
+  <text x="450" y="292" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">writing xmm with VEX (v-prefixed) zeroes the upper ymm/zmm — same spirit as eax→rax zero-extension</text>
+</svg>
+<div class="caption">The vector register file. Same nesting idea as rax/eax/ax — including a zero-the-top rule.</div>
+</div>
+
+<h3>The mnemonic decoder ring</h3>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="monospace" text-anchor="middle">
+    <rect x="180" y="40" width="90" height="60" rx="10" fill="#221a38" stroke="#bc8cff"/><text x="225" y="78" font-size="26" fill="#bc8cff" font-weight="bold">v</text>
+    <rect x="280" y="40" width="180" height="60" rx="10" fill="#161b22" stroke="#e6edf3"/><text x="370" y="78" font-size="26" fill="#e6edf3" font-weight="bold">mul</text>
+    <rect x="470" y="40" width="90" height="60" rx="10" fill="#12291c" stroke="#3fb950"/><text x="515" y="78" font-size="26" fill="#3fb950" font-weight="bold">p</text>
+    <rect x="570" y="40" width="90" height="60" rx="10" fill="#2b2410" stroke="#e3b341"/><text x="615" y="78" font-size="26" fill="#e3b341" font-weight="bold">s</text>
+  </g>
+  <g font-family="sans-serif" font-size="12.5" text-anchor="middle">
+    <text x="225" y="125" fill="#bc8cff">AVX/VEX form</text>
+    <text x="225" y="142" fill="#9aa7b3">(absent = old SSE)</text>
+    <text x="370" y="125" fill="#e6edf3">operation</text>
+    <text x="370" y="142" fill="#9aa7b3">add sub mul div sqrt min max cmp mov</text>
+    <text x="515" y="125" fill="#3fb950">p = packed (all lanes)</text>
+    <text x="515" y="142" fill="#9aa7b3">s = scalar (lane 0 only)</text>
+    <text x="615" y="125" fill="#e3b341">s = single (float, 4B)</text>
+    <text x="615" y="142" fill="#9aa7b3">d = double (8B)</text>
+  </g>
+  <text x="450" y="185" font-size="14" text-anchor="middle" fill="#e6edf3" font-family="monospace">mulsd = scalar double · vmulps = AVX packed floats · addss = scalar float</text>
+  <text x="450" y="205" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">integer vectors spell it differently: p-prefix + width — paddd (4×i32), paddq (2×i64), pcmpeqb (16×i8)</text>
+</svg>
+<div class="caption">Four glyphs decode 90% of vector mnemonics.</div>
+</div>
+
+<p>Scalar reality first — your <code>mixed(double x, long n, double y)</code> is pure lane-0 code:</p>
+
+<pre><code>    1504:  movapd xmm2, xmm0        <span class="cmt">; save x (xmm0 is needed as the result reg)</span>
+    1508:  pxor   xmm0, xmm0        <span class="cmt">; zero idiom — breaks false dependency</span>
+    150c:  cvtsi2sd xmm0, rdi       <span class="cmt">; ConVerT Signed Int 2 Scalar Double: n → double</span>
+    1511:  mulsd  xmm0, xmm2        <span class="cmt">; x * n     (scalar double)</span>
+    1515:  addsd  xmm0, xmm1        <span class="cmt">; + y  → returned in xmm0 = 6.25 ✔ (printed by your run)</span></code></pre>
+
+<p>Packed reality — <code>dot()</code> from <code>simd.c</code> built with <code>-O3 -mavx2</code>. Eight multiplications happen in <em>one instruction</em>; the rest is folding the lanes down to one scalar:</p>
+
+<pre><code>    154:  vmovups xmm4, [rsi]                    <span class="cmt">; load b[0..3]</span>
+    160:  vinsertf128 ymm0, ymm5, [rdi+0x10], 1  <span class="cmt">; build a[0..7] in one ymm</span>
+    16e:  <span class="kw">vmulps  ymm1, ymm1, ymm0</span>               <span class="cmt">; a[i]*b[i] — ×8 AT ONCE</span>
+    172:  vaddss  xmm3, xmm3, xmm1               <span class="cmt">; ── horizontal reduction begins:</span>
+    176:  vshufps xmm2, xmm1, xmm1, 0x55         <span class="cmt">;    shuffle lane k to lane 0,</span>
+    …     (vshufps / vunpckhps / vextractf128 …) <span class="cmt">;    add, repeat for all 8 lanes</span>
+    1b4:  vzeroupper                             <span class="cmt">; drop ymm halves before returning</span></code></pre>
+
+<p>Field notes for reading vector code:</p>
+<ul>
+<li><strong>Three operands</strong> (<code>vmulps ymm1, ymm1, ymm0</code> = dst, src1, src2) means AVX; two operands means SSE, where dst is also src1.</li>
+<li><strong>Shuffle storms mean horizontal work.</strong> A wall of <code>shufps/unpck/extractf128/hadd</code> after packed math = reducing lanes to a scalar (sum, max, dot). Recognize the shape; don't trace every lane.</li>
+<li><strong><code>vzeroupper</code></strong> marks the SSE/AVX boundary (avoids a big transition stall) — harmless, and a handy "vector region ends here" landmark.</li>
+<li><strong><code>movaps</code> vs <code>movups</code></strong>: aligned vs unaligned load/store. <code>movaps xmm, [rsp+…]</code> is also how compilers copy any 16-byte blob — seeing xmm registers does <em>not</em> imply float data (memcpy of structs uses them constantly).</li>
+<li><strong>Float compares</strong> (<code>ucomisd</code>/<code>comiss</code>) set ZF/CF like an <em>unsigned</em> integer compare — so float branches use <code>ja/jb/jae</code>, never <code>jg/jl</code>. PF=1 signals NaN: a <code>jp</code> right after a float compare is a NaN check, one more type leak.</li>
+<li><strong>Auto-vectorized loops come in threes:</strong> gcc -O3 emits a prologue deciding vector vs scalar (the <code>seta/test</code> maze at the top of <code>add_arrays</code> is an overlap check between the arrays), the wide body, and a scalar tail for leftover elements. One C loop, three assembly loops — don't mistake them for three source loops.</li>
+</ul>
+
+<h2 class="step"><span class="badge b11">11</span>The startup chain &amp; RE workflow: where the code you care about hides</h2>
+
+<p>Your <code>main</code> is not the entry point. The ELF header's <code>e_entry</code> points at <code>_start</code>; <code>main</code>'s address is merely handed to <code>__libc_start_main</code> as an argument. Straight from your <code>_start</code>:</p>
+
+<pre><code>    1254:  xor  ebp, ebp              <span class="cmt">; mark the outermost frame (rbp=0 ends backtraces)</span>
+    1256:  mov  r9,  rdx              <span class="cmt">; rtld_fini</span>
+    1259:  pop  rsi                   <span class="cmt">; argc  (kernel put it on the stack)</span>
+    125a:  mov  rdx, rsp              <span class="cmt">; argv</span>
+    125d:  and  rsp, 0xfffffffffffffff0  <span class="cmt">; 16-align the stack (the ABI mandate)</span>
+    1268:  lea  rdi, [rip+0xfffffffffffffe51]  <span class="cmt"># 10c0 &lt;main&gt; — main is just an ARGUMENT</span>
+    126f:  call [rip+0x2d63]          <span class="cmt"># __libc_start_main — never returns</span>
+    1275:  hlt</code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker></defs>
+  <g font-family="monospace">
+    <rect x="10"  y="40" width="120" height="56" rx="11" fill="#131f38" stroke="#58a6ff"/><text x="70" y="66" font-size="13" text-anchor="middle" fill="#58a6ff" font-weight="bold">kernel</text><text x="70" y="84" font-size="10.5" text-anchor="middle" fill="#9aa7b3">execve, mmap</text>
+    <rect x="160" y="40" width="120" height="56" rx="11" fill="#2a1530" stroke="#ff7bc6"/><text x="220" y="66" font-size="13" text-anchor="middle" fill="#ff7bc6" font-weight="bold">ld-linux</text><text x="220" y="84" font-size="10.5" text-anchor="middle" fill="#9aa7b3">relocs, libc</text>
+    <rect x="310" y="40" width="120" height="56" rx="11" fill="#1f2b17" stroke="#3fb950"/><text x="370" y="66" font-size="13" text-anchor="middle" fill="#3fb950" font-weight="bold">_start</text><text x="370" y="84" font-size="10.5" text-anchor="middle" fill="#9aa7b3">0x1250</text>
+    <rect x="460" y="40" width="180" height="56" rx="11" fill="#2b2410" stroke="#e3b341"/><text x="550" y="66" font-size="12.5" text-anchor="middle" fill="#e3b341" font-weight="bold">__libc_start_main</text><text x="550" y="84" font-size="10.5" text-anchor="middle" fill="#9aa7b3">ctors, INIT_ARRAY</text>
+    <rect x="670" y="40" width="120" height="56" rx="11" fill="#131f38" stroke="#39c5cf"/><text x="730" y="66" font-size="13" text-anchor="middle" fill="#39c5cf" font-weight="bold">main</text><text x="730" y="84" font-size="10.5" text-anchor="middle" fill="#9aa7b3">0x10c0</text>
+    <rect x="820" y="40" width="70" height="56" rx="11" fill="#2a1015" stroke="#ff7b72"/><text x="855" y="66" font-size="12" text-anchor="middle" fill="#ff7b72" font-weight="bold">exit</text>
+  </g>
+  <g stroke="#e3b341" stroke-width="2.2" marker-end="url(#arS)">
+    <line x1="130" y1="68" x2="156" y2="68"/><line x1="280" y1="68" x2="306" y2="68"/><line x1="430" y1="68" x2="456" y2="68"/><line x1="640" y1="68" x2="666" y2="68"/><line x1="790" y1="68" x2="816" y2="68"/>
+  </g>
+  <text x="450" y="122" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">In any new binary, set your first breakpoint on <tspan font-family="monospace" fill="#39c5cf">main</tspan>, not the entry point — skip the boilerplate.</text>
+</svg>
+<div class="caption">Startup path for your specimen. Constructors (<code>__attribute__((constructor))</code>, C++ static init) run in <code>__libc_start_main</code> — malware hides here to execute before <code>main</code>.</div>
+</div>
+
+<div class="card keyidea">
+<strong>The reverse-engineering loop, distilled to a toolkit you can run on this specimen right now:</strong>
+<pre style="margin:12px 0 0"><code><span class="cmd">file specimen</span>                          <span class="cmt"># arch, PIE?, stripped?, static/dynamic</span>
+<span class="cmd">objdump -d -M intel specimen</span>            <span class="cmt"># the static disassembly (Intel syntax!)</span>
+<span class="cmd">readelf -h -l -d specimen</span>               <span class="cmt"># entry point, segments, libraries needed</span>
+<span class="cmd">strings -a -t x specimen</span>                <span class="cmt"># literals + their offsets — the fastest clues</span>
+<span class="cmd">nm -C specimen  /  readelf --dyn-syms</span>    <span class="cmt"># symbols, imports (UND = comes from libc)</span>
+<span class="cmd">ltrace ./specimen self</span>                   <span class="cmt"># library-call trace: the API storyline</span>
+<span class="cmd">strace ./specimen self</span>                   <span class="cmt"># syscall trace: what it does to the OS</span>
+<span class="cmd">gdb -q ./specimen</span>                        <span class="cmt"># dynamic: break main, stepi, x/i $pc, watch</span>
+  <span class="cmd">gef&gt; break main ; run ; context</span>         <span class="cmt"># GEF/pwndbg give regs+stack+code at a glance</span></code></pre>
+Static tells you <em>what could happen</em>; dynamic tells you <em>what did</em>. Alternate between them. For serious work, a disassembler with a decompiler (Ghidra is free, IDA/Binary Ninja commercial) turns all of Steps 4–10 into pseudo-C automatically — but only someone who can read the raw form knows when the decompiler is lying.</p>
+</div>
+
+<h3>Tips, tricks &amp; gotchas most tutorials skip</h3>
+<ul>
+<li><strong>AT&amp;T vs Intel is the same bytes, mirrored.</strong> Intel is <code>dst, src</code> (<code>mov rax, rdi</code>); AT&amp;T is <code>src, dst</code> with <code>%</code>/<code>$</code> sigils and <code>(%rdi,%rsi,8)</code> for memory. objdump defaults to AT&amp;T — always pass <code>-M intel</code>. GDB: <code>set disassembly-flavor intel</code>.</li>
+<li><strong>Direction of a jump reveals the structure:</strong> backward conditional = loop; forward conditional = if/guard; forward unconditional at a block's end = the "else"/break skip.</li>
+<li><strong>The red zone bites debuggers, not you.</strong> Leaf functions read/write 128 bytes below <code>rsp</code> without adjusting it — so signal handlers and naive stack scanners can corrupt data that looks "free". Windows has no red zone.</li>
+<li><strong><code>call</code> pushes the return address; that's the only reason the stack and the "return-oriented" attack surface exist.</strong> <code>ret</code> pops it back into RIP — overwrite that saved qword (past the canary) and you redirect control. This is why the canary sits <em>between</em> buffers and the return address (Step 6).</li>
+<li><strong>RIP-relative everything.</strong> In PIE binaries every global/string is <code>[rip+disp]</code>; objdump helpfully prints the resolved target as a <code># comment</code>. Follow the comment, not the disp.</li>
+<li><strong>Alignment padding is not code.</strong> Long runs of <code>00</code>, <code>cc</code> (int3), or multi-byte NOPs between functions are filler. <code>cc</code> specifically is a breakpoint trap — a sea of <code>cc</code> = uninitialized/guard space.</li>
+<li><strong>Self-modifying &amp; anti-disassembly:</strong> a <code>jmp</code> into the middle of an instruction desyncs linear disassemblers (Step 3). If objdump output looks like nonsense mid-function, try disassembling from a different start offset, or use a recursive-descent tool (Ghidra) that follows control flow.</li>
+<li><strong>Syscalls vs calls:</strong> <code>syscall</code> enters the kernel with the number in <code>rax</code> and args in <code>rdi rsi rdx r10 r8 r9</code> (note <code>r10</code>, not <code>rcx</code> — the CPU clobbers <code>rcx</code>/<code>r11</code>). A bare <code>syscall</code> in <code>.text</code> without going through the PLT = static binary or deliberate libc-bypass (common in shellcode and anti-analysis).</li>
+<li><strong>Endianness only matters at the byte level.</strong> <code>mov eax, 0x1234</code> stores <code>34 12 00 00</code> in the instruction stream and in memory; registers show the logical value. You only meet little-endian when reading hex dumps and building constants by hand.</li>
+</ul>
+
+<h2 class="step"><span class="badge b8">★</span>Exercises to cement it — all runnable on your specimen</h2>
+<ol>
+<li><strong>Prove the 32-bit zero-extension yourself:</strong> <code>gdb -q ./specimen -ex 'break *maxi+6' -ex run -ex 'set $rax=0xffffffffffffffff' -ex stepi -ex 'p/x $rax'</code>. Watch <code>mov eax,edi</code> blow away the top half. Then try the same idea after an <code>ax</code>-writing instruction and confirm it does <em>not</em>.</li>
+<li><strong>Recover a prototype cold:</strong> <code>objdump -d -M intel specimen | less</code>, jump to <code>many_args</code>, and reconstruct its signature purely from which registers/stack slots feed the adds. Check against the source.</li>
+<li><strong>Read the flags live:</strong> break at <code>*maxi+4</code>, set <code>edi</code>/<code>esi</code> to different signed and unsigned extremes (e.g. <code>0x80000000</code> vs <code>1</code>), step the <code>cmp</code>, and predict <code>eflags</code> before revealing it. Feel why <code>jg</code> and <code>ja</code> disagree on the same bytes.</li>
+<li><strong>Decode a magic divisor:</strong> add <code>unsigned d7(unsigned x){return x/7;}</code> to specimen, recompile, and reverse the emitted <code>imul</code> constant + shift back to "7" using the recipe in Step 9. Try a signed version and spot the extra sign-fix instructions.</li>
+<li><strong>Walk the jump table:</strong> <code>objdump -s -j .rodata specimen</code>, find the 7 little-endian dwords at 0x204c, add each (as a signed offset) to 0x204c, and confirm the targets match the <code>lea rax,[rip+…]</code> case blocks in <code>day_name</code>. You'll see the cases are physically out of order.</li>
+<li><strong>Watch a canary die:</strong> break in <code>greet</code> after the canary store, <code>set</code> a byte inside <code>buf</code>'s canary slot, continue, and watch <code>__stack_chk_fail</code> abort the program instead of returning — the mitigation firing in real time.</li>
+<li><strong>Break the disassembler:</strong> <code>objdump -d -M intel --start-address=0x1345 specimen</code> (one byte into a real instruction) and watch plausible garbage appear — the variable-length desync from Step 3, first-hand.</li>
+<li><strong>See SIMD widen:</strong> compile <code>simd.c</code> at <code>-O3 -mavx2</code> vs <code>-O3 -mno-avx</code> vs <code>-O0</code> and diff <code>dot</code>. One math loop becomes eight-wide, four-wide, or scalar — the compiler's vectorization decision made visible.</li>
+</ol>
+
+<div class="footer">
+You've now walked the whole machine on real bytes: the register file and its zero-extension trap, the universal address formula, instruction encoding, RFLAGS and the signed/unsigned condition codes, the System V contract, stack frames and the canary, the loop/switch/if silhouettes, the width-and-division idioms, SIMD, and the startup chain — plus the toolkit to explore any binary. Keep the specimen around; every claim here is a command away from re-proving. For the last word on any field, the <em>Intel® 64 and IA-32 Architectures Software Developer's Manual</em> Vol. 2 (the instruction reference) and the <em>System V AMD64 ABI</em> are the ground truth — but you now hold the practical core in your head, which is the picture that plays behind your eyes every time you read disassembly.
+</div>
+
+</div>
+</body>
+</html>
