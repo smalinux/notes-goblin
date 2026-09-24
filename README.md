@@ -9,5 +9,7 @@ A small goblin that hoards my public notes.
 - [Stack Visualizer](https://smalinux.github.io/notes-goblin/stack-visualizer.html) — interactive stack frame visualizer
 - [Mastering ELF — Which Spec Is Which?](https://smalinux.github.io/notes-goblin/elfspec.html) — guide to the ELF specifications
 - [the_track: Linux Drivers & Linux Malware: 72-week plan](https://smalinux.github.io/notes-goblin/the_track.html) — long-term study roadmap
+- [CPU Architecture Roadmap](https://smalinux.github.io/notes-goblin/cpu-architecture-roadmap.html) — reading order for x86-64 → ARM64, official sources only
+- [Reverse Engineering Roadmap](https://smalinux.github.io/notes-goblin/re-roadmap.html) — foundations to specialization
 
 > Tip: view the raw HTML pages via GitHub Pages or [htmlpreview.github.io](https://htmlpreview.github.io/).

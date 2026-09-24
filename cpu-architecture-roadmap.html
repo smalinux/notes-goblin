@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>CPU Architecture Roadmap</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!-- original frontmatter: created: 2026-09-16T09:29:29 | source: claude-code | project: /src/notes -->
+</head>
+<body>
+<p>Reading order, official sources only, x86-64 → ARM64:</p>
+<h2 id="stage-1-x86-64-registers-flags-start-here">Stage 1 — x86-64
+registers + flags (start here)</h2>
+<p><strong>Intel SDM (Software Developer’s Manual)</strong> — official
+page, free PDFs:
+https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html</p>
+<ul>
+<li><strong>Volume 1: Basic Architecture</strong> — read these chapters
+only, in order:
+<ul>
+<li>Ch 3 <em>Basic Execution Environment</em> → GPRs, RIP, RFLAGS. Core
+of what you asked</li>
+<li>Ch 4 <em>Data Types</em></li>
+<li>Ch 6 <em>Procedure Calls, Interrupts, Exceptions</em> → stack
+mechanics</li>
+</ul></li>
+<li>Don’t read Vol 1 cover-to-cover. ~100 pages total from these
+chapters</li>
+</ul>
+<p><strong>Alternative (many find it more readable):</strong> AMD64
+Architecture Programmer’s Manual, <strong>Volume 1: Application
+Programming</strong> (doc #24592)
+https://www.amd.com/en/resources/developer-guides-manuals.html</p>
+<h2
+id="stage-2-intel-syntax-assembly-practice-parallel-with-stage-1">Stage
+2 — Intel-syntax assembly practice (parallel with Stage 1)</h2>
+<ul>
+<li><strong>NASM manual</strong> (NASM = Intel syntax by default):
+https://www.nasm.us/doc/ — Ch 2–3, then write tiny Linux programs</li>
+<li>Toolchain setup:
+<ul>
+<li><code>nasm -f elf64 x.asm &amp;&amp; ld x.o</code> —
+assemble/run</li>
+<li><code>gdb</code> → <code>set disassembly-flavor intel</code></li>
+<li><code>objdump -d -M intel ./a.out</code></li>
+</ul></li>
+<li><strong>Godbolt</strong> https://godbolt.org — write C, see
+Intel-syntax asm live. Best feedback loop that exists</li>
+<li><strong>pwn.college</strong> https://pwn.college — “Assembly Crash
+Course” module, graded exercises</li>
+<li>Instruction lookup while practicing:
+https://www.felixcloutier.com/x86/ (HTML mirror of SDM Vol 2 — faster
+than the PDF)</li>
+</ul>
+<h2 id="stage-3-calling-convention-stack-the-abi">Stage 3 — calling
+convention + stack (the ABI)</h2>
+<ul>
+<li><strong>System V AMD64 psABI</strong> (official spec):
+https://gitlab.com/x86-psABIs/x86-64-ABI — build/download PDF from repo
+<ul>
+<li>Read §3.2 only: registers, argument passing, stack frame, red
+zone</li>
+</ul></li>
+</ul>
+<h2 id="stage-4-x86-64-reference-volumes-use-dont-read">Stage 4 — x86-64
+reference volumes (use, don’t read)</h2>
+<ul>
+<li><strong>SDM Volume 2</strong> — full instruction set A–Z. Keep open
+while reversing</li>
+<li><strong>SDM Volume 3</strong> — only when you go OS-level: Ch 2–4
+(protection, paging), interrupts</li>
+</ul>
+<h2 id="stage-5-arm64-after-x86-64-feels-natural">Stage 5 — ARM64 (after
+x86-64 feels natural)</h2>
+<p>In this order: 1. <strong>ARM Cortex-A Series Programmer’s Guide for
+ARMv8-A</strong> (DEN0024A) — the readable intro, ~300 pages:
+https://developer.arm.com/documentation/den0024/latest - Ch 4 registers,
+Ch 5–6 A64 instruction set, Ch 9 ABI 2. <strong>Learn the Architecture —
+A64 ISA guide</strong> (short, modern):
+https://developer.arm.com/documentation/102374/latest 3.
+<strong>AAPCS64</strong> (ARM’s calling convention, = ARM’s psABI):
+https://github.com/ARM-software/abi-aa/releases →
+<code>aapcs64.pdf</code> 4. <strong>ARM ARM</strong> (DDI 0487) —
+12,000+ page reference. Lookup only, never linear:
+https://developer.arm.com/documentation/ddi0487/latest</p>
+<h2 id="rule-of-thumb">Rule of thumb</h2>
+<ul>
+<li>2 types of docs: <strong>guides</strong> (read linearly: SDM Vol 1
+chapters, DEN0024A) and <strong>references</strong> (SDM Vol 2/3, ARM
+ARM — open on second monitor)</li>
+<li>Practice ratio: 1 hour reading → 2 hours writing/reversing asm</li>
+<li>You know Stage 1 is done when you can explain every flag ZF/SF/CF/OF
+after a <code>cmp</code> + why <code>jle</code> fires</li>
+</ul>
+<p>Want this saved as a note in <code>inbox/</code>?</p>
+</body>
+</html>
