@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segment Registers in x86-64 — A Complete Tutorial</title>
+<style>
+:root{
+  --bg:#0b1020; --card:#131a2e; --card2:#1a2442; --line:#2a3658; --tx:#dde5f4; --mut:#8e9bb8;
+  --acc:#5eead4; --warn:#fbbf24; --bad:#f87171; --ok:#4ade80;
+  --CS:#ff6b6b; --DS:#4dabf7; --ES:#51cf66; --SS:#ffa94d; --FS:#b197fc; --GS:#f783ac;
+  --mono:ui-monospace,"JetBrains Mono","Fira Code",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font:16.5px/1.75 Georgia,"Iowan Old Style",serif}
+h1,h2,h3,.ui,button,input,select,table,.fig,.cap,.key,.warn,.side,.toc{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+code,pre,.mono{font-family:var(--mono)}
+code{font-size:.84em;background:#ffffff0d;border:1px solid var(--line);padding:.05em .35em;border-radius:4px;color:#c7d2fe}
+a{color:var(--acc)}
+#progress{position:fixed;left:0;top:0;height:3px;background:linear-gradient(90deg,var(--acc),var(--FS));z-index:50;width:0}
+.wrap{max-width:960px;margin:0 auto;padding:40px 26px 140px}
+header h1{font-size:40px;line-height:1.15;margin:0 0 10px}
+header .sub{color:var(--mut);font-size:18px;margin:0}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:28px 0;columns:2;column-gap:30px;font-size:14.5px}
+.toc a{display:block;color:var(--tx);text-decoration:none;padding:2px 0;break-inside:avoid}
+.toc a:hover{color:var(--acc)} .toc a span{color:var(--mut);display:inline-block;width:28px}
+section{margin-top:64px}
+h2{font-size:28px;margin:0 0 4px;line-height:1.25} h2 .n{color:var(--acc);font-size:.8em;margin-right:10px}
+h3{font-size:19px;margin:30px 0 6px;color:#e9d5ff}
+p{margin:12px 0}
+.key{border-left:4px solid var(--acc);background:linear-gradient(90deg,#5eead414,transparent 80%);padding:12px 18px;margin:18px 0;border-radius:0 10px 10px 0;font-size:15.5px}
+.key::before{content:"KEY IDEA";display:block;font-size:11px;letter-spacing:.12em;color:var(--acc);font-weight:700}
+.warn{border-left:4px solid var(--bad);background:linear-gradient(90deg,#f8717112,transparent 80%);padding:12px 18px;margin:18px 0;border-radius:0 10px 10px 0;font-size:15.5px}
+.warn::before{content:"WATCH OUT";display:block;font-size:11px;letter-spacing:.12em;color:var(--bad);font-weight:700}
+.side{border-left:4px solid var(--warn);background:linear-gradient(90deg,#fbbf2410,transparent 80%);padding:12px 18px;margin:18px 0;border-radius:0 10px 10px 0;font-size:15px}
+.side::before{content:"SIDE NOTE";display:block;font-size:11px;letter-spacing:.12em;color:var(--warn);font-weight:700}
+.meas{display:inline-block;font-family:system-ui;font-size:11px;padding:0 7px;border-radius:99px;border:1px solid var(--ok);color:var(--ok);vertical-align:middle}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:24px 0;font-size:14.5px;line-height:1.55}
+.cap{font-size:13px;color:var(--mut);margin-top:12px;border-top:1px dashed var(--line);padding-top:8px} .cap b{color:var(--tx)}
+pre.code{background:#060a14;border:1px solid var(--line);border-radius:10px;padding:12px 16px;overflow:auto;font-size:13.2px;line-height:1.55;margin:14px 0}
+.c{color:#6b7a99}.k{color:#f9a8d4}.s{color:#86efac}.nn{color:#fcd34d}
+button{font-size:13.5px;background:var(--card2);color:var(--tx);border:1px solid var(--line);padding:6px 12px;border-radius:7px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--acc)} button.pri{background:var(--acc);color:#042;border-color:var(--acc);font-weight:600}
+button.sel{box-shadow:0 0 0 2px var(--acc)} button:disabled{opacity:.35;cursor:default}
+input,select{font-family:var(--mono);font-size:13.5px;background:#060a14;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.g2{grid-template-columns:1fr}.toc{columns:1}}
+.small{font-size:12.5px;color:var(--mut)}
+.out{background:#060a14;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-family:var(--mono);font-size:13px;margin-top:10px}
+.S-CS{color:var(--CS)}.S-DS{color:var(--DS)}.S-ES{color:var(--ES)}.S-SS{color:var(--SS)}.S-FS{color:var(--FS)}.S-GS{color:var(--GS)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.stp .bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.stp .cnt{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--mut)}
+.stp .lst{font-family:var(--mono);font-size:13px;background:#060a14;border:1px solid var(--line);border-radius:9px;padding:6px}
+.stp .it{padding:4px 8px;border-radius:5px;cursor:pointer;white-space:pre-wrap;color:#6b7a99;border:1px solid transparent}
+.stp .it.cur{color:#fff;background:#5eead41a;border-color:#5eead455} .stp .it.nx{color:#c7d2fe}
+.stp .txt{margin-top:10px;background:#060a14;border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:64px}
+.stp .flt{margin-top:8px;padding:8px 10px;border-radius:7px;border:1px solid var(--bad);background:#f871711c;color:#fecaca;font-family:var(--mono);font-size:13px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:10px}
+.reg{font-family:var(--mono);font-size:12.5px;background:#060a14;border:1px solid var(--line);border-radius:6px;padding:4px 8px;display:flex;justify-content:space-between;gap:6px}
+.reg.chg{animation:fl 1.1s} @keyframes fl{0%{background:#fbbf2466}}
+.ring{display:inline-block;padding:2px 12px;border-radius:99px;font-family:var(--mono);font-size:12.5px;font-weight:700}
+.ring.u{color:var(--ok);border:1px solid var(--ok);background:#4ade8018}.ring.k{color:var(--bad);border:1px solid var(--bad);background:#f8717118}
+.ladder{display:flex;flex-direction:column;gap:5px}
+.lad{font-family:var(--mono);font-size:12.5px;padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:#060a14;opacity:.35;transition:.4s}
+.lad.on{opacity:1;border-color:var(--acc);box-shadow:0 0 18px #5eead433;transform:translateX(6px)}
+.bytes{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.grp{display:flex;flex-direction:column;align-items:center;gap:4px;animation:pop .45s both}
+.grp .bb{display:flex;gap:2px}
+.grp .by{font-family:var(--mono);font-size:15px;font-weight:700;padding:5px 7px;border-radius:5px;background:#060a14;border:1px solid}
+.grp .as{font-family:var(--mono);font-size:12.5px;color:#fff}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+.eq{font-family:var(--mono);font-size:14px;line-height:2}
+.eq .t{display:inline-block;padding:0 8px;border-radius:5px;border:1px solid var(--line);background:#060a14;margin:0 2px;transition:.3s}
+.vmap{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:12px}
+.vr{display:grid;grid-template-columns:185px 1fr;gap:10px;align-items:center;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:#060a14;cursor:pointer;transition:.3s}
+.vr:hover{border-color:var(--acc)}
+.vr.hit{background:#fbbf2426;border-color:var(--warn);box-shadow:0 0 18px #fbbf2440}
+.vr.k{border-style:dashed}
+.vr.hole{background:repeating-linear-gradient(135deg,#f8717110 0 8px,transparent 8px 16px);color:var(--bad);cursor:default}
+.msr{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.msr div{font-family:var(--mono);font-size:12px;padding:6px 8px;border-radius:7px;border:1px solid var(--line);background:#060a14;transition:.4s}
+.msr div.chg{animation:fl 1.1s}
+.threads{display:flex;gap:8px;flex-wrap:wrap}
+.th{flex:1;min-width:170px;font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#060a14;transition:.35s}
+.th.run{border-color:var(--FS);box-shadow:0 0 18px #b197fc44}
+.th b{font-family:system-ui;font-size:13px}
+.tcb{display:flex;flex-direction:column;gap:2px;font-family:var(--mono);font-size:12px;margin-top:10px}
+.tcb div{display:grid;grid-template-columns:110px 175px 1fr;gap:8px;padding:3px 8px;border-radius:5px;background:#060a14;border:1px solid var(--line);transition:.3s}
+.tcb div.fsb{border-color:var(--FS)}
+.tcb div.hit{background:#fbbf2430;border-color:var(--warn)}
+.walk{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:12px}
+.tbl{background:#060a14;border:1px solid var(--line);border-radius:8px;padding:6px;font-family:var(--mono);font-size:11.5px;min-width:160px;opacity:.2;transition:.45s}
+.tbl.lit{opacity:1;border-color:var(--acc)}
+.tbl .tt{font-family:system-ui;font-weight:700;font-size:12px;margin-bottom:4px}
+.tbl .e{padding:1px 6px;border-radius:3px;color:#6b7a99} .tbl .e.h{background:#5eead42a;color:#fff}
+.vbits{display:flex;gap:1px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;margin:10px 0}
+.vbits span{width:13px;text-align:center;padding:3px 0;border-radius:2px}
+.term{background:#03060d;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:var(--mono);font-size:13px;white-space:pre-wrap;line-height:1.5;color:#cbd5e1;min-height:100px}
+.term .p{color:var(--ok)} .term .h{color:var(--warn)} .term .cm{color:#6b7a99}
+.sum td:first-child{font-family:var(--mono);font-weight:700;width:60px}
+.gdt td{font-family:var(--mono);font-size:12.5px}
+.gdt tr{cursor:pointer} .gdt tr:hover td{background:#ffffff06} .gdt tr.hit td{background:#fbbf2426}
+footer{margin-top:70px;color:var(--mut);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="wrap">
+<header>
+  <p class="small ui"><a href="segments_32.html">← Part 1: 32-bit</a> · Part 2 of 2</p>
+  <h1>Segment Registers in x86-64</h1>
+  <p class="sub">In 64-bit mode the hardware forces the flat model. This part covers what still matters: CS as the mode-and-privilege switch, FS and GS as per-thread and per-CPU pointers, and the paging that does everything else. Values marked <span class="meas">measured</span> were recorded on this Linux 5.10 machine.</p>
+</header>
+
+<nav class="toc">
+  <a href="#c1"><span>1</span>What changed from 32-bit</a>
+  <a href="#c2"><span>2</span>Getting into long mode</a>
+  <a href="#c3"><span>3</span>CS decides how bytes decode</a>
+  <a href="#c4"><span>4</span>The address rule: only FS/GS count</a>
+  <a href="#c5"><span>5</span>Linux's 64-bit GDT</a>
+  <a href="#c6"><span>6</span>Who sets CS: execve</a>
+  <a href="#c7"><span>7</span>syscall, sysret and swapgs</a>
+  <a href="#c8"><span>8</span>DS, ES, SS: present but idle</a>
+  <a href="#c9"><span>9</span>FS and thread-local storage</a>
+  <a href="#c10"><span>10</span>Setting the FS/GS bases</a>
+  <a href="#c11"><span>11</span>The 64-bit address space</a>
+  <a href="#c12"><span>12</span>Four-level paging</a>
+  <a href="#c13"><span>13</span>Seeing it yourself</a>
+  <a href="#c14"><span>14</span>Summary</a>
+</nav>
+
+<section id="c1">
+<h2><span class="n">1</span>What changed from 32-bit</h2>
+<p><a href="segments_32.html">Part 1</a> ended with every serious 32-bit OS using the <b>flat model</b>: all segments at base 0 with a 4 GiB limit, paging doing the real work, and only FS or GS pointing at per-thread data. When AMD designed x86-64 in 2003, they turned that convention into <b>hardware rules</b>:</p>
+<table>
+<tr><th>Thing</th><th>32-bit protected mode</th><th>64-bit mode</th></tr>
+<tr><td>CS / DS / ES / SS base</td><td>from the descriptor</td><td><b>always 0</b>; the descriptor base is ignored</td></tr>
+<tr><td>Segment limits</td><td>checked on every access</td><td><b>not checked</b></td></tr>
+<tr><td>FS / GS base</td><td>32-bit, from the descriptor</td><td><b>64-bit, stored in MSRs</b>, independent of the GDT</td></tr>
+<tr><td>Null selector in DS/ES/FS/GS</td><td>loadable, faults when used</td><td>loadable and <b>usable</b> (the base is 0 anyway)</td></tr>
+<tr><td>What CS still decides</td><td>code base/limit, 16/32-bit, CPL</td><td><b>64-bit vs 32-bit decoding (L bit)</b> and <b>CPL</b></td></tr>
+<tr><td>Instruction pointer</td><td>EIP</td><td>RIP, with <b>RIP-relative</b> addressing</td></tr>
+<tr><td>Address size</td><td>32-bit linear → 32/36-bit physical</td><td>48-bit linear → up to 52-bit physical</td></tr>
+</table>
+<div class="key">In 64-bit mode, segmentation does two jobs and nothing else. <b>CS</b> selects the execution mode and the privilege level. <b>FS and GS</b> each add a 64-bit base, used as a pointer to "this thread's" or "this CPU's" data. Everything else about memory is paging.</div>
+</section>
+
+<section id="c2">
+<h2><span class="n">2</span>Getting into long mode</h2>
+<p>Every x86-64 CPU still powers on in 16-bit real mode, just like in 1978. Firmware walks it up the modes by setting control bits and reloading CS. <b>Long mode</b> is active once paging is on and the EFER.LME bit is set. From then on, <b>each code segment's L bit</b> chooses between two sub-modes: <b>64-bit mode</b> (L = 1) and <b>compatibility mode</b> (L = 0) for running 32-bit programs.</p>
+<div class="fig stp" id="bootSim"></div>
+<div class="cap" style="margin-top:-14px;margin-bottom:24px"><b>Figure 1.</b> The boot path from real mode into 64-bit mode. Setting CR0.PE does not switch the CPU by itself; the code keeps running the old way until a <b>far jump reloads CS</b> with a descriptor for the new mode. Watch the ladder on the right.</div>
+<p>Two things to notice. First, paging is <i>mandatory</i> in long mode: you cannot turn on 64-bit mode without page tables, which is exactly why segmentation could be simplified. Second, the last step into 64-bit code is a CS reload. The mode lives in CS.</p>
+</section>
+
+<section id="c3">
+<h2><span class="n">3</span>CS decides how bytes decode</h2>
+<p>Machine code is just bytes, and the <b>same bytes mean different instructions</b> depending on the current code segment. In 64-bit mode the bytes <code>0x40</code>–<code>0x4F</code> are <b>REX prefixes</b>, which select 64-bit operands and registers R8–R15. In 32-bit mode those same bytes are <code>inc</code> and <code>dec</code> instructions. On Linux, CS <code>0x33</code> has L = 1 and CS <code>0x23</code> has L = 0, D = 1.</p>
+<div class="fig">
+  <div class="row ui"><span class="small">decode with</span><button class="csb sel" data-cs="33">CS = 0x33 (64-bit)</button><button class="csb" data-cs="23">CS = 0x23 (32-bit compat)</button></div>
+  <div class="row ui" style="margin-top:8px"><span class="small">byte string:</span><span id="exBtns"></span></div>
+  <div class="bytes" id="dec"></div>
+  <div class="out" id="decOut" style="font-family:system-ui"></div>
+  <div class="cap"><b>Figure 2.</b> One byte string, two meanings. Switch CS and watch the bytes regroup into different instructions.</div>
+</div>
+<p>Because CS alone decides the mode, a <b>64-bit process can run 32-bit code</b> by jumping to a CS with L = 0, and jump back the same way. This is allowed in user mode because both code segments have DPL 3. The program below does that. It was tested on this machine and exits with status 35 = <code>0x23</code>, the CS value it read while in 32-bit mode <span class="meas">measured</span>:</p>
+<pre class="code"><span class="c">; gate.asm  —  nasm -f elf64 gate.asm && ld gate.o -o gate && ./gate; echo $?   -> 35</span>
+<span class="k">bits 64</span>
+<span class="k">global</span> _start
+_start:
+    <span class="k">lea</span>  rax, [rel compat]
+    <span class="k">push</span> <span class="nn">0x23</span>               <span class="c">; new CS: 32-bit user code (L=0, D=1)</span>
+    <span class="k">push</span> rax                <span class="c">; new RIP</span>
+    <span class="k">retfq</span>                    <span class="c">; far return pops RIP then CS -> compatibility mode</span>
+<span class="k">bits 32</span>
+compat:
+    <span class="k">mov</span>  ebx, cs              <span class="c">; ebx = 0x23  (we are executing 32-bit code now)</span>
+    <span class="k">jmp</span>  <span class="nn">0x33</span>:back64          <span class="c">; far jump back to the 64-bit code segment</span>
+<span class="k">bits 64</span>
+back64:
+    <span class="k">mov</span>  edi, ebx             <span class="c">; exit status = 0x23</span>
+    <span class="k">mov</span>  eax, 60
+    <span class="k">syscall</span></pre>
+<div class="side">This works here because a static <code>ld</code> binary loads below 4 GiB (at 0x401000), and compatibility mode only forms 32-bit addresses. The same selector-swap trick is used by 32-bit Windows to reach 64-bit code, where it is nicknamed "Heaven's Gate."</div>
+</section>
+<section id="c4">
+<h2><span class="n">4</span>The address rule: only FS and GS count</h2>
+<p>An x86-64 memory operand looks like <code>seg:[base + index*scale + disp]</code>. The CPU first computes the <b>effective address</b> from the registers, then adds the segment base to get the <b>linear address</b>. In 64-bit mode the base is <b>0 for CS, DS, ES and SS</b> even with an explicit prefix, and comes from an MSR for FS and GS:</p>
+<pre class="code">effective = base + index*scale + displacement        <span class="c">; or RIP + displacement</span>
+linear    = effective + { FS_BASE  if the  fs:  prefix is present
+                          GS_BASE  if the  gs:  prefix is present
+                          0        otherwise  (cs: ds: es: ss: prefixes add nothing) }
+then: the linear address must be canonical, or the CPU raises #GP  (chapter 11)</pre>
+<div class="fig">
+  <div class="row ui">
+    <select id="aPre"><option value="">(no prefix, so DS)</option><option>ds</option><option>es</option><option>ss</option><option>cs</option><option selected>fs</option><option>gs</option></select>
+    : [ base <input id="aBase" value="0" size="14"> + index <input id="aIdx" value="0" size="7"> * <select id="aSc"><option>1</option><option>2</option><option>4</option><option>8</option></select> + disp <input id="aDisp" value="0x28" size="8"> ]
+  </div>
+  <div class="row ui" style="margin-top:8px"><span class="S-FS">FS_BASE</span> <input id="aFs" value="0x7ffff7fab540" size="16"> <span class="S-GS">GS_BASE</span> <input id="aGs" value="0" size="16"></div>
+  <div class="eq" id="aEq" style="margin-top:12px"></div>
+  <div class="out" id="aOut"></div>
+  <div class="cap"><b>Figure 3.</b> Effective address vs linear address. Change the prefix and watch which base is added. Only <span class="S-FS">fs:</span> and <span class="S-GS">gs:</span> move the result; the others add 0.</div>
+</div>
+<p>This is why the flat model stops being a choice. Even if you deliberately load a data selector whose descriptor has a non-zero base, the CPU ignores it. The only segment bases that exist in 64-bit mode are the two MSR-backed ones.</p>
+</section>
+
+<section id="c5">
+<h2><span class="n">5</span>Linux's 64-bit GDT</h2>
+<p>The GDT still exists, and CS/SS selectors still index into it, but the entries are simpler because base and limit no longer matter for code and data. Linux keeps one GDT per CPU. Click a row to see what each selector is for:</p>
+<div class="fig">
+  <table class="gdt" id="gdt64"></table>
+  <div class="out" id="gdtOut" style="font-family:system-ui">Click a row.</div>
+  <div class="cap"><b>Figure 4.</b> The selectors a 64-bit Linux process and kernel actually use. User code is <code>0x33</code>, user data <code>0x2b</code>. The odd numeric order is forced by the <code>syscall</code>/<code>sysret</code> instructions, explained in chapter 7.</div>
+</div>
+<p>Only a handful of these are ever loaded into a segment register. In user space you will always see <code>CS = 0x33</code> and <code>SS = 0x2b</code>, with DS, ES, FS and GS holding <code>0</code>. The FS and GS <i>bases</i> are set separately (chapter 10), not by loading one of these selectors.</p>
+</section>
+
+<section id="c6">
+<h2><span class="n">6</span>Who sets CS: execve</h2>
+<p>A common question: if a program is position-independent, how does it get the right CS? The answer is that <b>CS has nothing to do with where your code lives</b>. Its base is 0 for everyone. The kernel assigns the same selector value to every process, and the CPU loads it on the return to user mode. Position independence is handled by paging and RIP-relative addressing, never by CS.</p>
+<div class="fig stp" id="execSim"></div>
+<div class="cap" style="margin-top:-14px;margin-bottom:24px"><b>Figure 5.</b> What happens to CS, SS, CPL and FS_BASE when you launch a program. The ELF file is never consulted for the segment values; the kernel writes fixed constants into the saved register frame, and <code>iretq</code> loads them.</div>
+<div class="key">In Linux's <code>start_thread()</code>, the kernel writes <code>regs->cs = 0x33</code> and <code>regs->ss = 0x2b</code> into the register frame it will restore, and clears DS/ES/FS/GS to 0. The CPU makes them live when it returns to user mode. Every 64-bit process on the machine starts with the identical CS, because CS no longer encodes an address.</div>
+<p>There is no <code>mov cs, ...</code> instruction (it raises #UD). CS changes only through far jump/call/return, interrupts, <code>iret</code>, and the <code>syscall</code>/<code>sysret</code> pair. All of those change CS and RIP together, which is the whole point: the mode and the next instruction must switch atomically.</p>
+</section>
+<section id="c7">
+<h2><span class="n">7</span>syscall, sysret and swapgs</h2>
+<p>Entering the kernel through the old <code>int</code> gate is slow. x86-64 added <code>syscall</code>/<code>sysret</code>, which switch privilege without touching memory: the new CS and SS come straight from the <b>STAR MSR</b>, not from the GDT. This is why Linux's selectors are ordered the way they are.</p>
+<pre class="code">syscall :  CS = STAR[47:32]           SS = STAR[47:32] + 8      <span class="c">; kernel 0x10, 0x18</span>
+sysret  :  CS = STAR[63:48] + 16      SS = STAR[63:48] + 8      <span class="c">; user 0x33, 0x2b</span>
+           STAR[63:48] = 0x23  ->  SS = 0x2b, CS = 0x33</pre>
+<p>But a problem appears the moment the kernel starts running: it needs a pointer to its own per-CPU data, and every register including GS still holds the <i>user's</i> values. The answer is <b>swapgs</b>, a single instruction that exchanges GS_BASE with a hidden MSR (KERNEL_GS_BASE). The kernel runs swapgs on entry and again on exit.</p>
+<div class="fig stp" id="scSim"></div>
+<div class="cap" style="margin-top:-14px;margin-bottom:24px"><b>Figure 6.</b> A system call from user to kernel and back. Watch CS, CPL, and the two GS bases trade places. The GDT is never read during any of this.</div>
+<div class="warn">swapgs is why GS, not FS, is the kernel's per-CPU register. Getting the swapgs pairing wrong (for example, on an exception that arrives just after entry) has been the source of real CPU errata and the "SWAPGS" speculative-execution issue. FS was left for user thread-local storage.</div>
+</section>
+
+<section id="c8">
+<h2><span class="n">8</span>DS, ES, SS: present but idle</h2>
+<p>You can still read and even load these registers, but it changes nothing about addressing. Reading is unprivileged, loading is checked against the GDT exactly as in 32-bit mode, and then the base is discarded. The following was run on this machine, showing which loads succeed and which fault <span class="meas">measured</span>:</p>
+<div class="fig">
+  <div class="row ui">
+    <select id="dReg"><option>DS</option><option>ES</option><option>FS</option><option>GS</option><option>SS</option></select> &larr; selector
+    <input id="dSel" value="0x2b" size="6">
+    <button class="pri" id="dGo">try the load</button>
+    <span id="dPre" class="small"></span>
+  </div>
+  <div class="out" id="dOut"></div>
+  <div class="cap"><b>Figure 7.</b> Loading a segment register in user mode. <code>0x2b</code> (user data) and <code>0x33</code> (readable user code) succeed. <code>0x10</code> (kernel data, DPL 0) and <code>0x50</code> (past the table) fault with SIGSEGV. Null into SS faults; null into DS/ES/FS/GS is fine. Even on success, the base stays 0.</div>
+</div>
+<p>So the tutorial phrase "the four data segments keep data elements from overlapping" no longer applies at all. DS, ES and SS have base 0 and no limit, so they cover the entire address space and overlap completely. Keeping data apart is the job of page permissions.</p>
+</section>
+
+<section id="c9">
+<h2><span class="n">9</span>FS and thread-local storage</h2>
+<p>FS earns its keep. glibc points FS_BASE at each thread's <b>thread control block (TCB)</b>. A single instruction with the <code>fs:</code> prefix then reaches per-thread data with no pointer chasing. Two uses appear in almost every compiled program:</p>
+<pre class="code"><span class="k">mov</span>  rax, <span class="nn">fs:0x28</span>      <span class="c">; the stack-protector canary (start of most functions)</span>
+<span class="k">mov</span>  rax, <span class="nn">fs:0</span>         <span class="c">; pointer to the TCB itself -> pthread_self()</span>
+<span class="k">mov</span>  eax, <span class="nn">fs:0xfffffffffffffffc</span>   <span class="c">; a __thread int, i.e. fs:-4</span></pre>
+<p>The magic is that the <b>same instruction bytes</b> read different memory in different threads, because each thread has its own FS_BASE. On every context switch the kernel reloads it. This was measured on this machine with a two-thread program <span class="meas">measured</span>: the two threads reported different FS bases but the identical canary value, and a <code>__thread</code> variable sat at <code>fs:-4</code> in both.</p>
+<div class="fig">
+  <div class="row ui"><span class="small">running thread:</span><button class="thb sel" data-t="0">main</button><button class="thb" data-t="1">worker A</button><button class="thb" data-t="2">worker B</button></div>
+  <div class="threads" id="thRow" style="margin-top:10px"></div>
+  <div class="row ui" style="margin-top:12px"><span class="small">execute:</span><button class="acb" data-a="canary">mov rax, fs:0x28</button><button class="acb" data-a="self">mov rax, fs:0</button><button class="acb" data-a="tls">mov eax, fs:-4</button></div>
+  <div class="tcb" id="tcb"></div>
+  <div class="out" id="thOut"></div>
+  <div class="cap"><b>Figure 8.</b> Three threads, one FS register, three bases. Pick a thread, then run an access and watch which TCB it lands in. The canary is shared; the TLS variable and the self-pointer are per-thread.</div>
+</div>
+<div class="side">The canary always ends in a zero byte. That low <code>00</code> stops C string functions from copying past it, so a stray <code>strcpy</code> cannot leak or overwrite the whole value. <code>__thread</code> variables live just below the TCB, at negative offsets from FS_BASE.</div>
+</section>
+<section id="c10">
+<h2><span class="n">10</span>Setting the FS and GS bases</h2>
+<p>Since the base is a 64-bit MSR, not a descriptor, loading a selector cannot set it. There are two ways:</p>
+<p><b>arch_prctl</b> (syscall 158). The classic route. glibc calls <code>arch_prctl(ARCH_SET_FS, tcb)</code> once per thread during startup. This was verified on this machine: after <code>mov fs, 0x2b</code>, the FS base actually dropped to 0, because loading a selector overwrites the MSR-backed base with the descriptor's (zero) base <span class="meas">measured</span>.</p>
+<p><b>wrfsbase / wrgsbase.</b> If the CPU supports FSGSBASE and the kernel enabled it (CR4.FSGSBASE), user code can write its own FS base in one unprivileged instruction, no syscall. This CPU and kernel 5.10 support it, reported through <code>AT_HWCAP2 = 0x2</code> <span class="meas">measured</span>.</p>
+<pre class="code"><span class="c">// set FS base from user space, two ways</span>
+<span class="k">#include</span> &lt;asm/prctl.h&gt;
+<span class="k">#include</span> &lt;sys/syscall.h&gt;
+syscall(SYS_arch_prctl, ARCH_SET_FS, (unsigned long)my_tcb);   <span class="c">// always works</span>
+
+<span class="k">unsigned long</span> b;
+__asm__(<span class="s">"rdfsbase %0"</span> : <span class="s">"=r"</span>(b));          <span class="c">// read  (needs FSGSBASE)</span>
+__asm__(<span class="s">"wrfsbase %0"</span> :: <span class="s">"r"</span>(new_base));      <span class="c">// write (needs FSGSBASE)</span></pre>
+<div class="warn">Do not overwrite FS_BASE while running under glibc. Every TLS access, the canary check, and <code>errno</code> all read through it. Point it somewhere wrong and the next protected function will fail its canary check and abort.</div>
+</section>
+
+<section id="c11">
+<h2><span class="n">11</span>The 64-bit address space</h2>
+<p>A 64-bit register can name 2<sup>64</sup> addresses, an absurd 16 EiB. Current CPUs only wire up <b>48 bits</b> (256 TiB), or 57 with the newer 5-level paging. To keep the unused top bits from being misused, x86-64 requires addresses to be <b>canonical</b>: bits 63 down to 47 must all be copies of bit 47. That splits the usable space into a low half and a high half with a vast <b>non-canonical hole</b> between them.</p>
+<div class="fig">
+  <div class="vmap" id="vmap"></div>
+  <div class="row ui" style="margin-top:10px">probe address <input id="vIn" value="0x00007ffff7fab540" size="20"> <span id="vPre"></span></div>
+  <div class="out" id="vOut"></div>
+  <div class="cap"><b>Figure 9.</b> The x86-64 virtual layout on Linux (not to scale; the hole is astronomically larger than the used parts). Click a region or type an address. A non-canonical address faults with #GP <i>before</i> any page lookup, which is why the fault reports no address.</div>
+</div>
+<p>Linux gives user space the low half (up to <code>0x00007fffffffffff</code>, 128 TiB) and the kernel the high half. Because the CPU rejects non-canonical addresses immediately, the classic 32-bit "3 GiB user / 1 GiB kernel" squeeze is gone. There is no 4 GiB wall and no PAE-style trickery: physical frames can sit anywhere the 52-bit physical address allows.</p>
+<div class="side">This machine has 48-bit VAs (no <code>la57</code> flag), so the last user address is <code>0x00007fffffffffff</code>. Kernel space starts at <code>0xffff800000000000</code>, and a direct map of all physical RAM lives at <code>0xffff888000000000</code>, letting the kernel touch any frame.</div>
+</section>
+
+<section id="c12">
+<h2><span class="n">12</span>Four-level paging</h2>
+<p>With base 0 forced, the linear address equals the effective address (or FS/GS base plus offset), and paging turns it into physical. In 64-bit mode the walk has <b>four levels</b> instead of two. The 48-bit address splits into four 9-bit table indices and a 12-bit page offset. CR3 points at the top table (the PML4).</p>
+<div class="fig">
+  <div class="row ui"><select id="wMode"><option value="4">4-level (9|9|9|9|12)</option><option value="5">5-level, LA57 (9|9|9|9|9|12)</option></select>
+    address <input id="wVa" value="0x00007ffff7fab540" size="20"> <button class="pri" id="wGo">walk</button>
+    <span class="small">try</span> <button data-v="0x0000555555558010">.data</button><button data-v="0x00007ffff7fab540">TLS</button><button data-v="0xffff888000001000">kernel</button></div>
+  <div class="vbits" id="wBits"></div>
+  <div id="wCanon" class="small" style="margin:6px 0"></div>
+  <div class="walk" id="wWalk"></div>
+  <div class="cap"><b>Figure 10.</b> A four-level page walk. Each entry holds the physical address of the next table plus permission bits (P present, R/W writable, U/S user, NX no-execute). The frame numbers are illustrative; the index math is exact. The CPU caches results in the TLB.</div>
+</div>
+<p>Everything the old segment limits and data segments tried to do is now a paging bit, applied per 4 KiB page: isolation (each process has its own CR3), read-only pages (R/W), user vs kernel (U/S), and non-executable data (NX). Huge pages let a level stop early and map 2 MiB or 1 GiB at once.</p>
+</section>
+
+<section id="c13">
+<h2><span class="n">13</span>Seeing it yourself</h2>
+<p>Reading the selectors is unprivileged. The FS/GS bases need gdb, a syscall, or the FSGSBASE instructions. There is <b>no /proc file</b> for segment registers; the closest sources are <code>/proc/PID/maps</code> for the memory layout and a core dump for a full register snapshot. This C program reads everything and was run on this machine:</p>
+<pre class="code"><span class="c">// seg64.c  —  gcc -O0 seg64.c -o seg64 && ./seg64</span>
+<span class="k">#include</span> &lt;stdio.h&gt;
+<span class="k">#include</span> &lt;sys/syscall.h&gt;
+<span class="k">#include</span> &lt;asm/prctl.h&gt;
+<span class="k">int</span> main(<span class="k">void</span>){
+    <span class="k">unsigned short</span> cs,ds,es,ss,fs,gs;
+    __asm__(<span class="s">"mov %%cs,%0"</span>:<span class="s">"=r"</span>(cs)); __asm__(<span class="s">"mov %%ds,%0"</span>:<span class="s">"=r"</span>(ds));
+    __asm__(<span class="s">"mov %%es,%0"</span>:<span class="s">"=r"</span>(es)); __asm__(<span class="s">"mov %%ss,%0"</span>:<span class="s">"=r"</span>(ss));
+    __asm__(<span class="s">"mov %%fs,%0"</span>:<span class="s">"=r"</span>(fs)); __asm__(<span class="s">"mov %%gs,%0"</span>:<span class="s">"=r"</span>(gs));
+    <span class="k">unsigned long</span> fsb=0,gsb=0;
+    syscall(SYS_arch_prctl, ARCH_GET_FS, &amp;fsb);
+    syscall(SYS_arch_prctl, ARCH_GET_GS, &amp;gsb);
+    <span class="k">unsigned long</span> canary; __asm__(<span class="s">"mov %%fs:0x28,%0"</span>:<span class="s">"=r"</span>(canary));
+    printf(<span class="s">"cs=%#x ds=%#x es=%#x ss=%#x fs=%#x gs=%#x  CPL=%d\n"</span>, cs,ds,es,ss,fs,gs, cs&amp;3);
+    printf(<span class="s">"fs_base=%#lx gs_base=%#lx canary=%#lx\n"</span>, fsb, gsb, canary);
+}</pre>
+<div class="term"><span class="cm"># measured on this machine:</span>
+cs=0x33 ds=0 es=0 ss=0x2b fs=0 gs=0  CPL=3
+fs_base=0x7f407b3b8540 gs_base=0 canary=0xf23424f90fbf7300
+
+<span class="cm"># in gdb the bases have their own convenience variables:</span>
+<span class="p">(gdb)</span> info registers cs ss fs gs
+cs  0x33   ss  0x2b   fs  0x0   gs  0x0
+<span class="p">(gdb)</span> p/x $fs_base
+$1 = 0x7ffff7fab540              <span class="h"># TLS pointer</span>
+<span class="p">(gdb)</span> x/gx $fs_base+0x28
+0x7ffff7fab568: 0x98ef6660276d9b00   <span class="h"># the canary</span></div>
+<p>In a disassembler like Binary Ninja or objdump, you see <i>which</i> segment an instruction uses (for example <code>fs:0x28</code>) but not its runtime base. When you spot <code>fs:0x28</code> at the top of a function, that function has a stack-protector canary. A <code>gs:</code> operand in a Windows x64 binary is a TEB access instead.</p>
+</section>
+
+<section id="c14">
+<h2><span class="n">14</span>Summary</h2>
+<table class="sum">
+<tr><th>Reg</th><th>Value on 64-bit Linux</th><th>What it does in 64-bit mode</th></tr>
+<tr><td class="S-CS">CS</td><td>0x33 user, 0x10 kernel</td><td>Selects 64-bit vs 32-bit decoding (L bit); low 2 bits = CPL. Changed only by far transfers, int/iret, syscall/sysret</td></tr>
+<tr><td class="S-DS">DS</td><td>0</td><td>Base forced to 0; default for data operands but adds nothing</td></tr>
+<tr><td class="S-ES">ES</td><td>0</td><td>Base forced to 0; still the string destination</td></tr>
+<tr><td class="S-SS">SS</td><td>0x2b user, 0x18 kernel</td><td>Base forced to 0; still the default for [rsp]/[rbp]</td></tr>
+<tr><td class="S-FS">FS</td><td>0 + FS_BASE MSR</td><td><b>Thread-local storage.</b> fs:0x28 = canary, fs:0 = TCB</td></tr>
+<tr><td class="S-GS">GS</td><td>0 + GS_BASE MSR</td><td><b>Kernel per-CPU data</b> via swapgs (Windows: user TEB)</td></tr>
+</table>
+<ol>
+<li>64-bit mode <b>forces the flat model</b>: CS/DS/ES/SS bases are 0 and limits are not checked.</li>
+<li><b>CS</b> selects the execution mode (L bit) and holds the <b>CPL</b> in its low 2 bits. It is assigned by the kernel and identical for every process.</li>
+<li><b>FS and GS</b> are the only real segment bases, stored in 64-bit MSRs, set by <code>arch_prctl</code> or <code>wrfsbase</code>.</li>
+<li><b>FS</b> = user thread-local storage; <b>GS</b> = kernel per-CPU data, switched with <code>swapgs</code>.</li>
+<li><b>syscall/sysret</b> get their selectors from the STAR MSR, never touching the GDT.</li>
+<li>Addresses must be <b>canonical</b>; the space splits into a user half, a kernel half, and a non-canonical hole.</li>
+<li>Isolation, protection and per-process address spaces come entirely from <b>4-level paging</b>.</li>
+</ol>
+<p>That completes the two-part tour. <a href="segments_32.html">Part 1</a> built the segmented model from the 8086 up to the 32-bit flat model; this part showed how x86-64 froze that model into hardware and kept only FS, GS and CS doing real work.</p>
+</section>
+
+<footer><a href="segments_32.html">← Part 1: segment registers in 32-bit x86</a> · Part 2 of 2</footer>
+</div>
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const H=(n,w=0)=>'0x'+(n>>>0).toString(16).toUpperCase().padStart(w,'0');
+const LX=(b,w=0)=>'0x'+(typeof b==='bigint'?b.toString(16):(b>>>0).toString(16)).padStart(w,'0');
+const SC={CS:'#ff6b6b',DS:'#4dabf7',ES:'#51cf66',SS:'#ffa94d',FS:'#b197fc',GS:'#f783ac'};
+const pbig=v=>{v=String(v).trim();try{return BigInt(v)}catch(e){return 0n}};
+addEventListener('scroll',()=>{const h=document.documentElement;$('#progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'});
+
+/* generic stepper */
+function stepper(root,cfg){
+  let n=0,t=null;
+  root.innerHTML=`<div class="bar ui"><button data-a="r">Reset</button><button data-a="b">Back</button><button data-a="n" class="pri">Next</button><button data-a="p">Play</button><span class="cnt"></span></div>
+  <div class="g2"><div class="lst">${cfg.steps.map((s,i)=>`<div class="it" data-i="${i}">${i+1}. ${s.t}</div>`).join('')}</div><div><div class="viz"></div></div></div>
+  <div class="regs"></div><div class="txt"></div>`;
+  const run=k=>{const s=cfg.init();let ev={};for(let i=0;i<k;i++)ev=cfg.steps[i].run(s)||{};return{s,ev}};
+  function draw(){const {s,ev}=run(n),{s:p}=run(Math.max(0,n-1));
+    $$('.it',root).forEach((e,i)=>{e.classList.toggle('cur',i===n-1);e.classList.toggle('nx',i===n)});
+    const R=cfg.regs(s),P=cfg.regs(p);$('.regs',root).innerHTML=R.map(([k,v,c],i)=>`<div class="reg ${n&&P[i][1]!==v?'chg':''}"><span style="color:${c||'#c7d2fe'};font-weight:700">${k}</span><span>${v}</span></div>`).join('');
+    $('.txt',root).innerHTML=(n?cfg.steps[n-1].d:cfg.intro)+(ev.fault?`<div class="flt">${ev.fault}</div>`:'');
+    cfg.viz($('.viz',root),s,ev);$('.cnt',root).textContent=`${n} / ${cfg.steps.length}`;
+    $('[data-a=b]',root).disabled=!n;$('[data-a=n]',root).disabled=n===cfg.steps.length}
+  function stop(){clearInterval(t);t=null;$('[data-a=p]',root).textContent='Play'}
+  $('.bar',root).onclick=e=>{const a=e.target.dataset.a;if(!a)return;if(a==='r'){n=0;stop()}if(a==='b')n--;if(a==='n')n++;
+    if(a==='p'){if(t){stop();return}if(n===cfg.steps.length)n=0;e.target.textContent='Pause';t=setInterval(()=>{if(n>=cfg.steps.length)return stop();n++;draw()},2800)}draw()};
+  $('.lst',root).onclick=e=>{const i=e.target.closest('.it');if(i){n=+i.dataset.i+1;draw()}};
+  draw();
+}
+
+/* Fig 1: boot ladder */
+stepper($('#bootSim'),{
+  intro:'The CPU has just powered on. It is an x86-64 chip but it starts in 16-bit <b>real mode</b>, exactly like an 8086. Step through how firmware climbs to 64-bit mode.',
+  init:()=>({mode:'real',PE:0,PAE:0,LME:0,PG:0,CS:'0xF000 (cached base 0xFFFF0000)'}),
+  regs:s=>[['mode',s.mode],['CR0.PE',String(s.PE)],['CR4.PAE',String(s.PAE)],['EFER.LME',String(s.LME)],['CR0.PG',String(s.PG)]],
+  steps:[
+   {t:'first fetch at 0xFFFFFFF0',d:'The reset vector. CS holds selector 0xF000 but a <b>hidden cached base of 0xFFFF0000</b>, so the first instruction is fetched near the top of the 4 GiB space, where the firmware ROM sits.',run:s=>{}},
+   {t:'set CR0.PE = 1',d:'Enable <b>protected mode</b>. The CPU does <i>not</i> switch style yet; it keeps decoding with the current CS.',run:s=>{s.PE=1}},
+   {t:'jmp 0x08:pmode  (far jump)',d:'Reload CS with a 32-bit code descriptor. <b>Now</b> the CPU is in 32-bit protected mode. The mode change needed a CS reload.',run:s=>{s.mode='protected (32-bit)';s.CS='0x08'}},
+   {t:'build page tables, set CR4.PAE = 1',d:'Long mode requires <b>PAE-style 64-bit page-table entries</b>, so paging structures are built first and PAE is enabled.',run:s=>{s.PAE=1}},
+   {t:'set EFER.LME = 1',d:'Arm <b>long mode</b>. It is armed but not yet active; paging is still off.',run:s=>{s.LME=1}},
+   {t:'set CR0.PG = 1',d:'Turn on paging. With LME armed and paging on, the CPU enters <b>long mode</b>. It is running in a compatibility sub-mode until CS says otherwise.',run:s=>{s.PG=1;s.mode='long mode (compat)'}},
+   {t:'jmp 0x10:lmode  (far jump, L=1)',d:'Reload CS with a descriptor whose <b>L bit = 1</b>. The CPU is now in true <b>64-bit mode</b>. From here segmentation is flat and RIP is 64 bits wide.',run:s=>{s.mode='64-bit mode';s.CS='0x10 (L=1)'}},
+  ],
+  viz(el,s){const rungs=['real','protected (32-bit)','long mode (compat)','64-bit mode'];
+    el.innerHTML='<div class="ladder">'+rungs.map(r=>`<div class="lad ${s.mode===r?'on':''}">${r}</div>`).reverse().join('')+'</div><div class="small mono" style="margin-top:8px">CS = '+s.CS+'</div>'}
+});
+
+/* Fig 2: byte decoder */
+(function(){
+  let cs='33',ex=0;
+  const EX=[
+   {b:'48 89 D8',n64:[['48','REX.W','#f783ac'],['89 D8','mov rax, rbx','#4dabf7']],n32:[['48','dec eax','#ffa94d'],['89 D8','mov eax, ebx','#4dabf7']]},
+   {b:'41 54',n64:[['41','REX.B','#f783ac'],['54','push r12','#51cf66']],n32:[['41','inc ecx','#ffa94d'],['54','push esp','#51cf66']]},
+   {b:'50 48 FF C0',n64:[['50','push rax','#51cf66'],['48','REX.W','#f783ac'],['FF C0','inc rax','#4dabf7']],n32:[['50','push eax','#51cf66'],['48','dec eax','#ffa94d'],['FF C0','inc eax','#4dabf7']]},
+   {b:'64 48 8B 04 25 28 00 00 00',n64:[['64','fs: prefix','#b197fc'],['48','REX.W','#f783ac'],['8B 04 25 28 00 00 00','mov rax, fs:0x28','#4dabf7']],n32:[['64','fs: prefix','#b197fc'],['48','dec eax','#ffa94d'],['8B 04 25 28 00 00 00','mov eax, fs:[0x28]','#4dabf7']]},
+  ];
+  $('#exBtns').innerHTML=EX.map((e,i)=>`<button data-i="${i}" class="${i===0?'sel':''}" style="font-family:var(--mono);font-size:12px">${e.b}</button>`).join(' ');
+  function draw(){const e=EX[ex],parts=cs==='33'?e.n64:e.n32;
+    $('#dec').innerHTML=parts.map(p=>`<div class="grp"><div class="bb">${p[0].split(' ').map(b=>`<span class="by" style="border-color:${p[2]};color:${p[2]}">${b}</span>`).join('')}</div><div class="as">${p[1]}</div></div>`).join('<div style="align-self:center;color:#8e9bb8">·</div>');
+    const diff=cs==='33';
+    $('#decOut').innerHTML=`Decoded as <b>${diff?'64-bit':'32-bit'}</b> code. `+(ex<3?`The byte <code>${parts[0][0]}</code> is ${diff?'a <b>REX prefix</b> that modifies the next instruction':'the standalone instruction <b>'+parts[0][1]+'</b>'}.`:`Note the <code>48</code> in the middle: a REX prefix in 64-bit mode, but <code>dec eax</code> in 32-bit mode, which throws off everything after it.`)}
+  $('#exBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;ex=+b.dataset.i;$$('#exBtns button').forEach(x=>x.classList.toggle('sel',x===b));draw()};
+  $$('.csb').forEach(b=>b.onclick=()=>{cs=b.dataset.cs;$$('.csb').forEach(x=>x.classList.toggle('sel',x===b));draw()});draw();
+})();
+
+/* Fig 3: effective vs linear */
+(function(){
+  function draw(){const pre=$('#aPre').value;
+    const base=pbig($('#aBase').value),idx=pbig($('#aIdx').value),sc=BigInt($('#aSc').value),disp=pbig($('#aDisp').value);
+    const eff=base+idx*sc+disp;const fsb=pbig($('#aFs').value),gsb=pbig($('#aGs').value);
+    const add=pre==='fs'?fsb:pre==='gs'?gsb:0n;const lin=eff+add;
+    const segbase=pre==='fs'?'FS_BASE '+LX(fsb):pre==='gs'?'GS_BASE '+LX(gsb):(pre?pre.toUpperCase()+'.base 0 (forced)':'DS.base 0 (forced)');
+    $('#aEq').innerHTML=`effective = <span class="t" style="color:#51cf66">${LX(base)}</span> + <span class="t" style="color:#ffa94d">${LX(idx)}</span>*${sc} + <span class="t" style="color:#fbbf24">${LX(disp)}</span> = <span class="t" style="color:#fff">${LX(eff)}</span><br>linear = <span class="t" style="color:#fff">${LX(eff)}</span> + <span class="t" style="color:${(pre==='fs'||pre==='gs')?'#b197fc':'#8e9bb8'}">${segbase}</span> = <span class="t ok">${LX(lin)}</span>`;
+    const moved=add!==0n;
+    $('#aOut').innerHTML=(moved?`<b class="ok">${pre}:</b> the segment base is added, so the linear address differs from the effective address.`:`<b>${pre||'ds'}:</b> the base is 0, so linear = effective. In 64-bit mode this is true for CS, DS, ES and SS no matter what their selectors are.`)}
+  $$('#c4 input,#c4 select').forEach(e=>e.oninput=draw);draw();
+})();
+
+/* Fig 4: GDT */
+(function(){
+  const G=[[0,'0x00','NULL','—','unused; loading 0 into DS/ES/FS/GS is legal'],
+   [1,'0x08','KERNEL32_CS','32-bit code, DPL0','used briefly during boot'],
+   [2,'0x10','KERNEL_CS','64-bit code, DPL0, L=1','kernel CS after syscall'],
+   [3,'0x18','KERNEL_DS','data, DPL0','kernel SS'],
+   [4,'0x23','USER32_CS','32-bit code, DPL3, L=0 D=1','CS for 32-bit / compat code'],
+   [5,'0x2b','USER_DS','data, DPL3','user SS, and DS/ES when non-zero'],
+   [6,'0x33','USER_CS','64-bit code, DPL3, L=1','the CS of every 64-bit process'],
+   [8,'0x40','TSS','system, 16 bytes','holds RSP0 and the IST kernel stacks'],
+   [15,'0x7b','CPUNODE','data','its limit encodes (node<<12)|cpu for the lsl trick']];
+  $('#gdt64').innerHTML='<tr><th>#</th><th>selector</th><th>name</th><th>descriptor</th></tr>'+G.map((r,i)=>`<tr data-i="${i}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+  $('#gdt64').onclick=e=>{const tr=e.target.closest('tr[data-i]');if(!tr)return;const r=G[+tr.dataset.i];$$('#gdt64 tr').forEach(x=>x.classList.remove('hit'));tr.classList.add('hit');
+    $('#gdtOut').innerHTML=`<b>${r[2]}</b> (selector ${r[1]}, GDT entry ${r[0]}): ${r[4]}.`}
+})();
+
+/* Fig 5: execve */
+stepper($('#execSim'),{
+  intro:'You run <code>./a.out</code> from a shell. Follow CS, SS, CPL and FS_BASE from the syscall into the kernel and back into your program. The ELF file never supplies any of these.',
+  init:()=>({where:'shell (user)',CS:'0x33',SS:'0x2b',CPL:3,FSB:'shell TLS',DS:'from shell'}),
+  regs:s=>[['location',s.where],['CS',s.CS,SC.CS],['SS',s.SS,SC.SS],['CPL',String(s.CPL)],['FS_BASE',s.FSB,SC.FS]],
+  steps:[
+   {t:'execve("./a.out") -> syscall',d:'The shell traps into the kernel. CS becomes the kernel selector 0x10 and CPL becomes 0.',run:s=>{s.where='kernel';s.CS='0x10';s.SS='0x18';s.CPL=0}},
+   {t:'kernel: load_elf_binary()',d:'The old address space is torn down. Because a PIE executable is <b>ET_DYN</b>, the kernel picks a random load bias (ASLR) and mmaps each PT_LOAD there, plus the dynamic loader ld.so.',run:s=>{s.where='kernel: mapping ELF'}},
+   {t:'kernel: start_thread()',d:'The kernel writes the <b>fixed</b> user selectors into the register frame it will restore: <code>cs=0x33, ss=0x2b</code>, and clears DS/ES/FS/GS and the FS base to 0. RIP is set to ld.so\'s entry. None of this reads the ELF file.',run:s=>{s.where='kernel: frame ready';s.DS='0';s.FSB='0'}},
+   {t:'iretq -> user mode',d:'The CPU restores the frame: <b>CS=0x33, SS=0x2b</b>, CPL = CS&3 = 3. This is the one moment CS is assigned, and it comes from the kernel\'s constant, not the binary.',run:s=>{s.where='ld.so (user)';s.CS='0x33';s.SS='0x2b';s.CPL=3}},
+   {t:'ld.so: arch_prctl(ARCH_SET_FS, tcb)',d:'The loader allocates the thread control block and sets <b>FS_BASE</b> via syscall 158. Now <code>fs:0x28</code> and <code>__thread</code> variables work.',run:s=>{s.FSB='0x7ffff7fab540'}},
+   {t:'jump to main',d:'Your code runs with CS=0x33, identical to every other 64-bit process. Data is reached RIP-relative; CS and DS contribute base 0.',run:s=>{s.where='a.out: main (user)'}},
+  ],
+  viz(el,s){el.innerHTML=`<div class="ui"><span class="ring ${s.CPL?'u':'k'}">CPL ${s.CPL} · ${s.CPL?'user':'kernel'}</span></div>
+   <div class="small" style="margin-top:10px">position: <b>${s.where}</b></div>
+   <div class="small" style="margin-top:6px">Notice CS is always 0x33 in user mode and 0x10 in the kernel, regardless of what a.out contains.</div>`}
+});
+
+/* Fig 6: syscall/swapgs */
+stepper($('#scSim'),{
+  intro:'A 64-bit user program calls into the kernel with <code>syscall</code>. Watch the STAR MSR supply the selectors and swapgs flip the GS base.',
+  init:()=>({loc:'user',CS:'0x33',SS:'0x2b',CPL:3,GSB:'0 (user)',KGSB:'0xffff888..per-CPU'}),
+  regs:s=>[['location',s.loc],['CS',s.CS,SC.CS],['CPL',String(s.CPL)],['GS_BASE',s.GSB,SC.GS],['KERNEL_GS_BASE',s.KGSB]],
+  steps:[
+   {t:'syscall',d:'The CPU loads <b>CS and SS from the STAR MSR</b> (0x10 and 0x18), sets CPL 0, saves the return RIP in RCX and RFLAGS in R11, and jumps to the address in LSTAR. <b>No GDT read, no memory access.</b>',run:s=>{s.loc='kernel entry';s.CS='0x10';s.SS='0x18';s.CPL=0}},
+   {t:'swapgs',d:'GS_BASE still holds the <i>user</i> value. <b>swapgs</b> exchanges GS_BASE with KERNEL_GS_BASE, so GS now points at this CPU\'s per-CPU data. This one instruction is why GS is the kernel\'s register.',run:s=>{const t=s.GSB;s.GSB=s.KGSB;s.KGSB=t;s.loc='kernel (per-CPU ready)'}},
+   {t:'... kernel does the work ...',d:'Now the kernel reads <code>gs:offset</code> to find the current task, kernel stack, and so on. All of that is per-CPU data reached through the swapped GS base.',run:s=>{s.loc='kernel: servicing call'}},
+   {t:'swapgs',d:'Before returning, swap GS back so the user\'s GS base is restored.',run:s=>{const t=s.GSB;s.GSB=s.KGSB;s.KGSB=t;s.loc='kernel exit'}},
+   {t:'sysretq',d:'Load <b>CS=0x33 and SS=0x2b from STAR</b>, restore RIP from RCX and RFLAGS from R11, drop to CPL 3. Back in user code, again with no GDT access.',run:s=>{s.loc='user';s.CS='0x33';s.SS='0x2b';s.CPL=3}},
+  ],
+  viz(el,s){el.innerHTML=`<div class="ui"><span class="ring ${s.CPL?'u':'k'}">CPL ${s.CPL} · ${s.CPL?'user':'kernel'}</span></div>
+   <div class="msr" style="margin-top:10px"><div class="${s.loc.includes('per-CPU')||s.loc==='kernel exit'||s.loc.includes('servicing')?'chg':''}"><span class="S-GS">GS_BASE</span><br>${s.GSB}</div><div>KERNEL_GS_BASE<br>${s.KGSB}</div><div>from STAR:<br>${s.CPL?'—':'CS 0x10 / SS 0x18'}</div></div>`}
+});
+
+/* Fig 7: segment load (measured behaviour) */
+(function(){
+  const R={ // measured on this machine
+   '0x2b':{ok:1,why:'user data (DPL3). Loads fine; base still 0.'},
+   '0x33':{ok:1,why:'user code, but it is readable, so DS accepts it. Base still 0.'},
+   '0x00':{ok:'null',why:'null selector: allowed in DS/ES/FS/GS (unusable but base 0), but SIGSEGV if loaded into SS.'},
+   '0x10':{ok:0,why:'kernel data (DPL0). Ring 3 may not load it. #GP -> SIGSEGV. (verified on this machine)'},
+   '0x50':{ok:0,why:'index 10, past this GDT. #GP -> SIGSEGV. (verified on this machine)'},
+  };
+  $('#dPre').innerHTML='try: '+['0x2b','0x33','0x00','0x10','0x50'].map(x=>`<button style="font-size:12px">${x}</button>`).join(' ');
+  $('#dPre').onclick=e=>{if(e.target.tagName==='BUTTON')$('#dSel').value=e.target.textContent};
+  $('#dGo').onclick=()=>{const reg=$('#dReg').value,sel=$('#dSel').value.trim().toLowerCase();const r=R[sel];
+    if(!r){$('#dOut').innerHTML=`<b>mov ${reg.toLowerCase()}, ${sel}</b><br>Not in this demo set; try one of the presets.`;return}
+    let verdict,cls;
+    if(r.ok==='null'){if(reg==='SS'){verdict='SIGSEGV — SS cannot be null';cls='bad'}else{verdict='ok — register unusable, base 0';cls='ok'}}
+    else if(r.ok){verdict='ok — loaded, base still 0';cls='ok'}
+    else{verdict='SIGSEGV (#GP)';cls='bad'}
+    $('#dOut').innerHTML=`<b>mov ${reg.toLowerCase()}, ${sel}</b> &rarr; <span class="${cls}">${verdict}</span><br><span style="font-family:system-ui">${r.why}</span>`+
+      (r.ok&&r.ok!=='null'||(r.ok==='null'&&reg!=='SS')?`<br><span class="small">Even loaded, ${reg} contributes base 0 to every address. The selector value changed; the addressing did not.</span>`:'')};
+  $('#dOut').innerHTML='Pick a register and a selector, then press <b>try the load</b>. Results below were verified on this machine.';
+})();
+
+/* Fig 8: threads / TLS */
+(function(){
+  const TH=[{n:'main',fsb:0x7ffff7fab540,tls:4},{n:'worker A',fsb:0x7ffff77aa640,tls:9},{n:'worker B',fsb:0x7ffff6fa9640,tls:11}];
+  const CAN='0x98ef6660276d9b00';
+  let cur=0,acc=null;
+  function draw(){
+    $('#thRow').innerHTML=TH.map((t,i)=>`<div class="th ${i===cur?'run':''}"><b style="color:${i===cur?'#b197fc':'#dde5f4'}">${t.n}</b><br>FS_BASE ${LX(t.fsb)}</div>`).join('');
+    const t=TH[cur];
+    const rows=[
+     ['self','fs:0 ('+LX(t.fsb)+')',LX(t.fsb)+'  (pthread_self)','self'],
+     ['canary','fs:0x28 ('+LX(t.fsb+0x28)+')',CAN+'  (shared by all threads)','canary'],
+     ['__thread','fs:-4 ('+LX(t.fsb-4)+')',t.tls+'  (this thread only)','tls'],
+    ];
+    $('#tcb').innerHTML=rows.map(r=>`<div class="fsb ${acc===r[3]?'hit':''}"><span style="color:#b197fc">${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span></div>`).join('');
+    $('#thOut').innerHTML=acc?`Running in <b style="color:#b197fc">${t.n}</b>: <b>${{canary:'mov rax, fs:0x28',self:'mov rax, fs:0',tls:'mov eax, fs:-4'}[acc]}</b> reads <b>${LX(t.fsb+ (acc==='canary'?0x28:acc==='tls'?-4:0))}</b> = ${acc==='canary'?CAN+' (same in every thread)':acc==='self'?LX(t.fsb):t.tls+' (different per thread)'}.`
+      :'Pick an access. The same instruction bytes read a different address in each thread, because FS_BASE differs.';
+  }
+  $$('.thb').forEach(b=>b.onclick=()=>{cur=+b.dataset.t;$$('.thb').forEach(x=>x.classList.toggle('sel',x===b));draw()});
+  $$('.acb').forEach(b=>b.onclick=()=>{acc=b.dataset.a;draw()});draw();
+})();
+
+/* Fig 9: virtual map */
+(function(){
+  const REG=[
+   {a:'0x0000000000000000',b:'0x0000000000400000',n:'reserved (null page trap)',c:'#555'},
+   {a:'0x0000000000400000',n:'program, heap, mmap, stack',c:'#4dabf7'},
+   {a:'0x00007fffffffffff',n:'top of user space (128 TiB)',c:'#4dabf7',edge:1},
+   {a:'0x0000800000000000',n:'NON-CANONICAL HOLE — #GP',c:'#f87171',hole:1},
+   {a:'0xffff800000000000',n:'kernel space begins',c:'#f87171',k:1},
+   {a:'0xffff888000000000',n:'direct map of all physical RAM',c:'#f783ac',k:1},
+   {a:'0xffffffffffffffff',n:'top of address space',c:'#f87171',k:1,edge:1},
+  ];
+  function canon(v){const bit47=(v>>47n)&1n;const top=v>>47n;return top===0n||top===0x1FFFFn*(bit47)+ (bit47? (v>>47n):0n)===0n? true:( ((v>>47n)===0n) || ((v>>47n)===0x1FFFFn) )}
+  function isCanon(v){const hi=v>>47n;return hi===0n||hi===0x1FFFFn}
+  $('#vmap').innerHTML=REG.map((r,i)=>`<div class="vr ${r.k?'k':''} ${r.hole?'hole':''}" data-i="${i}"><span>${r.a}</span><span style="color:${r.c}">${r.n}</span></div>`).join('');
+  $('#vPre').innerHTML=['0x0000555555558010','0x00007ffff7fab540','0x0000800000000000','0xffff888000001000'].map(x=>`<button style="font-size:11px">${x}</button>`).join(' ');
+  function probe(){const v=pbig($('#vIn').value);const c=isCanon(v);
+    let where;const hi=v>>47n;
+    if(!c)where='in the <b>non-canonical hole</b>';
+    else if(hi===0n)where=(v<0x400000n?'in the reserved low region':'in <b>user space</b>');
+    else where='in <b>kernel space</b>';
+    $$('#vmap .vr').forEach(x=>x.classList.remove('hit'));
+    $('#vOut').innerHTML=`${LX(v,16)} — bits 63..47 = ${((v>>47n)&1n)?'all ones':'all zero'} &rarr; `+
+     (c?`<span class="ok">canonical</span>, ${where}.`:`<span class="bad">non-canonical</span>: using it raises <b>#GP before any page walk</b>. Linux delivers SIGSEGV with no faulting address (si_addr = 0).`);
+  }
+  $('#vmap').onclick=e=>{const el=e.target.closest('.vr[data-i]');if(!el)return;const r=REG[+el.dataset.i];$('#vIn').value=r.a;$$('#vmap .vr').forEach(x=>x.classList.toggle('hit',x===el));probe()};
+  $('#vPre').onclick=e=>{if(e.target.tagName==='BUTTON'){$('#vIn').value=e.target.textContent;probe()}};
+  $('#vIn').oninput=probe;probe();
+})();
+
+/* Fig 10: 4/5-level walk */
+(function(){
+  const M={'4':{f:[['PML4',9,'#b197fc'],['PDPT',9,'#f783ac'],['PD',9,'#4dabf7'],['PT',9,'#51cf66'],['offset',12,'#fbbf24']],t:['PML4','PDPT','Page Directory','Page Table'],va:48},
+           '5':{f:[['PML5',9,'#ff6b6b'],['PML4',9,'#b197fc'],['PDPT',9,'#f783ac'],['PD',9,'#4dabf7'],['PT',9,'#51cf66'],['offset',12,'#fbbf24']],t:['PML5','PML4','PDPT','Page Directory','Page Table'],va:57}};
+  const fake=(l,i,va)=>{let h=(Number(va&0xffffffn)*2654435761+l*977+i*131)>>>0;return BigInt(h%0x7ffff+0x1000)<<12n};
+  let tm=[];
+  function go(anim){tm.forEach(clearTimeout);tm=[];const m=M[$('#wMode').value];let va=pbig($('#wVa').value);
+    const hi=va>>BigInt(m.va-1);const canonical=(hi===0n)||(hi===((1n<<BigInt(64-m.va+1))-1n));
+    let s='',bit=BigInt(m.va-1);
+    // sign bits
+    for(let i=63;i>=m.va;i--){s+=`<span style="background:#33415555;color:#8e9bb8" title="sign bit ${i}">${(va>>BigInt(i))&1n}</span>`}
+    s+='<span style="width:5px"></span>';
+    m.f.forEach(([n,w,c])=>{for(let i=0;i<w;i++){s+=`<span style="background:${c}40;color:${(va>>bit)&1n?'#fff':'#6b7a99'}" title="${n}">${(va>>bit)&1n}</span>`;bit--}s+='<span style="width:5px"></span>'});
+    $('#wBits').innerHTML=s;
+    $('#wCanon').innerHTML=canonical?`<span class="ok">canonical</span>: bits 63..${m.va-1} all equal.`:`<span class="bad">non-canonical</span>: the walk never starts; #GP.`;
+    if(!canonical){$('#wWalk').innerHTML='';return}
+    let sh=BigInt(m.va);const idx=m.f.map(([n,w])=>{sh-=BigInt(w);return Number((va>>sh)&((1n<<BigInt(w))-1n))});
+    let frame=fake(9,0,va);
+    let h=`<div class="tbl"><div class="tt" style="color:var(--acc)">CR3</div><div class="e h">${LX(frame,9)}</div><div class="small">points at ${m.t[0]}</div></div>`;
+    m.t.forEach((t,l)=>{const i=idx[l],c=m.f[l][2];const nxt=fake(l,i,va);let rows='';
+      for(let k=Math.max(0,i-1);k<=Math.min(511,i+1);k++)rows+=`<div class="e ${k===i?'h':''}">[${k}] ${k===i?LX(nxt+(l===m.t.length-1?0x067n:0x027n),9):'...'}</div>`;
+      h+=`<div class="tbl"><div class="tt" style="color:${c}">${t}</div>${rows}<div class="small">index ${i} = ${H(i)}${l===m.t.length-1?' &rarr; frame':' &rarr; next'}</div></div>`;frame=nxt});
+    const pa=frame+BigInt(idx[idx.length-1]);
+    h+=`<div class="tbl"><div class="tt" style="color:#fbbf24">physical</div><div class="e h">${LX(pa,9)}</div><div class="small">frame ${LX(frame,9)} + ${H(idx[idx.length-1],3)}</div></div>`;
+    $('#wWalk').innerHTML=h;const e=[...$('#wWalk').children];if(anim)e.forEach((x,i)=>tm.push(setTimeout(()=>x.classList.add('lit'),i*360)));else e.forEach(x=>x.classList.add('lit'))}
+  $('#wGo').onclick=()=>go(true);$('#wMode').onchange=()=>go(true);$('#wVa').onkeydown=e=>{if(e.key==='Enter')go(true)};
+  $$('#c12 [data-v]').forEach(b=>b.onclick=()=>{$('#wVa').value=b.dataset.v;go(true)});go(false);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segment Registers in 32-bit x86 — A Complete Tutorial</title>
+<style>
+:root{
+  --bg:#0b1020; --card:#131a2e; --card2:#1a2442; --line:#2a3658; --tx:#dde5f4; --mut:#8e9bb8;
+  --acc:#5eead4; --warn:#fbbf24; --bad:#f87171; --ok:#4ade80;
+  --CS:#ff6b6b; --DS:#4dabf7; --ES:#51cf66; --SS:#ffa94d; --FS:#b197fc; --GS:#f783ac;
+  --mono:ui-monospace,"JetBrains Mono","Fira Code",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font:16.5px/1.75 Georgia,"Iowan Old Style","Charter",serif}
+h1,h2,h3,.ui,button,input,select,table,.fig,.cap,.key,.warn,.side,.toc{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+code,pre,.mono{font-family:var(--mono)}
+code{font-size:.84em;background:#ffffff0d;border:1px solid var(--line);padding:.05em .35em;border-radius:4px;color:#c7d2fe}
+a{color:var(--acc)}
+#progress{position:fixed;left:0;top:0;height:3px;background:linear-gradient(90deg,var(--acc),var(--DS));z-index:50;width:0}
+.wrap{max-width:960px;margin:0 auto;padding:40px 26px 140px}
+header h1{font-size:40px;line-height:1.15;margin:0 0 10px}
+header .sub{color:var(--mut);font-size:18px;margin:0}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:28px 0;columns:2;column-gap:30px;font-size:14.5px}
+.toc a{display:block;color:var(--tx);text-decoration:none;padding:2px 0;break-inside:avoid}
+.toc a:hover{color:var(--acc)}
+.toc a span{color:var(--mut);display:inline-block;width:28px}
+section{margin-top:64px}
+h2{font-size:28px;margin:0 0 4px;line-height:1.25}
+h2 .n{color:var(--acc);font-size:.8em;margin-right:10px}
+h3{font-size:19px;margin:30px 0 6px;color:#e9d5ff}
+p{margin:12px 0}
+.key{border-left:4px solid var(--acc);background:linear-gradient(90deg,#5eead414,transparent 80%);padding:12px 18px;margin:18px 0;border-radius:0 10px 10px 0;font-size:15.5px}
+.key::before{content:"KEY IDEA";display:block;font-size:11px;letter-spacing:.12em;color:var(--acc);font-weight:700}
+.warn{border-left:4px solid var(--bad);background:linear-gradient(90deg,#f8717112,transparent 80%);padding:12px 18px;margin:18px 0;border-radius:0 10px 10px 0;font-size:15.5px}
+.warn::before{content:"WATCH OUT";display:block;font-size:11px;letter-spacing:.12em;color:var(--bad);font-weight:700}
+.side{border-left:4px solid var(--warn);background:linear-gradient(90deg,#fbbf2410,transparent 80%);padding:12px 18px;margin:18px 0;border-radius:0 10px 10px 0;font-size:15px}
+.side::before{content:"SIDE NOTE";display:block;font-size:11px;letter-spacing:.12em;color:var(--warn);font-weight:700}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:24px 0;font-size:14.5px;line-height:1.55}
+.cap{font-size:13px;color:var(--mut);margin-top:12px;border-top:1px dashed var(--line);padding-top:8px}
+.cap b{color:var(--tx)}
+pre.code{background:#060a14;border:1px solid var(--line);border-radius:10px;padding:12px 16px;overflow:auto;font-size:13.2px;line-height:1.55;margin:14px 0}
+.c{color:#6b7a99}.k{color:#f9a8d4}.s{color:#86efac}.nn{color:#fcd34d}
+button{font-size:13.5px;background:var(--card2);color:var(--tx);border:1px solid var(--line);padding:6px 12px;border-radius:7px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--acc)} button.pri{background:var(--acc);color:#042;border-color:var(--acc);font-weight:600}
+button.sel{box-shadow:0 0 0 2px var(--acc)} button:disabled{opacity:.35;cursor:default}
+input,select{font-family:var(--mono);font-size:13.5px;background:#060a14;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+input[type=range]{padding:0;accent-color:var(--acc)}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.g2{grid-template-columns:1fr}.toc{columns:1}}
+.small{font-size:12.5px;color:var(--mut)}
+.out{background:#060a14;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-family:var(--mono);font-size:13px;margin-top:10px}
+.S-CS{color:var(--CS)}.S-DS{color:var(--DS)}.S-ES{color:var(--ES)}.S-SS{color:var(--SS)}.S-FS{color:var(--FS)}.S-GS{color:var(--GS)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+/* adder */
+.adder{font-family:var(--mono);display:inline-grid;grid-template-columns:130px repeat(6,38px);gap:4px;align-items:center;margin:10px 0}
+.adder .lab{font-size:12.5px;color:var(--mut);text-align:right;padding-right:10px}
+.adder .d{height:38px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:19px;font-weight:700;background:#060a14;border:1px solid var(--line);transition:transform .7s cubic-bezier(.5,0,.2,1),opacity .5s}
+.adder .d.e{background:transparent;border-color:transparent}
+.adder .d.seg{color:var(--DS);border-color:#4dabf766}.adder .d.off{color:var(--warn);border-color:#fbbf2466}.adder .d.res{color:var(--ok);border-color:#4ade8066}
+.adder .d.z{color:#8e9bb8}
+.adder .line{grid-column:2/8;height:2px;background:var(--line)}
+/* tracks */
+.trk{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px;margin:5px 0}
+.trk .t{position:relative;height:26px;background:#060a14;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.band{position:absolute;top:2px;bottom:2px;border:1px solid;border-radius:3px;transition:left .5s,width .5s;min-width:3px}
+.mk{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;z-index:3;transition:left .4s}
+.axis{position:relative;height:18px;font-family:var(--mono);font-size:10.5px;color:var(--mut)}
+.axis span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+/* chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-weight:700;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:#060a14;transition:.25s;opacity:.35}
+.chip.on{opacity:1;transform:translateY(-3px);box-shadow:0 6px 18px #0008}
+.insl{display:flex;flex-wrap:wrap;gap:6px}
+.insl button{font-family:var(--mono);font-size:12.5px}
+/* bits */
+.bits{display:flex;gap:2px;flex-wrap:wrap;font-family:var(--mono)}
+.bit{width:26px;height:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:4px;font-size:14px;font-weight:700;cursor:pointer;user-select:none;border:1px solid}
+.bit small{font-size:8.5px;font-weight:400;opacity:.7}
+.dbits .bit{width:21px;height:28px;font-size:12px;cursor:default}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;margin-top:8px}
+.legend span::before{content:"■ "}
+/* checklist */
+.chk{font-family:var(--mono);font-size:13px;list-style:none;padding:0;margin:8px 0}
+.chk li{padding:4px 8px;border-radius:6px;margin:3px 0;background:#060a14;border:1px solid var(--line);opacity:0;transform:translateX(-10px);transition:.35s}
+.chk li.show{opacity:1;transform:none}
+.chk li.pass{border-color:#4ade8055}.chk li.fail{border-color:var(--bad);background:#f871711a}
+.gdt td,.gdt th{font-family:var(--mono);font-size:12px;padding:4px 7px}
+.gdt tr{transition:background .4s}
+.gdt tr.hit{background:#fbbf2430}
+.cache{display:grid;grid-template-columns:40px 70px 1fr;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:4px 0;transition:box-shadow .4s}
+.cache>div{padding:5px 8px;border-right:1px solid var(--line)}
+.cache .h{background:repeating-linear-gradient(45deg,#ffffff06 0 6px,transparent 6px 12px)}
+.cache.flash{box-shadow:0 0 0 2px var(--warn),0 0 20px #fbbf2455}
+/* stepper */
+.stp .bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.stp .cnt{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--mut)}
+.stp .lst{font-family:var(--mono);font-size:13px;background:#060a14;border:1px solid var(--line);border-radius:9px;padding:6px}
+.stp .it{padding:4px 8px;border-radius:5px;cursor:pointer;white-space:pre-wrap;color:#6b7a99;border:1px solid transparent}
+.stp .it.cur{color:#fff;background:#5eead41a;border-color:#5eead455}
+.stp .it.nx{color:#c7d2fe}
+.stp .txt{margin-top:10px;background:#060a14;border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:64px}
+.stp .flt{margin-top:8px;padding:8px 10px;border-radius:7px;border:1px solid var(--bad);background:#f871711c;color:#fecaca;font-family:var(--mono);font-size:13px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:10px}
+.reg{font-family:var(--mono);font-size:12.5px;background:#060a14;border:1px solid var(--line);border-radius:6px;padding:4px 8px;display:flex;justify-content:space-between}
+.reg.chg{animation:fl 1.1s}
+@keyframes fl{0%{background:#fbbf2466}}
+.ring{display:inline-block;padding:2px 12px;border-radius:99px;font-family:var(--mono);font-size:12.5px;font-weight:700;transition:.3s}
+.ring.u{color:var(--ok);border:1px solid var(--ok);background:#4ade8018}.ring.k{color:var(--bad);border:1px solid var(--bad);background:#f8717118}
+.stack{font-family:var(--mono);font-size:12px;display:flex;flex-direction:column-reverse;gap:2px;margin-top:6px}
+.stack div{background:#060a14;border:1px solid var(--line);border-radius:4px;padding:2px 8px;animation:drop .4s both}
+@keyframes drop{from{transform:translateY(-10px);opacity:0}}
+/* pipeline */
+.pipe{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:10px 0}
+.pb{flex:1;min-width:140px;background:#060a14;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-family:var(--mono);font-size:12px;opacity:.2;transition:.45s;transform:translateY(6px)}
+.pb.lit{opacity:1;transform:none;border-color:var(--acc)}
+.pb b{display:block;font-family:system-ui;font-size:12px;color:var(--acc);margin-bottom:2px}
+.pa{align-self:center;padding:0 6px;color:var(--acc);opacity:.2;transition:.45s}
+.pa.lit{opacity:1}
+/* walk */
+.walk{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:12px}
+.tbl{background:#060a14;border:1px solid var(--line);border-radius:8px;padding:6px;font-family:var(--mono);font-size:11.5px;min-width:190px;opacity:.2;transition:.45s}
+.tbl.lit{opacity:1;border-color:var(--acc)}
+.tbl .tt{font-family:system-ui;font-weight:700;font-size:12px;margin-bottom:4px}
+.tbl .e{padding:1px 6px;border-radius:3px;color:#6b7a99}
+.tbl .e.h{background:#5eead42a;color:#fff}
+.vbits{display:flex;gap:1px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;margin:10px 0}
+.vbits span{width:17px;text-align:center;padding:3px 0;border-radius:2px}
+svg text{font-family:var(--mono)}
+.vline{fill:none;stroke-width:2;stroke-dasharray:1000;stroke-dashoffset:1000;animation:draw 1.1s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.term{background:#03060d;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:var(--mono);font-size:13px;white-space:pre-wrap;line-height:1.5;color:#cbd5e1}
+.term .p{color:var(--ok)} .term .h{color:var(--warn)}
+.sum td:first-child{font-family:var(--mono);font-weight:700;width:60px}
+footer{margin-top:70px;color:var(--mut);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="wrap">
+
+<header>
+  <p class="small ui">Part 1 of 2 · <a href="segments_64.html">Part 2: x86-64 →</a></p>
+  <h1>Segment Registers in 32-bit x86</h1>
+  <p class="sub">A tutorial from first principles: why segments exist, what the CPU does when you load one, and why modern 32-bit systems turned them off and used paging instead.</p>
+</header>
+
+<nav class="toc">
+  <a href="#c1"><span>1</span>The problem segments solved</a>
+  <a href="#c2"><span>2</span>Real mode: segment × 16 + offset</a>
+  <a href="#c3"><span>3</span>The six registers and their jobs</a>
+  <a href="#c4"><span>4</span>Protected mode: the selector</a>
+  <a href="#c5"><span>5</span>Descriptors and the GDT</a>
+  <a href="#c6"><span>6</span>Loading a segment register</a>
+  <a href="#c7"><span>7</span>Using a segment: base, limit, faults</a>
+  <a href="#c8"><span>8</span>CS and privilege levels</a>
+  <a href="#c9"><span>9</span>The flat model</a>
+  <a href="#c10"><span>10</span>Paging: the real memory manager</a>
+  <a href="#c11"><span>11</span>4 GB, many processes, and PAE</a>
+  <a href="#c12"><span>12</span>What's left: GS and TLS</a>
+  <a href="#c13"><span>13</span>Seeing it yourself</a>
+  <a href="#c14"><span>14</span>Summary</a>
+</nav>
+
+<!-- ============================================================ 1 -->
+<section id="c1">
+<h2><span class="n">1</span>The problem segments solved</h2>
+<p>In 1978 Intel's 8086 had <b>16-bit registers</b>, which can hold 2<sup>16</sup> = 65,536 different values, so a register alone can name 64 KiB of memory. But the chip had <b>20 address lines</b>, enough for 2<sup>20</sup> bytes = 1 MiB. Intel needed a way to form a 20-bit address from 16-bit parts.</p>
+<p>The answer was a second register that says <i>which 64 KiB window</i> you are looking through. That register is a <b>segment register</b>. The ordinary register (the <b>offset</b>) says where you are <i>inside</i> the window.</p>
+<div class="key">A memory address on x86 always has two parts: a <b>segment</b> and an <b>offset</b>. The instruction usually supplies only the offset, and the segment is picked implicitly. This pair is called a <b>logical address</b>.</div>
+<p>That design outlived the 8086. Every x86 CPU, including the one you are using now, still computes addresses this way. What changed over the years is <i>what the segment part means</i>, and that is what the rest of this tutorial is about.</p>
+</section>
+
+<!-- ============================================================ 2 -->
+<section id="c2">
+<h2><span class="n">2</span>Real mode: segment × 16 + offset</h2>
+<p>When an x86 CPU powers on, it starts in <b>real mode</b>, which is 8086-compatible. Here the rule is simple arithmetic: shift the segment left by 4 bits (multiply by 16) and add the offset.</p>
+<div class="fig">
+  <div class="row ui">segment <input id="aSeg" value="1234" size="5"> : offset <input id="aOff" value="0020" size="5"> <button class="pri" id="aGo">▶ Compute</button> <label class="small"><input type="checkbox" id="aA20" checked> A20 gate on</label></div>
+  <div id="adder"></div>
+  <div class="out" id="aTxt"></div>
+  <div class="cap"><b>Figure 1.</b> Real-mode address translation. The segment slides one hex digit to the left (×16), a zero fills in, and the offset is added. Try <code>FFFF:0010</code>.</div>
+</div>
+<p>Two consequences of this formula matter later:</p>
+<p><b>Segments overlap.</b> Segment 0x1000 starts at 0x10000, and segment 0x1001 starts only 16 bytes later. The two windows share almost all their memory. The same physical byte can be named by up to 4096 different <code>segment:offset</code> pairs.</p>
+<p><b>There is no protection.</b> Any program can load any value into a segment register and read or write anywhere in the 1 MiB. Keeping data areas separate was only a programming convention.</p>
+<div class="fig">
+  <div id="win"></div>
+  <div class="row ui" style="margin-top:10px">Probe physical address <input id="probe" value="0x10020" size="9"> <span class="small">→ how each register would have to name it</span></div>
+  <div class="out" id="probeOut"></div>
+  <div class="cap"><b>Figure 2.</b> Each segment register opens a 64 KiB window into the 1 MiB address space. Drag the sliders and watch the windows move and overlap. The white line is the probed byte.</div>
+</div>
+<div class="side"><code>FFFF:0010</code> = 0x100000, one byte past 1 MiB. The 8086 had only 20 address lines, so this <b>wrapped around</b> to 0, and some old software depended on it. Later PCs added the "A20 gate" to switch the wrap on or off. With it off, real-mode code could reach almost 64 KiB above 1 MiB (the "HMA").</div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section id="c3">
+<h2><span class="n">3</span>The six registers and their jobs</h2>
+<p>The 8086 had four segment registers: <b class="S-CS">CS</b>, <b class="S-DS">DS</b>, <b class="S-SS">SS</b> and <b class="S-ES">ES</b>. The 386 added <b class="S-FS">FS</b> and <b class="S-GS">GS</b>. Instructions rarely name a segment register. The CPU picks one automatically based on <i>what kind of access</i> is happening:</p>
+<table>
+<tr><th>Register</th><th>Used automatically for</th></tr>
+<tr><td class="S-CS"><b>CS</b> code</td><td>Every instruction fetch: the CPU reads the next instruction from <code>CS:EIP</code>.</td></tr>
+<tr><td class="S-SS"><b>SS</b> stack</td><td><code>push</code>, <code>pop</code>, <code>call</code>, <code>ret</code>, and any memory operand whose base register is <code>ESP</code> or <code>EBP</code>.</td></tr>
+<tr><td class="S-DS"><b>DS</b> data</td><td>All other data accesses, including the <i>source</i> of string instructions (<code>DS:ESI</code>).</td></tr>
+<tr><td class="S-ES"><b>ES</b> extra</td><td>The <i>destination</i> of string instructions (<code>ES:EDI</code>). This one cannot be overridden.</td></tr>
+<tr><td class="S-FS"><b>FS</b></td><td>Nothing by default. Used only when an instruction asks for it with a prefix.</td></tr>
+<tr><td class="S-GS"><b>GS</b></td><td>Same as FS.</td></tr>
+</table>
+<p>You can override the default with a <b>segment prefix</b> byte in front of the instruction: <code>26</code>=ES, <code>2E</code>=CS, <code>36</code>=SS, <code>3E</code>=DS, <code>64</code>=FS, <code>65</code>=GS. In assembly you write it as <code>mov eax, fs:[0x18]</code>.</p>
+<div class="fig">
+  <div class="insl" id="insl"></div>
+  <div class="chips" id="chips" style="margin-top:14px"></div>
+  <div class="out" id="insOut">Pick an instruction.</div>
+  <div class="cap"><b>Figure 3.</b> Which segment register does each instruction use? Click an instruction to highlight the segment(s) it uses.</div>
+</div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section id="c4">
+<h2><span class="n">4</span>Protected mode: the selector</h2>
+<p>Real mode's lack of protection became a problem once multitasking operating systems arrived. The 286 and then the 386 introduced <b>protected mode</b>. In protected mode, the 16-bit value in a segment register is <b>no longer an address</b>. It is a <b>selector</b>, meaning an index into a table of segment definitions kept by the operating system.</p>
+<div class="fig">
+  <div class="bits" id="selBits"></div>
+  <div class="legend"><span class="S-DS">Index (bits 15–3): entry number in the table</span><span class="S-FS">TI (bit 2): 0 = GDT, 1 = LDT</span><span class="S-ES">RPL (bits 1–0): requested privilege level</span></div>
+  <div class="row ui" style="margin-top:12px">Selector <input id="selIn" value="0x0073" size="7"> <span id="selPre"></span></div>
+  <div class="out" id="selOut"></div>
+  <div class="cap"><b>Figure 4.</b> Anatomy of a selector. Click individual bits to flip them, or type a value. The presets are real selectors used by 32-bit Linux.</div>
+</div>
+<p>The selector's three parts:</p>
+<p><b>Index</b> (13 bits): which entry of the table to use, 0 to 8191. Each entry is 8 bytes, so the entry sits at <code>table_base + index × 8</code>. Conveniently, that is just the selector with its low 3 bits cleared.</p>
+<p><b>TI</b> (table indicator): 0 selects the <b>Global Descriptor Table (GDT)</b>, shared by everyone. 1 selects the current <b>Local Descriptor Table (LDT)</b>, which can be per-process. Linux almost never uses LDTs.</p>
+<p><b>RPL</b> (requested privilege level): a privilege level from 0 (most privileged, the kernel) to 3 (least, user programs). In <b>CS</b>, these two bits are the <b>current privilege level (CPL)</b> of the running code. That is how the CPU knows whether it is running kernel code or user code.</p>
+</section>
+
+<!-- ============================================================ 5 -->
+<section id="c5">
+<h2><span class="n">5</span>Descriptors and the GDT</h2>
+<p>Each table entry is an 8-byte <b>segment descriptor</b>. It defines one segment with three things: where it starts (<b>base</b>, 32 bits), how big it is (<b>limit</b>, 20 bits), and what it is allowed to be used for (<b>access rights</b>). The CPU finds the GDT through the <b>GDTR</b> register, which holds the table's address and size and is loaded by the kernel with the privileged <code>lgdt</code> instruction.</p>
+<p>The format looks strange because the base and limit are split into pieces. That is a leftover of the 286, whose descriptors had only a 24-bit base and 16-bit limit, and the 386 fitted the extra bits into what was left. Build a descriptor below and watch the fields land in their bits:</p>
+<div class="fig">
+  <div class="g2">
+    <div class="ui">
+      <div class="row">base <input id="dBase" value="0x00000000" size="11"> limit <input id="dLim" value="0xFFFFF" size="8"></div>
+      <div class="row" style="margin-top:8px">type <select id="dType">
+        <option value="10">code: execute/read</option><option value="8">code: execute-only</option><option value="14">code: conforming, exec/read</option>
+        <option value="2">data: read/write</option><option value="0">data: read-only</option><option value="6">data: expand-down, read/write</option></select>
+        DPL <select id="dDpl"><option>0</option><option>1</option><option>2</option><option selected>3</option></select></div>
+      <div class="row small" style="margin-top:8px">
+        <label><input type="checkbox" id="dP" checked> P present</label>
+        <label><input type="checkbox" id="dG" checked> G 4 KiB granularity</label>
+        <label><input type="checkbox" id="dD" checked> D/B 32-bit</label>
+        <label><input type="checkbox" id="dA" checked> A accessed</label></div>
+      <div class="row" style="margin-top:10px"><span class="small">presets:</span>
+        <button data-q="00cffa000000ffff">Linux user code</button><button data-q="00cff2000000ffff">Linux user data</button><button data-q="00cf9a000000ffff">kernel code</button><button data-q="0040920b8000ffff">not flat: base 0xB8000</button></div>
+      <div class="row" style="margin-top:8px">or decode a qword <input id="dQ" size="19" placeholder="0x00cffa000000ffff"><button id="dQgo">decode</button></div>
+    </div>
+    <div>
+      <div class="small">bits 63 … 32 (upper dword)</div><div class="bits dbits" id="dHi"></div>
+      <div class="small" style="margin-top:6px">bits 31 … 0 (lower dword)</div><div class="bits dbits" id="dLo"></div>
+      <div class="legend" id="dLeg"></div>
+    </div>
+  </div>
+  <div class="out" id="dOut"></div>
+  <div class="cap"><b>Figure 5.</b> Descriptor builder. The limit is 20 bits. With <b>G = 1</b> it counts 4 KiB pages instead of bytes, so a limit of <code>0xFFFFF</code> means 4 GiB. <b>S = 1</b> marks a code/data segment (0 would be a system descriptor such as a TSS or gate).</div>
+</div>
+<p>The access-rights fields:</p>
+<p><b>Type</b> says whether this is code (executable) or data, and whether it is readable or writable. You can never write to a code segment, and never execute from a data segment.</p>
+<p><b>DPL</b> (descriptor privilege level) is the privilege needed to use the segment. We check it in chapter 6.</p>
+<p><b>P</b> (present): if 0, using the segment raises a "segment not present" fault. Old operating systems used this to swap whole segments to disk.</p>
+<p><b>D/B</b> selects 32-bit (1) or 16-bit (0). For a code segment it decides how the CPU <i>decodes instructions</i>. This matters again in 64-bit mode.</p>
+</section>
+
+<!-- ============================================================ 6 -->
+<section id="c6">
+<h2><span class="n">6</span>Loading a segment register</h2>
+<p>Consider <code>mov ds, ax</code>. In real mode it just copies a number. In protected mode it sets off a sequence of lookups and checks, and if one fails the CPU raises a fault instead of loading:</p>
+<p>It checks that the selector is inside the table (<code>index × 8 + 7 ≤ GDTR.limit</code>), reads the descriptor, checks the type (DS must be data or readable code), checks privilege, checks the present bit, and finally <b>copies the descriptor's base, limit and rights into a hidden part of the register</b>.</p>
+<div class="key">Every segment register has a <b>visible part</b> (the 16-bit selector) and a <b>hidden part</b> (the <b>descriptor cache</b>: base, limit, access rights). The CPU reads the GDT only <i>at load time</i>. After that, every memory access uses the cached copy, which is why segmentation adds no memory traffic per access.</div>
+<div class="fig">
+  <div class="row ui">
+    <select id="lReg"><option>DS</option><option>ES</option><option>FS</option><option>GS</option><option>SS</option></select> ←
+    selector <input id="lSel" value="0x2B" size="6">
+    running at <select id="lCpl"><option value="3">CPL 3 (user)</option><option value="0">CPL 0 (kernel)</option></select>
+    <button class="pri" id="lGo">▶ mov reg, ax</button>
+  </div>
+  <div class="row small" style="margin-top:6px" id="lPre"></div>
+  <div class="g2" style="margin-top:10px">
+    <div><b class="ui" style="font-size:13px">Checks performed by the CPU</b><ul class="chk" id="lChk"></ul></div>
+    <div><b class="ui" style="font-size:13px">GDT in memory</b> <span class="small mono">GDTR = { base 0x00100000, limit 0x3F }</span><table class="gdt" id="lGdt"></table></div>
+  </div>
+  <b class="ui" style="font-size:13px">Segment registers: visible selector │ hidden descriptor cache</b>
+  <div id="lCache"></div>
+  <div class="cap"><b>Figure 6.</b> A simulated CPU with a small GDT. Try loading <code>0x2B</code> (a small data segment), <code>0x10</code> (kernel data from user mode), <code>0x3B</code> (not present), <code>0x48</code> (outside the table), <code>0x18</code> (code segment into SS), and <code>0x00</code> (null). The error code of the fault is the offending selector.</div>
+</div>
+<p>The <b>privilege rule</b> for data segments is that the less privileged of CPL and RPL must still be allowed by the descriptor: <code>max(CPL, RPL) ≤ DPL</code>. User code (CPL 3) therefore cannot load a kernel data segment (DPL 0). SS is stricter: <code>RPL = CPL = DPL</code>, because the stack must always belong to the current privilege level.</p>
+<p>The <b>null selector</b> (0) is special. It can be loaded into DS, ES, FS or GS, which means "no segment", but any <i>access</i> through it faults. It cannot be loaded into SS or CS.</p>
+<div class="side">Because the cache is filled only at load time, changing the GDT afterwards does not affect registers that are already loaded. This is a documented part of the architecture, not a bug, and it enables tricks like "unreal mode": load a 4 GiB segment in protected mode, switch back to real mode, and the 4 GiB limit stays in the cache. It also explains the reset state: the CPU starts with CS selector <code>0xF000</code> but a cached base of <code>0xFFFF0000</code>, so the first instruction is fetched from <code>0xFFFFFFF0</code>, just below 4 GiB, where the firmware ROM is.</div>
+</section>
+
+<!-- ============================================================ 7 -->
+<section id="c7">
+<h2><span class="n">7</span>Using a segment: base, limit, faults</h2>
+<p>Once a register is loaded, each memory access through it computes the <b>linear address</b> and checks the limit:</p>
+<pre class="code">linear = segment.base + offset          <span class="c">; offset = what the instruction computed, e.g. [ebx+8]</span>
+if offset + size − 1 &gt; segment.limit  → #GP(0)   <span class="c">; #SS(0) if the segment is SS</span>
+if writing and segment is read-only   → #GP(0)
+if segment register holds null        → #GP(0)</pre>
+<p>The segments you loaded in Figure 6 are still there. Use them now:</p>
+<div class="fig">
+  <div class="row ui">
+    <select id="uOp"><option value="R">read</option><option value="W">write</option></select>
+    <select id="uSize"><option value="1">byte</option><option value="2">word</option><option value="4" selected>dword</option></select>
+    through <select id="uReg"><option>DS</option><option>ES</option><option>FS</option><option>GS</option><option>SS</option></select>
+    at offset <input id="uOff" value="0x100" size="11">
+  </div>
+  <input type="range" id="uSl" min="0" max="131072" value="256" style="width:100%;margin-top:10px">
+  <div id="uViz" style="margin-top:6px"></div>
+  <div class="out" id="uOut"></div>
+  <div class="cap"><b>Figure 7.</b> The bar is the segment itself, from offset 0 to its limit, with the region past the limit in red. Load <code>0x2B</code> into DS in Figure 6 (base 4 MiB, limit 64 KiB) and drag the slider past the end. Load <code>0x33</code> into ES (read-only) and try a write.</div>
+</div>
+<p>This is the "separate data segments" model the old textbooks describe: each segment is a protected box. A buffer overflow past a segment's limit faults immediately instead of corrupting a neighbor. In practice it was slow and awkward, and chapter 9 explains why everyone abandoned it.</p>
+</section>
+
+<!-- ============================================================ 8 -->
+<section id="c8">
+<h2><span class="n">8</span>CS and privilege levels</h2>
+<p>CS is loaded differently from the others. There is no <code>mov cs, ax</code>: the encoding exists but always raises an "invalid opcode" (#UD) exception. The reason is that changing CS changes <i>where the next instruction comes from</i>, so CS and EIP must change <b>together</b> in one atomic step. Only control-transfer instructions do that:</p>
+<table>
+<tr><th>Instruction</th><th>What it does with CS</th></tr>
+<tr><td><code>jmp far sel:off</code>, <code>call far</code></td><td>Load a new CS (same privilege level only, unless going through a <i>call gate</i>).</td></tr>
+<tr><td><code>retf</code></td><td>Pop EIP and CS (can return to <i>lower</i> privilege).</td></tr>
+<tr><td><code>int n</code> / hardware interrupts / exceptions</td><td>CS comes from the <b>IDT</b> gate. This is how user code enters the kernel.</td></tr>
+<tr><td><code>iret</code></td><td>Pop EIP, CS, EFLAGS (and ESP, SS if returning to a lower privilege).</td></tr>
+<tr><td><code>sysenter</code> / <code>sysexit</code></td><td>Fast system call: CS is taken from an MSR (Linux i386 uses it through the vDSO).</td></tr>
+</table>
+<div class="fig stp" id="csSim"></div>
+<div class="cap" style="margin-top:-14px;margin-bottom:24px"><b>Figure 8.</b> Step through a user program calling the kernel. Watch the CPL (= CS &amp; 3), the CS value, and the stack frame the CPU builds on the kernel stack.</div>
+<div class="key">The <b>current privilege level</b> is not stored in a separate register. It is the low two bits of CS. Kernel code runs with a CS whose descriptor has DPL 0, and user code with DPL 3. The CPU uses the CPL to decide whether privileged instructions (<code>lgdt</code>, <code>mov cr3</code>, <code>hlt</code>, …) are allowed.</div>
+<p>So "no program can change CS" is only half true. A program can far-jump to any code segment <i>at its own privilege level</i>. What it cannot do is <i>raise</i> its privilege. That only happens through gates the kernel set up (interrupts, call gates, sysenter), and those always enter at a kernel-chosen address.</p>
+</section>
+
+<!-- ============================================================ 9 -->
+<section id="c9">
+<h2><span class="n">9</span>The flat model</h2>
+<p>Segmented protected mode works, but it hurts in practice. A C pointer would need to carry a segment <i>and</i> an offset (a "far pointer"), segment loads are slow because of all the checks, and compilers struggle with memory that lives in different segments.</p>
+<p>Every mainstream 32-bit OS (Linux, Windows NT, macOS, the BSDs) made the same choice: <b>make every segment start at 0 and cover all 4 GiB</b>. This is the <b>flat memory model</b>. With base 0, the linear address equals the offset, so a pointer is just a 32-bit number and segmentation effectively disappears.</p>
+<div class="fig">
+  <div class="row ui"><button id="fSeg">Segmented model</button><button id="fFlat" class="sel">Flat model</button></div>
+  <div id="flatViz" style="margin-top:12px"></div>
+  <div class="out" id="flatOut"></div>
+  <div class="cap"><b>Figure 9.</b> Four segment registers in the 4 GiB linear address space. In the segmented model they are separate boxes. In the flat model they are all the same box, so <code>[0x0804A010]</code> means the same byte whichever segment is used.</div>
+</div>
+<p>32-bit Linux defines just four flat segments in its GDT, plus a few special ones:</p>
+<table>
+<tr><th>Selector</th><th>GDT entry</th><th>Descriptor</th><th>Used as</th></tr>
+<tr><td class="mono">0x60</td><td>12</td><td class="mono">base 0, 4 GiB, code, DPL 0</td><td>kernel CS</td></tr>
+<tr><td class="mono">0x68</td><td>13</td><td class="mono">base 0, 4 GiB, data, DPL 0</td><td>kernel DS/ES/SS</td></tr>
+<tr><td class="mono">0x73</td><td>14</td><td class="mono">base 0, 4 GiB, code, DPL 3</td><td>user CS</td></tr>
+<tr><td class="mono">0x7b</td><td>15</td><td class="mono">base 0, 4 GiB, data, DPL 3</td><td>user DS/ES/SS</td></tr>
+<tr><td class="mono">0x33</td><td>6</td><td class="mono">base = this thread's TLS</td><td>user GS (chapter 12)</td></tr>
+<tr><td class="mono">0xd8</td><td>27</td><td class="mono">base = this CPU's data</td><td>kernel FS (per-CPU variables)</td></tr>
+</table>
+<p>With flat segments, segmentation no longer protects anything between processes: every process uses the <i>same</i> selectors 0x73 and 0x7b with the same base 0. The only protection segmentation still provides is <b>privilege</b>: user code runs at CPL 3 and cannot execute kernel instructions. Keeping processes apart moved to a different mechanism, <b>paging</b>.</p>
+<div class="warn">Old tutorials say segment registers "point to the start of the .text or .data section". In the flat model they don't: CS and DS both have base 0. Where <code>.text</code> and <code>.data</code> end up is decided by the ELF program headers and the page tables. The kernel gives every process the same selector values no matter what is in the executable.</div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section id="c10">
+<h2><span class="n">10</span>Paging: the real memory manager</h2>
+<p>The 386 introduced a second translation step after segmentation. It splits the linear address space into <b>4 KiB pages</b> and uses <b>page tables</b> to map each page to a physical <b>frame</b> of RAM, or to nothing at all. The complete path of an address is:</p>
+<div class="fig">
+  <div class="row ui"><button class="pri" id="pGo">▶ Translate  mov eax, [ebx+8]</button><span class="small">EBX = 0x0804A008</span></div>
+  <div class="pipe" id="pipe"></div>
+  <div class="cap"><b>Figure 10.</b> The two translation stages. In the flat model the segmentation stage adds 0, so all the real work is done by paging.</div>
+</div>
+<p>In classic 32-bit paging, the linear address is cut into three fields. The top 10 bits select an entry in the <b>page directory</b>, the next 10 bits select an entry in a <b>page table</b>, and the last 12 bits are the offset inside the 4 KiB page. The physical address of the page directory is in control register <b>CR3</b>.</p>
+<div class="fig">
+  <div class="row ui"><select id="wMode"><option value="c">classic 32-bit (10 | 10 | 12)</option><option value="p">PAE (2 | 9 | 9 | 12)</option></select> linear <input id="wVa" value="0x0804A010" size="11"> <button class="pri" id="wGo">▶ Walk</button>
+  <span class="small">try</span> <button data-v="0x0804A010">.text/.data</button><button data-v="0xBFFFF000">stack</button><button data-v="0xC0100000">kernel</button></div>
+  <div class="vbits" id="wBits"></div>
+  <div class="walk" id="wWalk"></div>
+  <div class="cap"><b>Figure 11.</b> A page-table walk. Each table entry holds the physical address of the next level plus permission bits: <b>P</b> present, <b>R/W</b> writable, <b>U/S</b> user-accessible. The frame addresses are made up but the index math is exact. The CPU caches finished translations in the <b>TLB</b> so it rarely has to walk.</div>
+</div>
+<p>Everything that segmentation tried to do is done better by paging, one page at a time:</p>
+<p><b>Isolation.</b> Each process has its own page directory. The kernel loads a new CR3 on every process switch, so the same linear address maps to different RAM in different processes.</p>
+<p><b>Protection.</b> The U/S bit keeps user code out of kernel pages, and R/W marks read-only pages. With PAE there is also an NX bit that marks pages non-executable.</p>
+<p><b>Demand loading and sharing.</b> A page that is not present causes a <b>page fault</b>. The kernel then loads the page from disk and retries the instruction. Shared libraries are mapped into many processes but use the same physical frames.</p>
+</section>
+
+<!-- ============================================================ 11 -->
+<section id="c11">
+<h2><span class="n">11</span>4 GB, many processes, and PAE</h2>
+<p>A 32-bit register can hold 2<sup>32</sup> = 4,294,967,296 different values, so a 32-bit process can name at most <b>4 GiB</b> of linear addresses. On 32-bit Linux that space is split into <b>3 GiB for the user</b> (0x00000000–0xBFFFFFFF) and <b>1 GiB for the kernel</b> (0xC0000000–0xFFFFFFFF). The kernel part is mapped in every process but protected by the U/S bit.</p>
+<p>Those 4 GiB are <b>virtual</b>. Each process has its own page tables, so each gets its own private 4 GiB, and the frames behind them can be anywhere in RAM. Classic page-table entries are 32 bits wide and hold a 20-bit frame number, so they can only point to frames below 4 GiB. <b>PAE</b> (Physical Address Extension) widens the entries to 64 bits, which allows 36-bit physical addresses and up to 64 GiB of RAM. Each <i>process</i> still sees only 4 GiB, but <i>together</i> the processes can fill much more RAM than that.</p>
+<div class="fig">
+  <div class="row ui">
+    <span class="small">process:</span><button class="pbtn sel" data-p="A" style="color:#4dabf7">A</button><button class="pbtn" data-p="B" style="color:#51cf66">B</button><button class="pbtn" data-p="C" style="color:#ffa94d">C</button><button class="pbtn" data-p="ALL">all three</button>
+    <label style="margin-left:14px"><input type="checkbox" id="pae" checked> PAE enabled</label>
+  </div>
+  <svg id="mapSvg" viewBox="0 0 900 460" width="100%" style="margin-top:8px"></svg>
+  <div class="out" id="mapOut" style="font-family:system-ui"></div>
+  <div class="cap"><b>Figure 12.</b> Three processes, each with its own 4 GiB virtual space, mapped onto 16 GiB of physical RAM. They use the same virtual addresses but different frames. <span style="color:#e9d5ff">libc</span> is one set of frames shared by everyone, and the <span style="color:#f87171">kernel</span> is mapped identically in each. Turn PAE off and everything above the 4 GiB line becomes unreachable.</div>
+</div>
+<div class="warn">A common misconception is that "segment registers arrange the 4 GB region within physical memory." They don't: in the flat model they add 0. Placing each process's pages in physical RAM is done entirely by <b>paging</b> (CR3 and the page tables), under the kernel's control.</div>
+</section>
+
+<!-- ============================================================ 12 -->
+<section id="c12">
+<h2><span class="n">12</span>What's left: GS and thread-local storage</h2>
+<p>Flat mode makes CS, DS, ES and SS boring. FS and GS have no default use, so an OS is free to give them a <b>non-zero base</b> as a pointer to something that differs per thread or per CPU. That gives a fast way to reach "my own data" in one instruction, without passing a pointer around.</p>
+<p>32-bit Linux gives every thread its own descriptor in GDT slot 6 (selector <code>0x33</code>), whose base is the address of that thread's <b>thread control block</b>. User code keeps GS = 0x33 forever. On every thread switch the kernel rewrites that GDT slot and reloads GS, so <code>gs:[0]</code> always refers to the <i>current</i> thread:</p>
+<pre class="code"><span class="k">mov</span> eax, <span class="nn">gs:[0x14]</span>      <span class="c">; the stack-protector canary (every protected function starts this way)</span>
+<span class="k">mov</span> eax, <span class="nn">gs:[0x0]</span>       <span class="c">; pointer to this thread's own control block → pthread_self()</span>
+<span class="k">mov</span> eax, <span class="nn">gs:[-8]</span>        <span class="c">; a __thread variable (thread-local storage sits below the TCB)</span></pre>
+<p>The kernel does the same for itself with FS (selector 0xd8, a per-CPU base). Windows 32-bit uses FS in user mode: <code>fs:[0x18]</code> is the Thread Environment Block and <code>fs:[0x30]</code> the Process Environment Block.</p>
+<div class="side">Threads call <code>set_thread_area()</code> to fill their TLS slot. 32-bit Linux offers three such slots (GDT 6–8, selectors 0x33, 0x3b, 0x43). Programs like Wine that need their own custom segments can create LDT entries with <code>modify_ldt()</code>; those selectors have TI = 1, for example <code>0x0f</code>.</div>
+</section>
+
+<!-- ============================================================ 13 -->
+<section id="c13">
+<h2><span class="n">13</span>Seeing it yourself</h2>
+<p>Reading a segment register is <b>not privileged</b>. <code>mov ax, ds</code> works in user mode. What user code cannot do is change the GDT, the IDT or the page tables. Compile a 32-bit program (on Debian: <code>apt install gcc-multilib</code>):</p>
+<pre class="code"><span class="c">// seg32.c — gcc -m32 seg32.c -o seg32 &amp;&amp; ./seg32</span>
+<span class="k">#include</span> &lt;stdio.h&gt;
+<span class="k">int</span> main(<span class="k">void</span>) {
+    <span class="k">unsigned short</span> cs, ds, es, ss, fs, gs;
+    __asm__(<span class="s">"mov %%cs,%0"</span> : <span class="s">"=r"</span>(cs)); __asm__(<span class="s">"mov %%ds,%0"</span> : <span class="s">"=r"</span>(ds));
+    __asm__(<span class="s">"mov %%es,%0"</span> : <span class="s">"=r"</span>(es)); __asm__(<span class="s">"mov %%ss,%0"</span> : <span class="s">"=r"</span>(ss));
+    __asm__(<span class="s">"mov %%fs,%0"</span> : <span class="s">"=r"</span>(fs)); __asm__(<span class="s">"mov %%gs,%0"</span> : <span class="s">"=r"</span>(gs));
+    <span class="k">unsigned</span> canary; __asm__(<span class="s">"mov %%gs:0x14,%0"</span> : <span class="s">"=r"</span>(canary));
+    printf(<span class="s">"cs=%#x ds=%#x es=%#x ss=%#x fs=%#x gs=%#x  CPL=%d  canary=%#x\n"</span>,
+           cs, ds, es, ss, fs, gs, cs &amp; 3, canary);
+}</pre>
+<p>The values depend on which kernel runs the program:</p>
+<table>
+<tr><th></th><th>CS</th><th>DS / ES / SS</th><th>FS</th><th>GS</th></tr>
+<tr><td>native 32-bit Linux kernel</td><td class="mono">0x73</td><td class="mono">0x7b</td><td class="mono">0</td><td class="mono">0x33</td></tr>
+<tr><td>32-bit program on a 64-bit kernel</td><td class="mono">0x23</td><td class="mono">0x2b</td><td class="mono">0</td><td class="mono">0x63</td></tr>
+</table>
+<p>In gdb, <code>info registers</code> lists all six selectors. gdb cannot show the hidden cache directly, but for CS/DS/ES/SS you already know it: base 0, limit 4 GiB. Disassemblers (objdump, Binary Ninja, IDA) show which segment an instruction uses, such as <code>gs:0x14</code>, but not its runtime value. There is no <code>/proc</code> file for segment registers. The closest things are <code>/proc/PID/maps</code>, which shows the memory layout, and core dumps, which store all registers.</p>
+<div class="term"><span class="p">(gdb)</span> info registers cs ss ds es fs gs
+cs             0x23                35
+ss             0x2b                43
+ds             0x2b                43
+es             0x2b                43
+fs             0x0                 0
+gs             0x63                99      <span class="h">← TLS descriptor (GDT 12, RPL 3)</span>
+<span class="p">(gdb)</span> x/i $pc
+=> 0x565561ad &lt;main+20&gt;:  mov    eax,gs:0x14   <span class="h">← canary load</span></div>
+<p class="small">(Typical output for a 32-bit program on a 64-bit kernel. Addresses vary.)</p>
+</section>
+
+<!-- ============================================================ 14 -->
+<section id="c14">
+<h2><span class="n">14</span>Summary</h2>
+<table class="sum">
+<tr><th>Reg</th><th>Real mode</th><th>32-bit protected, flat (Linux)</th></tr>
+<tr><td class="S-CS">CS</td><td>code window = CS×16</td><td>flat code, base 0. Its low 2 bits = CPL. Changed only by far jmp/call/ret, int, iret, sysenter/sysexit</td></tr>
+<tr><td class="S-DS">DS</td><td>data window</td><td>flat data, base 0</td></tr>
+<tr><td class="S-ES">ES</td><td>string destination window</td><td>flat data, base 0 (still the string destination)</td></tr>
+<tr><td class="S-SS">SS</td><td>stack window</td><td>flat data, base 0</td></tr>
+<tr><td class="S-FS">FS</td><td>spare window</td><td>0 in user mode · kernel per-CPU data · Windows TEB</td></tr>
+<tr><td class="S-GS">GS</td><td>spare window</td><td><b>thread-local storage</b>, base = TCB; canary at gs:0x14</td></tr>
+</table>
+<ol>
+<li>An x86 address is <b>segment + offset</b>. The segment is usually chosen implicitly by the kind of access.</li>
+<li>In real mode, the segment is a number: <b>address = segment × 16 + offset</b>, with no protection.</li>
+<li>In protected mode, the segment register holds a <b>selector</b>: an index into the GDT/LDT plus an RPL.</li>
+<li>Loading a selector makes the CPU check the descriptor and copy base/limit/rights into the <b>hidden descriptor cache</b>.</li>
+<li>Every access computes <b>linear = base + offset</b> and checks the limit and rights.</li>
+<li>The low 2 bits of CS are the <b>CPL</b>. Privilege can only be raised through kernel-defined gates.</li>
+<li>Real operating systems use the <b>flat model</b> (base 0, 4 GiB) and leave isolation, protection and the 4 GiB-per-process illusion to <b>paging</b>.</li>
+<li>Only FS/GS keep a job: pointing at per-thread or per-CPU data.</li>
+</ol>
+<p>In <a href="segments_64.html"><b>Part 2: x86-64</b></a>, the flat model stops being a convention and becomes the hardware rule, FS and GS get 64-bit bases stored outside the GDT, and paging grows to four levels.</p>
+</section>
+
+<footer>Part 1 of 2 · <a href="segments_64.html">Continue with Part 2: segment registers in x86-64 →</a></footer>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const H=(n,w=0)=>'0x'+(n>>>0).toString(16).toUpperCase().padStart(w,'0');
+const SC={CS:'#ff6b6b',DS:'#4dabf7',ES:'#51cf66',SS:'#ffa94d',FS:'#b197fc',GS:'#f783ac'};
+const pint=v=>{v=String(v).trim();const n=/^0x/i.test(v)?parseInt(v,16):parseInt(v,16);return isNaN(n)?0:n};
+addEventListener('scroll',()=>{const h=document.documentElement;$('#progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'});
+
+/* generic stepper */
+function stepper(root,cfg){
+  let n=0,t=null;
+  root.innerHTML=`<div class="bar ui"><button data-a="r">⟲ Reset</button><button data-a="b">◀ Back</button><button data-a="n" class="pri">Next ▶</button><button data-a="p">▶▶ Play</button><span class="cnt"></span></div>
+  <div class="g2"><div class="lst">${cfg.steps.map((s,i)=>`<div class="it" data-i="${i}">${i+1}. ${s.t}</div>`).join('')}</div><div><div class="viz"></div></div></div>
+  <div class="regs"></div><div class="txt"></div>`;
+  const run=k=>{const s=cfg.init();let ev={};for(let i=0;i<k;i++)ev=cfg.steps[i].run(s)||{};return{s,ev}};
+  function draw(){const {s,ev}=run(n),{s:p}=run(Math.max(0,n-1));
+    $$('.it',root).forEach((e,i)=>{e.classList.toggle('cur',i===n-1);e.classList.toggle('nx',i===n)});
+    const R=cfg.regs(s),P=cfg.regs(p);$('.regs',root).innerHTML=R.map(([k,v,c],i)=>`<div class="reg ${n&&P[i][1]!==v?'chg':''}"><span style="color:${c||'#c7d2fe'};font-weight:700">${k}</span><span>${v}</span></div>`).join('');
+    $('.txt',root).innerHTML=(n?cfg.steps[n-1].d:cfg.intro)+(ev.fault?`<div class="flt">💥 ${ev.fault}</div>`:'');
+    cfg.viz($('.viz',root),s,ev);$('.cnt',root).textContent=`${n} / ${cfg.steps.length}`;
+    $('[data-a=b]',root).disabled=!n;$('[data-a=n]',root).disabled=n===cfg.steps.length}
+  function stop(){clearInterval(t);t=null;$('[data-a=p]',root).textContent='▶▶ Play'}
+  $('.bar',root).onclick=e=>{const a=e.target.dataset.a;if(!a)return;if(a==='r'){n=0;stop()}if(a==='b')n--;if(a==='n')n++;
+    if(a==='p'){if(t){stop();return}if(n===cfg.steps.length)n=0;e.target.textContent='⏸ Pause';t=setInterval(()=>{if(n>=cfg.steps.length)return stop();n++;draw()},2600)}draw()};
+  $('.lst',root).onclick=e=>{const i=e.target.closest('.it');if(i){n=+i.dataset.i+1;draw()}};
+  draw();
+}
+
+/* ---------- Fig 1: real mode adder */
+(function(){
+  let tm=[];
+  function go(anim){
+    tm.forEach(clearTimeout);tm=[];
+    const seg=pint($('#aSeg').value)&0xFFFF,off=pint($('#aOff').value)&0xFFFF,a20=$('#aA20').checked;
+    let p=seg*16+off;const over=p>0xFFFFF,eff=over&&!a20?p&0xFFFFF:p;
+    const sd=seg.toString(16).toUpperCase().padStart(4,'0').split(''),od=off.toString(16).toUpperCase().padStart(4,'0').split('');
+    const rd=eff.toString(16).toUpperCase().padStart(6,'0').split('');
+    const cell=(c,cls,st='')=>`<div class="d ${cls}" style="${st}">${c}</div>`;
+    $('#adder').innerHTML=`<div class="adder">
+      <div class="lab">segment ×16</div>${cell('','e')}${sd.map(d=>cell(d,'seg sd',anim?'transform:translateX(42px)':'')).join('')}${cell('0','z zc',anim?'opacity:0':'')}
+      <div class="lab">+ offset</div>${cell('','e')}${cell('','e')}${od.map(d=>cell(d,'off')).join('')}
+      <div></div><div class="line"></div>
+      <div class="lab">= physical</div>${rd.map((d,i)=>cell(d,'res rr',anim?'opacity:0':'')).join('')}</div>`;
+    const txt=`${H(seg,4)} × 16 = ${H(seg*16,5)}  ·  + ${H(off,4)}  ·  = <b>${H(p,5)}</b>`+(over?(a20?'  <span style="color:#fbbf24">(above 1 MiB: only reachable because A20 is on)</span>':`  <span class="bad">→ wraps to ${H(eff,5)} (A20 off, like the 8086)</span>`):'')+
+      `<br><span class="small">the same byte, normalized: ${H(eff>>4,4)}:${H(eff&15,4)} — and e.g. ${H(Math.max(0,(eff>>4)-1),4)}:${H(eff-Math.max(0,(eff>>4)-1)*16,4)}</span>`;
+    if(!anim){$('#aTxt').innerHTML=txt;return}
+    $('#aTxt').innerHTML='shifting the segment left by 4 bits…';
+    tm.push(setTimeout(()=>$$('#adder .sd').forEach(e=>e.style.transform='none'),80));
+    tm.push(setTimeout(()=>{$('#adder .zc').style.opacity=1;$('#aTxt').innerHTML='…a zero fills the empty digit, then add the offset…'},800));
+    $$('#adder .rr').reverse().forEach((e,i)=>tm.push(setTimeout(()=>e.style.opacity=1,1300+i*160)));
+    tm.push(setTimeout(()=>$('#aTxt').innerHTML=txt,2300));
+  }
+  $('#aGo').onclick=()=>go(true);['#aSeg','#aOff','#aA20'].forEach(s=>$(s).oninput=()=>go(false));go(false);
+})();
+
+/* ---------- Fig 2: real mode windows */
+(function(){
+  const V={CS:0x07C0,DS:0x1000,SS:0x9000,ES:0x1002};
+  const P=v=>(v/0x100000*100).toFixed(3)+'%';
+  const el=$('#win');
+  el.innerHTML=Object.keys(V).map(r=>`<div class="trk"><div class="ui" style="font-size:13px"><b style="color:${SC[r]}">${r}</b> <span class="mono" id="wv${r}"></span><br><input type="range" min="0" max="65535" step="1" value="${V[r]}" data-r="${r}" style="width:110px"></div><div class="t"><div class="band" id="wb${r}" style="background:${SC[r]}30;border-color:${SC[r]}"></div><div class="mk" id="wm${r}"></div></div></div>`).join('')+
+   `<div class="trk"><div></div><div class="axis">${[0,0x40000,0x80000,0xC0000,0x100000].map(v=>`<span style="left:${P(Math.min(v,0xFFFFF))}">${H(v,5)}</span>`).join('')}</div></div>`;
+  function draw(){const ph=pint($('#probe').value);const lines=[];
+    for(const r in V){const b=V[r]*16;$('#wv'+r).textContent=H(V[r],4);const bb=$('#wb'+r);bb.style.left=P(b);bb.style.width=P(Math.min(0x10000,0x100000-b));
+      const m=$('#wm'+r);m.style.left=P(ph);const inside=ph>=b&&ph<b+0x10000;m.style.opacity=inside?1:.25;
+      lines.push(`<span style="color:${SC[r]}">${r}</span> window ${H(b,5)}–${H(b+0xFFFF,5)}: `+(inside?`reach it as <b>${H(V[r],4)}:${H(ph-b,4)}</b>`:'<span class="small">outside this window</span>'))}
+    const ks=Object.keys(V),ov=[];for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const a=V[ks[i]]*16,b=V[ks[j]]*16;const o=Math.min(a,b)+0x10000-Math.max(a,b);if(o>0)ov.push(`${ks[i]}∩${ks[j]} share ${o.toLocaleString()} bytes`)}
+    $('#probeOut').innerHTML=lines.join('<br>')+(ov.length?`<br><span style="color:#fbbf24">overlap: ${ov.join(' · ')}</span>`:'')}
+  el.oninput=e=>{if(e.target.dataset.r){V[e.target.dataset.r]=+e.target.value;draw()}};$('#probe').oninput=draw;draw();
+})();
+
+/* ---------- Fig 3: default segments */
+(function(){
+  const I=[
+   ['(fetching any instruction)',['CS'],'The CPU always fetches instructions from <b>CS:EIP</b>. It cannot be overridden.'],
+   ['mov eax, [ebx]',['DS'],'An ordinary data access with base register EBX uses the default, <b>DS</b>.'],
+   ['mov eax, [ebp-8]',['SS'],'The base register is <b>EBP</b>, so the default is <b>SS</b>. Local variables live on the stack, and EBP points into it.'],
+   ['mov eax, [esp+4]',['SS'],'Base register <b>ESP</b> → <b>SS</b>.'],
+   ['push eax',['SS'],'Stack operations write to <b>SS:ESP</b> (after ESP −= 4).'],
+   ['call func',['SS','CS'],'Pushes the return address to <b>SS:ESP</b>, then fetching continues at the new EIP through <b>CS</b>.'],
+   ['movsb',['DS','ES'],'Copies a byte from <b>DS:ESI</b> to <b>ES:EDI</b>. This is why ES exists. The destination segment is fixed to ES.'],
+   ['stosd',['ES'],'Stores EAX at <b>ES:EDI</b>. Only the destination is used.'],
+   ['lodsb',['DS'],'Loads AL from <b>DS:ESI</b>.'],
+   ['mov eax, es:[ebx]',['ES'],'Explicit override: prefix byte <b>0x26</b> replaces the default DS with ES.'],
+   ['mov eax, fs:[0x18]',['FS'],'Prefix <b>0x64</b>. On 32-bit Windows this reads the TEB self-pointer.'],
+   ['mov eax, gs:[0x14]',['GS'],'Prefix <b>0x65</b>. On 32-bit Linux this is the stack canary in thread-local storage.'],
+   ['mov eax, cs:[table]',['CS'],'Prefix <b>0x2E</b>: <i>reading data</i> through CS. This is only allowed if the code segment is marked readable.'],
+  ];
+  $('#chips').innerHTML=Object.keys(SC).map(r=>`<div class="chip" data-r="${r}" style="color:${SC[r]};border-color:${SC[r]}66">${r}</div>`).join('');
+  $('#insl').innerHTML=I.map((x,i)=>`<button data-i="${i}">${x[0]}</button>`).join('');
+  $('#insl').onclick=e=>{const b=e.target.closest('button');if(!b)return;const x=I[b.dataset.i];$$('#insl button').forEach(y=>y.classList.toggle('sel',y===b));
+    $$('#chips .chip').forEach(c=>c.classList.toggle('on',x[1].includes(c.dataset.r)));$('#insOut').innerHTML=`<b>${x[0]}</b> → ${x[1].map(r=>`<b style="color:${SC[r]}">${r}</b>`).join(' + ')}<br><span style="font-family:system-ui">${x[2]}</span>`};
+})();
+
+/* ---------- Fig 4: selector bits */
+(function(){
+  let v=0x73;
+  const L32=[[0,'null'],[6,'TLS #1 → user GS'],[7,'TLS #2'],[8,'TLS #3'],[12,'kernel code (CS)'],[13,'kernel data'],[14,'user code (CS)'],[15,'user data (DS/ES/SS)'],[16,'TSS'],[17,'LDT'],[26,'ESPFIX stack'],[27,'kernel per-CPU (FS)']];
+  function draw(){let s='';for(let i=15;i>=0;i--){const b=(v>>i)&1,f=i>=3?'DS':i===2?'FS':'ES';s+=`<div class="bit" data-b="${i}" style="border-color:${SC[f]};background:${SC[f]}${b?'55':'12'}">${b}<small>${i}</small></div>`}
+    $('#selBits').innerHTML=s;$('#selIn').value=H(v,4);const idx=v>>3,ti=(v>>2)&1,rpl=v&3;const hit=L32.find(x=>x[0]===idx);
+    $('#selOut').innerHTML=`index <b class="S-DS">${idx}</b> → descriptor at ${ti?'LDT':'GDT'} + ${H(idx*8)} &nbsp;·&nbsp; TI <b class="S-FS">${ti}</b> (${ti?'LDT':'GDT'}) &nbsp;·&nbsp; RPL <b class="S-ES">${rpl}</b> (${['kernel, ring 0','ring 1','ring 2','user, ring 3'][rpl]})<br>`+
+      (ti?'an LDT selector (per-process table, e.g. Wine)':idx===0?'the <b>null selector</b>: "no segment"':hit?`32-bit Linux GDT entry ${idx}: <b>${hit[1]}</b>`:'not used by 32-bit Linux')}
+  $('#selBits').onclick=e=>{const b=e.target.closest('.bit');if(b){v^=1<<+b.dataset.b;draw()}};
+  $('#selIn').oninput=()=>{v=pint($('#selIn').value)&0xFFFF;draw()};
+  $('#selPre').innerHTML=['0x0073','0x007B','0x0060','0x0068','0x0033','0x00D8','0x000F','0x0000'].map(x=>`<button>${x}</button>`).join(' ');
+  $('#selPre').onclick=e=>{if(e.target.tagName==='BUTTON'){v=pint(e.target.textContent);draw()}};draw();
+})();
+
+/* ---------- Fig 5: descriptor builder */
+(function(){
+  const F={lim:['limit','#4dabf7'],base:['base','#51cf66'],type:['type','#ffa94d'],s:['S','#8e9bb8'],dpl:['DPL','#f783ac'],p:['P','#ff6b6b'],fl:['G · D/B · L · AVL','#b197fc']};
+  function fieldOf(bit){ // bit 0..63
+    if(bit<16)return'lim';if(bit<32)return'base';if(bit<40)return'base';if(bit<44)return'type';if(bit===44)return's';if(bit<47)return'dpl';if(bit===47)return'p';if(bit<52)return'lim';if(bit<56)return'fl';return'base'}
+  const names={52:'AVL',53:'L',54:'D',55:'G',47:'P',44:'S',40:'A'};
+  function enc(){const base=pint($('#dBase').value)>>>0,lim=pint($('#dLim').value)&0xFFFFF;let type=+$('#dType').value|($('#dA').checked?1:0);
+    const dpl=+$('#dDpl').value,P=$('#dP').checked?1:0,G=$('#dG').checked?1:0,D=$('#dD').checked?1:0;
+    const lo=((lim&0xFFFF)|((base&0xFFFF)<<16))>>>0;
+    const hi=(((base>>>16)&0xFF)|(type<<8)|(1<<12)|(dpl<<13)|(P<<15)|(((lim>>>16)&0xF)<<16)|(D<<22)|(G<<23)|(((base>>>24)&0xFF)<<24))>>>0;
+    return{lo,hi,base,lim,type,dpl,P,G,D}}
+  function draw(){const d=enc();const q=(BigInt(d.hi)<<32n)|BigInt(d.lo);
+    const row=(val,off)=>{let s='';for(let i=31;i>=0;i--){const bit=i+off,f=F[fieldOf(bit)],b=(val>>>i)&1;s+=`<div class="bit" title="bit ${bit}" style="border-color:${f[1]};background:${f[1]}${b?'60':'10'}">${b}<small>${names[bit]||bit}</small></div>`}return s};
+    $('#dHi').innerHTML=row(d.hi,32);$('#dLo').innerHTML=row(d.lo,0);
+    $('#dLeg').innerHTML=Object.values(F).map(f=>`<span style="color:${f[1]}">${f[0]}</span>`).join('');
+    const eff=d.G?((d.lim*4096)+4095):d.lim;const code=d.type&8;
+    const bytes=[];for(let i=0;i<4;i++)bytes.push((d.lo>>>(i*8))&0xFF);for(let i=0;i<4;i++)bytes.push((d.hi>>>(i*8))&0xFF);
+    $('#dOut').innerHTML=`qword <b>0x${q.toString(16).padStart(16,'0')}</b> · bytes in memory: ${bytes.map(b=>b.toString(16).padStart(2,'0')).join(' ')}<br>`+
+      `segment = [${H(d.base,8)} … ${H(d.base+eff,8)}] · effective limit ${H(eff,8)} (${eff>=0xFFFFFFFF?'4 GiB':(eff+1).toLocaleString()+' bytes'}) · ${code?'code':'data'}, ${['kernel','ring 1','ring 2','user'][d.dpl]} (DPL ${d.dpl})${d.P?'':' · <span class="bad">not present</span>'}`+
+      (d.base===0&&eff>=0xFFFFFFFF?' · <span class="ok">FLAT</span>':'')}
+  function dec(hex){let q;try{q=BigInt(hex.startsWith('0x')?hex:'0x'+hex)}catch(e){return}const lo=Number(q&0xFFFFFFFFn),hi=Number(q>>32n);
+    const base=((lo>>>16)|((hi&0xFF)<<16)|(((hi>>>24)&0xFF)<<24))>>>0,lim=(lo&0xFFFF)|(((hi>>>16)&0xF)<<16),type=(hi>>>8)&0xF;
+    $('#dBase').value=H(base,8);$('#dLim').value=H(lim,5);$('#dType').value=String(type&0xE);$('#dA').checked=!!(type&1);$('#dDpl').value=(hi>>>13)&3;
+    $('#dP').checked=!!((hi>>>15)&1);$('#dG').checked=!!((hi>>>23)&1);$('#dD').checked=!!((hi>>>22)&1);draw()}
+  $$('#c5 input,#c5 select').forEach(e=>{if(e.id!=='dQ')e.oninput=draw});
+  $$('#c5 [data-q]').forEach(b=>b.onclick=()=>dec(b.dataset.q));$('#dQgo').onclick=()=>dec($('#dQ').value.trim());
+  draw();
+})();
+
+/* ---------- Fig 6 + 7: load and use (shared CPU) */
+const GDT=[
+ {name:'null',nul:true},
+ {name:'kernel code',base:0,lim:0xFFFFFFFF,code:1,r:1,w:0,dpl:0,p:1},
+ {name:'kernel data',base:0,lim:0xFFFFFFFF,code:0,r:1,w:1,dpl:0,p:1},
+ {name:'user code',base:0,lim:0xFFFFFFFF,code:1,r:1,w:0,dpl:3,p:1},
+ {name:'user data (flat)',base:0,lim:0xFFFFFFFF,code:0,r:1,w:1,dpl:3,p:1},
+ {name:'small data @ 4 MiB',base:0x400000,lim:0xFFFF,code:0,r:1,w:1,dpl:3,p:1},
+ {name:'read-only @ 8 MiB',base:0x800000,lim:0x0FFF,code:0,r:1,w:0,dpl:3,p:1},
+ {name:'not present',base:0x900000,lim:0xFFFF,code:0,r:1,w:1,dpl:3,p:0}];
+const GLIM=0x3F;
+const CPU={cache:{CS:{sel:0x1B,...GDT[3]},SS:{sel:0x23,...GDT[4]},DS:{sel:0x23,...GDT[4]},ES:{sel:0x23,...GDT[4]},FS:{sel:0,nul:true},GS:{sel:0,nul:true}}};
+function rights(g){return g.nul?'—':(g.code?'code X'+(g.r?'/R':''):'data R'+(g.w?'/W':''))+' DPL'+g.dpl+(g.p?'':' P=0')}
+function drawGdt(hit){$('#lGdt').innerHTML='<tr><th>#</th><th>sel (RPL 0)</th><th>base</th><th>limit</th><th>rights</th><th></th></tr>'+GDT.map((g,i)=>`<tr class="${i===hit?'hit':''}"><td>${i}</td><td>${H(i*8,2)}</td><td>${g.nul?'—':H(g.base,8)}</td><td>${g.nul?'—':H(g.lim,8)}</td><td>${rights(g)}</td><td style="font-family:system-ui;font-size:11px">${g.name}</td></tr>`).join('')}
+function drawCache(flash){$('#lCache').innerHTML=['CS','SS','DS','ES','FS','GS'].map(r=>{const c=CPU.cache[r];return`<div class="cache ${r===flash?'flash':''}"><div style="color:${SC[r]};font-weight:700">${r}</div><div>${H(c.sel,4)}</div><div class="h">${c.nul?'<span class="small">NULL — unusable</span>':`base ${H(c.base,8)} · limit ${H(c.lim,8)} · ${rights(c)}`}</div></div>`}).join('');drawUse()}
+(function(){
+  let tm=[];
+  $('#lPre').innerHTML='presets: '+['0x2B','0x33','0x23','0x10','0x3B','0x48','0x18','0x00','0x2A'].map(x=>`<button>${x}</button>`).join(' ');
+  $('#lPre').onclick=e=>{if(e.target.tagName==='BUTTON')$('#lSel').value=e.target.textContent};
+  $('#lGo').onclick=()=>{
+    tm.forEach(clearTimeout);tm=[];
+    const reg=$('#lReg').value,sel=pint($('#lSel').value)&0xFFFF,cpl=+$('#lCpl').value,idx=sel>>3,ti=(sel>>2)&1,rpl=sel&3;const ec=H(sel&0xFFFC,4);
+    const C=[];let ok=true,fault='';const add=(t,pass,f)=>{C.push([t,pass]);if(!pass){ok=false;fault=f}};
+    C.push([`selector ${H(sel,4)} → index ${idx}, TI ${ti}, RPL ${rpl}`,true]);
+    if((sel&~3)===0){if(reg==='SS')add('null selector into SS',false,'#GP(0): SS can never be null in 32-bit mode');else C.push(['null selector → allowed; register becomes unusable',true])}
+    else{
+      if(ti)add('TI = 1 → LDT, but no LDT is loaded',false,`#GP(${ec})`);
+      else if(idx*8+7>GLIM)add(`index×8+7 = ${H(idx*8+7)} ≤ GDTR.limit ${H(GLIM)} ?`,false,`#GP(${ec}): selector is outside the GDT`);
+      else{C.push([`index×8+7 = ${H(idx*8+7)} ≤ GDTR.limit ${H(GLIM)} ✓ → read descriptor at GDT+${H(idx*8)}`,true,idx]);
+        const g=GDT[idx];
+        if(reg==='SS'){if(!(!g.code&&g.w))add('SS needs a writable data segment',false,`#GP(${ec}): not a writable data segment`);
+          else if(!(rpl===cpl&&g.dpl===cpl))add(`RPL (${rpl}) = CPL (${cpl}) = DPL (${g.dpl}) ?`,false,`#GP(${ec}): stack must be at exactly the current privilege level`);
+          else C.push([`writable data ✓ · RPL = CPL = DPL = ${cpl} ✓`,true]);}
+        else{if(g.code&&!g.r)add('type: data or readable code?',false,`#GP(${ec}): execute-only code cannot be used for data`);
+          else{C.push([`type: ${g.code?'readable code':'data'} ✓`,true]);
+            const m=Math.max(cpl,rpl);if(m>g.dpl)add(`max(CPL ${cpl}, RPL ${rpl}) = ${m} ≤ DPL ${g.dpl} ?`,false,`#GP(${ec}): privilege violation — ring ${m} may not use a DPL ${g.dpl} segment`);else C.push([`max(CPL ${cpl}, RPL ${rpl}) = ${m} ≤ DPL ${g.dpl} ✓`,true])}}
+        if(ok&&!g.p)add('present bit P = 1 ?',false,reg==='SS'?`#SS(${ec}): stack segment not present`:`#NP(${ec}): segment not present`);else if(ok)C.push(['present ✓',true]);
+      }
+    }
+    if(ok)C.push([`copy base/limit/rights into ${reg}'s hidden cache`,true]);
+    $('#lChk').innerHTML=C.map((c,i)=>`<li class="${c[1]?'pass':'fail'}">${c[1]?'<span class="ok">✓</span>':'<span class="bad">✗</span>'} ${c[0]}${!c[1]?`<br><b class="bad">${fault}</b> — ${reg} keeps its old value`:''}</li>`).join('');
+    drawGdt(-1);
+    $$('#lChk li').forEach((li,i)=>tm.push(setTimeout(()=>{li.classList.add('show');if(C[i][2]!==undefined)drawGdt(C[i][2]);
+      if(i===C.length-1&&ok){CPU.cache[reg]=(sel&~3)===0?{sel,nul:true}:{sel,...GDT[idx]};drawCache(reg)}},i*420)));
+  };
+  drawGdt(-1);drawCache();
+})();
+function drawUse(){
+  const reg=$('#uReg').value,c=CPU.cache[reg],op=$('#uOp').value,sz=+$('#uSize').value;let off=pint($('#uOff').value)>>>0;
+  const flat=!c.nul&&c.lim>=0xFFFFFFFF;const view=c.nul?0x10000:flat?0x20000:Math.max(c.lim+1,256)*1.6;
+  $('#uSl').max=Math.round(view);
+  const P=v=>Math.min(100,v/view*100).toFixed(3)+'%';
+  let res,bad=false;
+  if(c.nul){res=`<span class="bad">#GP(0)</span>: ${reg} holds the null selector, so any access faults`;bad=true}
+  else if(off+sz-1>c.lim){res=`<span class="bad">${reg==='SS'?'#SS(0)':'#GP(0)'}</span>: offset ${H(off,8)} + ${sz} − 1 exceeds limit ${H(c.lim,8)}`;bad=true}
+  else if(op==='W'&&!c.w){res=`<span class="bad">#GP(0)</span>: ${reg} is a ${c.code?'code':'read-only'} segment, writes are not allowed`;bad=true}
+  else res=`linear = ${reg}.base ${H(c.base,8)} + ${H(off,8)} = <b class="ok">${H(c.base+off,8)}</b> → then paging (chapter 10)`;
+  $('#uViz').innerHTML=`<div class="trk"><div class="mono" style="font-size:12.5px;color:${SC[reg]}">${reg} ${H(c.sel,4)}</div><div class="t">${c.nul?'<div class="band" style="left:0;width:100%;background:#f8717122;border-color:#f87171"></div>':`<div class="band" style="left:0;width:${P(c.lim+1)};background:${SC[reg]}30;border-color:${SC[reg]}"></div>${flat?'':`<div class="band" style="left:${P(c.lim+1)};right:0;width:auto;background:#f8717122;border-color:#f87171"></div>`}`}<div class="mk" style="left:${P(off)};background:${bad?'#f87171':'#fff'}"></div></div></div>
+   <div class="trk"><div></div><div class="axis"><span style="left:0;transform:none">offset 0</span>${c.nul||flat?'':`<span style="left:${P(c.lim)}">limit ${H(c.lim)}</span>`}<span style="left:100%;transform:translateX(-100%)">${flat?H(view)+' … 4 GiB':''}</span></div></div>`;
+  $('#uOut').innerHTML=`${op==='R'?'mov eax':'mov'}${op==='W'?` ${['','byte','word','','dword'][sz]} ${reg.toLowerCase()}:[${H(off)}], eax`:`, ${reg.toLowerCase()}:[${H(off)}]`}<br>${res}`;
+}
+$('#uSl').oninput=e=>{$('#uOff').value=H(+e.target.value);drawUse()};['#uOff','#uReg','#uOp','#uSize'].forEach(s=>$(s).oninput=drawUse);drawUse();
+
+/* ---------- Fig 8: CS & privilege stepper */
+stepper($('#csSim'),{
+  intro:'A user program is running: <b>CS = 0x1B</b> (GDT entry 3, user code, RPL 3), so CPL = 3. It will jump around, try to enter the kernel illegally, then enter it legally through an interrupt gate.',
+  init:()=>({CS:0x1B,EIP:0x08048000,SS:0x23,ESP:0xBFFFF000,CPL:3,stack:[],kstack:false}),
+  regs:s=>[['CS',H(s.CS,4),SC.CS],['CPL',String(s.CPL)],['EIP',H(s.EIP,8)],['SS',H(s.SS,4),SC.SS],['ESP',H(s.ESP,8)]],
+  steps:[
+   {t:'jmp 0x1B:0x08049000',d:'<b>Far jump at the same privilege.</b> Target selector 0x1B → user code, DPL 3 = CPL 3 ✓. CS and EIP are loaded together and the descriptor cache is refilled.',run:s=>{s.EIP=0x08049000}},
+   {t:'jmp 0x08:0xC0100000',d:'<b>Trying to jump into the kernel.</b> Selector 0x08 → kernel code, DPL 0. A jump cannot change privilege, and DPL 0 ≠ CPL 3, so the CPU refuses and nothing is loaded.',run:s=>({fault:'#GP(0x0008) — Linux turns this into SIGSEGV'})},
+   {t:'mov cs, ax',d:'The encoding <code>8E C8</code> exists but is always rejected, because CS may only change together with EIP.',run:s=>({fault:'#UD — invalid opcode → SIGILL'})},
+   {t:'int 0x80',d:'<b>The legal way in.</b> The CPU reads IDT entry 0x80, an interrupt gate with DPL 3 (user may use it) that points at kernel CS 0x08. Moving to ring 0 requires a new stack, so the CPU loads SS0:ESP0 from the <b>TSS</b> and pushes the old SS, ESP, EFLAGS, CS and EIP.',run:s=>{s.stack=['SS 0x0023','ESP 0xBFFFF000','EFLAGS 0x00000246','CS 0x001B','EIP 0x08049002'];s.CS=0x08;s.CPL=0;s.SS=0x10;s.ESP=0xC7FFDFEC;s.EIP=0xC1001234}},
+   {t:'(kernel handles the system call)',d:'Now <b>CPL = 0</b>: privileged instructions work, and the kernel can access pages marked supervisor-only. The saved frame on the kernel stack remembers where to return.',run:s=>{s.EIP=0xC1001300}},
+   {t:'iret',d:'<b>Return to user mode.</b> iret pops EIP and CS. CS\'s RPL is 3, which is lower privilege than now, so it also pops ESP and SS. CPL goes back to 3. Returning to <i>less</i> privilege is always allowed.',run:s=>{s.stack=[];s.CS=0x1B;s.CPL=3;s.SS=0x23;s.ESP=0xBFFFF000;s.EIP=0x08049002}},
+  ],
+  viz(el,s,ev){el.innerHTML=`<div class="ui"><span class="ring ${s.CPL?'u':'k'}">CPL ${s.CPL} · ${s.CPL?'user':'kernel'}</span></div>
+    <div class="small" style="margin-top:8px">kernel stack (pushed by the CPU):</div><div class="stack">${s.stack.length?s.stack.map((x,i)=>`<div style="animation-delay:${i*.12}s">${x}</div>`).join(''):'<div class="small" style="border-style:dashed">empty</div>'}</div>`}
+});
+
+/* ---------- Fig 9: flat vs segmented */
+(function(){
+  const segd={CS:[0x00100000,0x000FFFFF],DS:[0x00400000,0x003FFFFF],SS:[0x00C00000,0x0003FFFF],ES:[0x01000000,0x00FFFFFF]};
+  let flat=true;
+  function draw(){const M=0x02000000;const P=v=>Math.min(100,v/M*100).toFixed(3)+'%';
+    $('#flatViz').innerHTML=Object.keys(segd).map(r=>{const [b,l]=flat?[0,0xFFFFFFFF]:segd[r];return`<div class="trk"><div class="mono" style="font-size:12.5px"><b style="color:${SC[r]}">${r}</b> base ${H(b,8)}</div><div class="t"><div class="band" style="left:${P(b)};width:${P(Math.min(l+1,M-b))};background:${SC[r]}30;border-color:${SC[r]}"></div>${flat?'<span class="small" style="position:absolute;right:8px;top:3px">→ 4 GiB</span>':''}</div></div>`}).join('')+
+     `<div class="trk"><div></div><div class="axis">${[0,0x800000,0x1000000,0x1800000,0x2000000].map(v=>`<span style="left:${P(v)}">${H(v,8)}</span>`).join('')}</div></div>`;
+    $('#flatOut').innerHTML=flat?'All four registers: base 0, limit 4 GiB. <b>offset = linear address</b>. A pointer is a plain 32-bit number, and <code>[ebx]</code>, <code>ss:[ebx]</code> and <code>es:[ebx]</code> reach the same byte.':
+      'Separate boxes: <code>ds:[0x100]</code> is linear 0x00400100 but <code>ss:[0x100]</code> is linear 0x00C00100. A C pointer would also need to store <i>which</i> segment it belongs to (a "far pointer"), and every segment switch costs a descriptor load with all its checks.';
+    $('#fSeg').classList.toggle('sel',!flat);$('#fFlat').classList.toggle('sel',flat)}
+  $('#fSeg').onclick=()=>{flat=false;draw()};$('#fFlat').onclick=()=>{flat=true;draw()};draw();
+})();
+
+/* ---------- Fig 10: pipeline */
+(function(){
+  const B=[['instruction','mov eax, [ebx+8]<br>EBX = 0x0804A008'],['logical address','DS : 0x0804A010'],['segmentation','+ DS.base 0x00000000<br>limit check ✓'],['linear address','0x0804A010'],['paging','CR3 → PD[0x020]<br>→ PT[0x04A] → frame'],['physical address','0x1F3A2010']];
+  $('#pipe').innerHTML=B.map((b,i)=>`<div class="pb"><b>${b[0]}</b>${b[1]}</div>${i<B.length-1?'<div class="pa">➜</div>':''}`).join('');
+  const go=()=>{const e=[...$('#pipe').children];e.forEach(x=>x.classList.remove('lit'));e.forEach((x,i)=>setTimeout(()=>x.classList.add('lit'),150+i*260))};
+  $('#pGo').onclick=go;new IntersectionObserver((en,o)=>{if(en[0].isIntersecting){go();o.disconnect()}}).observe($('#pipe'));
+})();
+
+/* ---------- Fig 11: page walk */
+(function(){
+  const M={c:{f:[['directory',10,'#4dabf7'],['table',10,'#51cf66'],['offset',12,'#fbbf24']],t:['Page Directory (1024 × 4 B)','Page Table (1024 × 4 B)'],cr:'CR3 → page directory',w:8},
+           p:{f:[['PDPT',2,'#f783ac'],['directory',9,'#4dabf7'],['table',9,'#51cf66'],['offset',12,'#fbbf24']],t:['PDPT (4 × 8 B)','Page Directory (512 × 8 B)','Page Table (512 × 8 B)'],cr:'CR3 → PDPT',w:9}};
+  const HB=(n,w)=>'0x'+n.toString(16).toUpperCase().padStart(w,'0');
+  const fake=(l,i,va)=>((((va>>>12)*2654435761+l*977+i*131)>>>0)%($('#wMode').value==='p'?0xFFFE00:0xFFE00))+0x100;
+  let tm=[];
+  function go(anim){tm.forEach(clearTimeout);tm=[];const m=M[$('#wMode').value];const va=pint($('#wVa').value)>>>0;
+    let s='',bit=31;m.f.forEach(([n,w,c])=>{for(let i=0;i<w;i++,bit--)s+=`<span style="background:${c}40;color:${(va>>>bit)&1?'#fff':'#6b7a99'}" title="${n}">${(va>>>bit)&1}</span>`;s+='<span style="width:6px"></span>'});
+    $('#wBits').innerHTML=s;let sh=32;const idx=m.f.map(([n,w])=>{sh-=w;return(va>>>sh)&((1<<w)-1)});
+    const pae=$('#wMode').value==='p';let frame=fake(9,0,va);
+    let h=`<div class="tbl"><div class="tt" style="color:var(--acc)">CR3</div><div class="e h">${HB(frame*4096,pae?9:8)}</div><div class="small" style="padding:0 6px">${m.cr}</div></div>`;
+    m.t.forEach((t,l)=>{const i=idx[l],c=m.f[l][2];const nxt=fake(l,i,va);let rows='';for(let k=Math.max(0,i-2);k<=Math.min((1<<m.f[l][1])-1,i+2);k++)rows+=`<div class="e ${k===i?'h':''}">[${String(k).padStart(4)}] ${k===i?HB(nxt*4096+(l===m.t.length-1?0x067:0x027),pae?9:8):'…'}</div>`;
+      h+=`<div class="tbl"><div class="tt" style="color:${c}">${t}</div>${rows}<div class="small" style="padding:0 6px">index ${i} = ${H(i)}${l===m.t.length-1?' → frame':' → next table'}</div></div>`;frame=nxt});
+    const pa=frame*4096+idx[idx.length-1];
+    h+=`<div class="tbl"><div class="tt" style="color:#fbbf24">physical</div><div class="e h">${HB(pa,pae?9:8)}</div><div class="small" style="padding:0 6px">frame ${HB(frame*4096,pae?9:8)} + offset ${H(idx[idx.length-1],3)}</div></div>`;
+    $('#wWalk').innerHTML=h;const e=[...$('#wWalk').children];if(anim)e.forEach((x,i)=>tm.push(setTimeout(()=>x.classList.add('lit'),i*380)));else e.forEach(x=>x.classList.add('lit'))}
+  $('#wGo').onclick=()=>go(true);$('#wMode').onchange=()=>go(true);$('#wVa').onkeydown=e=>{if(e.key==='Enter')go(true)};
+  $$('#c10 [data-v]').forEach(b=>b.onclick=()=>{$('#wVa').value=b.dataset.v;go(true)});go(false);
+})();
+
+/* ---------- Fig 12: processes to RAM */
+(function(){
+  let proc='A';const COL={A:'#4dabf7',B:'#51cf66',C:'#ffa94d'};
+  const D={A:[['.text',0.13,5.2,1.1],['.data',0.2,9.7,1.4],['heap',0.6,13.1,2.2],['libc',2.9,1.3,1.3],['stack',2.97,11.4,3.1]],
+           B:[['.text',0.13,6.8,1.8],['.data',0.2,2.4,2.4],['heap',1.2,14.6,3.5],['libc',2.9,1.3,1.3],['stack',2.97,7.9,2.8]],
+           C:[['.text',0.13,3.6,3.6],['.data',0.2,10.8,1.6],['heap',0.35,12.2,2.0],['libc',2.9,1.3,1.3],['stack',2.97,4.6,3.8]]};
+  const K=[['kernel',3.3,0.3],['kernel',3.7,0.7]];
+  function draw(){const pae=$('#pae').checked;const top=34,bot=440,Hh=bot-top,vx=150,px=660,bw=86;
+    const vy=v=>bot-v/4*Hh,py=p=>bot-p/16*Hh;
+    let s=`<defs><pattern id="hat" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="8" fill="#f8717130"/></pattern></defs>
+    <text x="${vx+bw/2}" y="20" text-anchor="middle" fill="#dde5f4" font-size="13">virtual: 4 GiB per process</text><text x="${px+bw/2}" y="20" text-anchor="middle" fill="#dde5f4" font-size="13">physical RAM: 16 GiB</text>
+    <rect x="${vx}" y="${vy(4)}" width="${bw}" height="${vy(3)-vy(4)}" fill="#f8717118" stroke="#f87171"/><rect x="${vx}" y="${vy(3)}" width="${bw}" height="${vy(0)-vy(3)}" fill="#4dabf710" stroke="#4dabf7"/>
+    <text x="${vx-10}" y="${(vy(4)+vy(3))/2}" text-anchor="end" fill="#f87171" font-size="11">kernel 1 GiB</text><text x="${vx-10}" y="${(vy(3)+vy(0))/2}" text-anchor="end" fill="#4dabf7" font-size="11">user 3 GiB</text>
+    ${[[0,'0x00000000'],[3,'0xC0000000'],[4,'0xFFFFFFFF']].map(([v,l])=>`<text x="${vx+bw+6}" y="${vy(v)+4}" fill="#8e9bb8" font-size="10">${l}</text>`).join('')}
+    <rect x="${px}" y="${top}" width="${bw}" height="${Hh}" fill="#4ade800c" stroke="#4ade80"/>
+    ${[0,4,8,12,16].map(g=>`<text x="${px-6}" y="${py(g)+4}" text-anchor="end" fill="#8e9bb8" font-size="10">${g} GiB</text>`).join('')}
+    <line x1="${px-40}" x2="${px+bw+14}" y1="${py(4)}" y2="${py(4)}" stroke="#fbbf24" stroke-dasharray="5 3"/><text x="${px+bw+18}" y="${py(4)+4}" fill="#fbbf24" font-size="11">4 GiB line</text>
+    ${pae?'':`<rect x="${px}" y="${top}" width="${bw}" height="${py(4)-top}" fill="url(#hat)"/><text x="${px+bw+18}" y="${(top+py(4))/2}" fill="#f87171" font-size="11">unreachable</text><text x="${px+bw+18}" y="${(top+py(4))/2+15}" fill="#f87171" font-size="11">without PAE</text>`}`;
+    let k=0;const ln=(v,p,c,l,dash)=>{const y1=vy(v),y2=py(p);k++;return`<path class="vline" d="M${vx+bw},${y1} C${(vx+px)/2},${y1} ${(vx+px)/2},${y2} ${px},${y2}" stroke="${c}" style="animation-delay:${k*.07}s" ${dash?'stroke-dasharray="4 4"':''}/><rect x="${vx+2}" y="${y1-6}" width="${bw-4}" height="12" rx="2" fill="${c}"/><text x="${vx+bw/2}" y="${y1+4}" text-anchor="middle" font-size="9.5" fill="#000">${l}</text><rect x="${px+2}" y="${y2-5}" width="${bw-4}" height="10" rx="2" fill="${c}"/>`};
+    (proc==='ALL'?['A','B','C']:[proc]).forEach(P=>D[P].forEach(([l,v,p,pn])=>s+=ln(v,pae?p:pn,l==='libc'?'#e9d5ff':COL[P],l)));
+    K.forEach(([l,v,p])=>s+=ln(v,p,'#f87171',l));
+    $('#mapSvg').innerHTML=s;
+    $('#mapOut').innerHTML=(proc==='ALL'?'All three processes use the <b>same virtual addresses</b> for .text, .data and the stack, yet they land in <b>different physical frames</b>, because each process has its own CR3. ':`Process ${proc}: its pages are scattered through RAM wherever the kernel found free frames. `)+
+      (pae?'With PAE, frames above 4 GiB are fine. No single process can address more than 4 GiB, but the system as a whole uses all 16 GiB.':'Without PAE a page-table entry cannot point above 4 GiB, so the kernel must squeeze every frame below the line and 12 GiB of RAM goes unused.')}
+  $$('.pbtn').forEach(b=>b.onclick=()=>{proc=b.dataset.p;$$('.pbtn').forEach(x=>x.classList.toggle('sel',x===b));draw()});$('#pae').onchange=draw;draw();
+})();
+</script>
+</body>
+</html>
