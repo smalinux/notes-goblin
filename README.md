@@ -15,4 +15,9 @@ A small goblin that hoards my public notes.
 - [Segment Registers in 32-bit x86 — A Complete Tutorial](https://smalinux.github.io/notes-goblin/segments_32.html)
 - [Segment Registers in x86-64 — A Complete Tutorial](https://smalinux.github.io/notes-goblin/segments_64.html)
 
+## Diagrams
+
+- [ELF · The Complete Anatomy](https://smalinux.github.io/notes-goblin/elf-anatomy-v2.svg) — every structure, section & segment, and the exact tool + command to read each byte
+- [The ELF File Format](https://smalinux.github.io/notes-goblin/elf-format.svg) — visual guide to elf(5): every structure, where it lives in the file, and how the kernel + dynamic linker use it
+
 > Tip: view the raw HTML pages via GitHub Pages or [htmlpreview.github.io](https://htmlpreview.github.io/).

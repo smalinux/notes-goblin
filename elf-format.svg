@@ -1,0 +1,1285 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2280" height="2358" viewBox="0 0 2280 2358" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="ared" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a00000"/></marker><marker id="ablk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/></marker><marker id="agry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#999999"/></marker></defs>
+<rect x="0" y="0" width="2280" height="2358" fill="#ffffff"/>
+<text x="40.0" y="52.0" font-size="34" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">The ELF File Format</text>
+<text x="40.0" y="78.0" font-size="14" fill="#555555" font-family="Helvetica, Arial, sans-serif">Executable and Linking Format — a visual guide to elf(5): every structure, where it lives in the file, and how the kernel + dynamic linker use it</text>
+<rect x="1660.0" y="22.0" width="580.0" height="64.0" fill="#ffffff" stroke="#999999" stroke-width="1"/>
+<text x="1670.0" y="38.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">Legend:</text>
+<rect x="1730.0" y="28.0" width="26.0" height="13.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="1762.0" y="39.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">headers / tables</text>
+<rect x="1860.0" y="28.0" width="26.0" height="13.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1892.0" y="39.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">loaded into memory (SHF_ALLOC)</text>
+<rect x="1730.0" y="48.0" width="26.0" height="13.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1762.0" y="59.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">in file only (not loaded)</text>
+<rect x="1900.0" y="48.0" width="26.0" height="13.0" fill="#ffffff" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="1932.0" y="59.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">no file bytes (SHT_NOBITS / zero-fill)</text>
+<path d="M 1730.0,78.0 L 1756.0,78.0" fill="none" stroke="#a00000" stroke-width="1.4" marker-end="url(#ared)"/>
+<text x="1762.0" y="81.0" font-size="10" fill="#a00000" font-family="Helvetica, Arial, sans-serif">offset/index stored in an ELF field</text>
+<line x1="1960.0" y1="71.0" x2="1986.0" y2="71.0" stroke="#000000" stroke-width="1.2"/>
+<path d="M 1986,71 l -6,-3 l 0,6 z" fill="#000000"/>
+<text x="1992.0" y="74.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">data flow at load time</text>
+<text x="815.0" y="134.0" font-size="14" fill="#000000" font-family="Helvetica, Arial, sans-serif" text-anchor="middle" font-weight="bold">THE FILE ON DISK</text>
+<text x="815.0" y="150.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">file offset 0 at top, one section after another</text>
+<rect x="680.0" y="190.0" width="270.0" height="46.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="217.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">ELF header  (Ehdr)</text>
+<rect x="680.0" y="236.0" width="270.0" height="44.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="262.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">Program header table</text>
+<rect x="680.0" y="284.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="298.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.interp</text>
+<rect x="680.0" y="304.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="318.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.note.*  (ABI-tag, build-id)</text>
+<rect x="680.0" y="324.0" width="270.0" height="18.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="336.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.gnu.hash</text>
+<rect x="680.0" y="342.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="356.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.dynsym</text>
+<rect x="680.0" y="362.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="376.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.dynstr</text>
+<rect x="680.0" y="382.0" width="270.0" height="18.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="394.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.gnu.version / _r</text>
+<rect x="680.0" y="400.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="414.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.rela.dyn</text>
+<rect x="680.0" y="420.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="434.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.rela.plt</text>
+<rect x="680.0" y="444.0" width="270.0" height="18.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="456.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.init</text>
+<rect x="680.0" y="462.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="476.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.plt</text>
+<rect x="680.0" y="482.0" width="270.0" height="44.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="508.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">.text</text>
+<rect x="680.0" y="526.0" width="270.0" height="18.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="538.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.fini</text>
+<rect x="680.0" y="548.0" width="270.0" height="20.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="562.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.rodata</text>
+<rect x="680.0" y="568.0" width="270.0" height="16.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="579.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.eh_frame_hdr</text>
+<rect x="680.0" y="584.0" width="270.0" height="18.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="596.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.eh_frame</text>
+<rect x="680.0" y="606.0" width="270.0" height="16.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="617.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.init_array</text>
+<rect x="680.0" y="622.0" width="270.0" height="16.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="633.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.fini_array</text>
+<rect x="680.0" y="638.0" width="270.0" height="22.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="653.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.dynamic</text>
+<rect x="680.0" y="660.0" width="270.0" height="16.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="671.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.got</text>
+<rect x="680.0" y="676.0" width="270.0" height="16.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="687.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.got.plt</text>
+<rect x="680.0" y="692.0" width="270.0" height="22.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="707.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.data</text>
+<rect x="680.0" y="718.0" width="270.0" height="24.0" fill="#ffffff" stroke="#000000" stroke-width="1.1" stroke-dasharray="4,3"/>
+<text x="815.0" y="734.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.bss  (SHT_NOBITS: 0 bytes here)</text>
+<rect x="680.0" y="746.0" width="270.0" height="16.0" fill="#ffffff" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="757.6" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.comment</text>
+<rect x="680.0" y="762.0" width="270.0" height="22.0" fill="#ffffff" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="777.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.symtab</text>
+<rect x="680.0" y="784.0" width="270.0" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="798.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.strtab</text>
+<rect x="680.0" y="804.0" width="270.0" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="818.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.shstrtab</text>
+<rect x="680.0" y="828.0" width="270.0" height="44.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.1"/>
+<text x="815.0" y="854.0" font-size="11" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">Section header table</text>
+<text x="815.0" y="275.0" font-size="8.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">e_phnum entries × e_phentsize (56 B)</text>
+<text x="815.0" y="867.0" font-size="8.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">e_shnum entries × e_shentsize (64 B)</text>
+<text x="815.0" y="231.0" font-size="8.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">always at offset 0 — starts \x7f E L F</text>
+<text x="672.0" y="200.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">0x00</text>
+<text x="672.0" y="246.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">0x40</text>
+<text x="672.0" y="838.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">e_shoff</text>
+<text x="672.0" y="258.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">e_phoff</text>
+<text x="815.0" y="886.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">.symtab/.strtab/.comment/.debug_* are not loaded at run time</text>
+<text x="815.0" y="898.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">(strip(1) removes them; section order/position may vary)</text>
+<rect x="40.0" y="138.0" width="560.0" height="764.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="40.0" y="138.0" width="560.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="48.0" y="155.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">1. ELF header — ElfN_Ehdr — the roadmap of the file</text>
+<text x="52.0" y="184.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">e_ident[16] — identification bytes (offset 0x00):</text>
+<rect x="52.0" y="192.0" width="33.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="68.8" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">7f</text>
+<text x="68.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<rect x="85.5" y="192.0" width="33.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="102.2" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">'E'</text>
+<text x="102.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">1</text>
+<rect x="119.0" y="192.0" width="33.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="135.8" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">'L'</text>
+<text x="135.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">2</text>
+<rect x="152.5" y="192.0" width="33.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="169.2" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">'F'</text>
+<text x="169.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">3</text>
+<rect x="186.0" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="202.8" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">CLS</text>
+<text x="202.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">4</text>
+<rect x="219.5" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="236.2" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">DAT</text>
+<text x="236.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">5</text>
+<rect x="253.0" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="269.8" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">VER</text>
+<text x="269.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">6</text>
+<rect x="286.5" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="303.2" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">ABI</text>
+<text x="303.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">7</text>
+<rect x="320.0" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="336.8" y="206.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">AV</text>
+<text x="336.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">8</text>
+<rect x="353.5" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="370.2" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="370.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">9</text>
+<rect x="387.0" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="403.8" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="403.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">10</text>
+<rect x="420.5" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="437.2" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="437.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">11</text>
+<rect x="454.0" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="470.8" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="470.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">12</text>
+<rect x="487.5" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="504.2" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="504.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">13</text>
+<rect x="521.0" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="537.8" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="537.8" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">14</text>
+<rect x="554.5" y="192.0" width="33.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="571.2" y="206.0" font-size="9.5" fill="#999999" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">0</text>
+<text x="571.2" y="189.0" font-size="8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">15</text>
+<text x="52.0" y="225.0" font-size="9.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">[0..3] magic   [4] EI_CLASS: 1=ELFCLASS32  2=ELFCLASS64      [5] EI_DATA: 1=little-endian  2=big-endian</text>
+<text x="52.0" y="238.0" font-size="9.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">[6] EI_VERSION: 1=EV_CURRENT   [7] EI_OSABI: 0=System V  3=Linux(GNU)   [8] EI_ABIVERSION   [9..15] EI_PAD: zero</text>
+<rect x="52.0" y="257.0" width="536.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="103.0" y="270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="137.0" y="270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="255.0" y="270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="52.0" y="275.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="288.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x10</text>
+<text x="103.0" y="288.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="288.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_type</text>
+<text x="255.0" y="288.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">object file type — ET_* below</text>
+<rect x="52.0" y="293.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="306.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x12</text>
+<text x="103.0" y="306.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="306.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_machine</text>
+<text x="255.0" y="306.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">target architecture — EM_* below</text>
+<rect x="52.0" y="311.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="324.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x14</text>
+<text x="103.0" y="324.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="137.0" y="324.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_version</text>
+<text x="255.0" y="324.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">1 = EV_CURRENT</text>
+<rect x="52.0" y="329.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="342.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x18</text>
+<text x="103.0" y="342.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="342.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_entry</text>
+<text x="255.0" y="342.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">entry point virtual address (_start)</text>
+<rect x="52.0" y="347.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="360.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x20</text>
+<text x="103.0" y="360.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="360.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_phoff</text>
+<text x="255.0" y="360.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">file offset of program header table</text>
+<rect x="52.0" y="365.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="378.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x28</text>
+<text x="103.0" y="378.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="378.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_shoff</text>
+<text x="255.0" y="378.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">file offset of section header table</text>
+<rect x="52.0" y="383.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="396.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x30</text>
+<text x="103.0" y="396.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="137.0" y="396.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_flags</text>
+<text x="255.0" y="396.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">processor-specific flags (EF_*)</text>
+<rect x="52.0" y="401.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="414.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x34</text>
+<text x="103.0" y="414.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="414.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_ehsize</text>
+<text x="255.0" y="414.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">size of this header: 64 (ELF32: 52)</text>
+<rect x="52.0" y="419.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="432.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x36</text>
+<text x="103.0" y="432.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="432.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_phentsize</text>
+<text x="255.0" y="432.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">size of one Phdr entry: 56 (ELF32: 32)</text>
+<rect x="52.0" y="437.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="450.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x38</text>
+<text x="103.0" y="450.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="450.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_phnum</text>
+<text x="255.0" y="450.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif"># of Phdr entries (0xffff→shdr[0].sh_info)</text>
+<rect x="52.0" y="455.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="468.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x3a</text>
+<text x="103.0" y="468.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="468.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_shentsize</text>
+<text x="255.0" y="468.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">size of one Shdr entry: 64 (ELF32: 40)</text>
+<rect x="52.0" y="473.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="486.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x3c</text>
+<text x="103.0" y="486.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="486.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_shnum</text>
+<text x="255.0" y="486.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif"># of Shdr entries (0→shdr[0].sh_size)</text>
+<rect x="52.0" y="491.0" width="536.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="504.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x3e</text>
+<text x="103.0" y="504.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="504.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">e_shstrndx</text>
+<text x="255.0" y="504.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">Shdr index of .shstrtab (section names)</text>
+<line x1="98.0" y1="257.0" x2="98.0" y2="509.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="132.0" y1="257.0" x2="132.0" y2="509.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="250.0" y1="257.0" x2="250.0" y2="509.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="52.0" y="257.0" width="536.0" height="252.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="52.0" y="521.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">offsets/sizes = ELF64; ELF32 header is 52 bytes (Addr/Off fields are 4 bytes)</text>
+<text x="52.0" y="545.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">e_type:</text>
+<text x="52.0" y="562.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ET_REL</text>
+<text x="130.0" y="562.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="152.0" y="562.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">.o relocatable (link input)</text>
+<text x="52.0" y="576.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ET_EXEC</text>
+<text x="130.0" y="576.5" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="152.0" y="576.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">executable, fixed address</text>
+<text x="52.0" y="591.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ET_DYN</text>
+<text x="130.0" y="591.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="152.0" y="591.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">.so shared object — and PIE executables</text>
+<text x="52.0" y="605.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ET_CORE</text>
+<text x="130.0" y="605.5" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="152.0" y="605.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">core dump</text>
+<text x="52.0" y="630.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">e_machine (a few):</text>
+<text x="52.0" y="647.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">EM_386=3   EM_MIPS=8   EM_PPC64=21   EM_S390=22   EM_ARM=40</text>
+<text x="52.0" y="661.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">EM_SPARCV9=43   EM_X86_64=62   EM_AARCH64=183   EM_RISCV=243</text>
+<text x="52.0" y="692.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">$ hexdump -C /bin/ls | head -3</text>
+<text x="52.0" y="708.0" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">00000000  7f 45 4c 46 02 01 01 00  00 00 00 00 00 00 00 00  |.ELF............|</text>
+<text x="52.0" y="720.5" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">00000010  03 00 3e 00 01 00 00 00  d0 67 00 00 00 00 00 00  |..&gt;......g......|</text>
+<text x="52.0" y="733.0" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">00000020  40 00 00 00 00 00 00 00  c8 23 02 00 00 00 00 00  |@........#......|</text>
+<text x="52.0" y="749.5" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">02=ELFCLASS64  01=little-endian  03 00=ET_DYN(PIE)  3e 00=EM_X86_64(62)</text>
+<text x="52.0" y="762.0" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">40 00 …=e_phoff 0x40: the program header table follows immediately</text>
+<text x="52.0" y="786.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">$ file /bin/ls</text>
+<text x="52.0" y="801.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically</text>
+<text x="52.0" y="814.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">linked, interpreter /lib64/ld-linux-x86-64.so.2, stripped</text>
+<text x="52.0" y="827.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif">— file(1) reads exactly these header fields to say all of that.</text>
+<text x="1066.0" y="134.0" font-size="14" fill="#000000" font-family="Helvetica, Arial, sans-serif" text-anchor="middle" font-weight="bold">SEGMENTS</text>
+<text x="1066.0" y="150.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">program header view of the same bytes</text>
+<path d="M 957.0,237.0 L 964.0,237.0 L 964.0,279.0 L 957.0,279.0" fill="none" stroke="#000000" stroke-width="1.2"/>
+<text x="968.0" y="261.5" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PT_PHDR</text>
+<path d="M 957.0,285.0 L 964.0,285.0 L 964.0,303.0 L 957.0,303.0" fill="none" stroke="#000000" stroke-width="1.2"/>
+<text x="968.0" y="297.5" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PT_INTERP</text>
+<path d="M 957.0,305.0 L 964.0,305.0 L 964.0,323.0 L 957.0,323.0" fill="none" stroke="#000000" stroke-width="1.2"/>
+<text x="968.0" y="317.5" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PT_NOTE</text>
+<path d="M 957.0,569.0 L 964.0,569.0 L 964.0,583.0 L 957.0,583.0" fill="none" stroke="#000000" stroke-width="1.2"/>
+<text x="968.0" y="579.5" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PT_GNU_EH_FRAME</text>
+<path d="M 957.0,639.0 L 964.0,639.0 L 964.0,659.0 L 957.0,659.0" fill="none" stroke="#000000" stroke-width="1.2"/>
+<text x="968.0" y="652.5" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PT_DYNAMIC</text>
+<path d="M 1036.0,607.0 L 1042.0,607.0 L 1042.0,675.0 L 1036.0,675.0" fill="none" stroke="#000000" stroke-width="1.2"/>
+<text x="1042.0" y="688.0" font-size="8.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">PT_GNU_RELRO</text>
+<text x="1042.0" y="698.0" font-size="8" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">(r/o after reloc)</text>
+<path d="M 1092.0,191.0 L 1102.0,191.0 L 1102.0,439.0 L 1092.0,439.0" fill="none" stroke="#000000" stroke-width="1.4"/>
+<text x="1110.0" y="311.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_LOAD</text>
+<text x="1110.0" y="323.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r--</text>
+<path d="M 1092.0,445.0 L 1102.0,445.0 L 1102.0,543.0 L 1092.0,543.0" fill="none" stroke="#000000" stroke-width="1.4"/>
+<text x="1110.0" y="490.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_LOAD</text>
+<text x="1110.0" y="502.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r-x</text>
+<path d="M 1092.0,549.0 L 1102.0,549.0 L 1102.0,601.0 L 1092.0,601.0" fill="none" stroke="#000000" stroke-width="1.4"/>
+<text x="1110.0" y="571.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_LOAD</text>
+<text x="1110.0" y="583.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r--</text>
+<path d="M 1092.0,607.0 L 1102.0,607.0 L 1102.0,713.0 L 1092.0,713.0" fill="none" stroke="#000000" stroke-width="1.4"/>
+<text x="1110.0" y="656.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_LOAD</text>
+<text x="1110.0" y="668.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">rw-</text>
+<text x="1455.0" y="134.0" font-size="14" fill="#000000" font-family="Helvetica, Arial, sans-serif" text-anchor="middle" font-weight="bold">THE PROCESS IMAGE</text>
+<text x="1455.0" y="150.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">execution view: PT_LOAD segments mmap()ed</text>
+<rect x="1330.0" y="190.0" width="250.0" height="250.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.2"/>
+<text x="1336.0" y="203.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r--</text>
+<text x="1469.0" y="312.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">ELF hdr, phdrs, .interp, notes,</text>
+<text x="1469.0" y="324.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.dynsym .dynstr .rela.dyn .rela.plt</text>
+<text x="1324.0" y="200.0" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">base+0x0000</text>
+<line x1="1164" y1="315.0" x2="1326" y2="315.0" stroke="#000000" stroke-width="1" marker-end="url(#ablk)" opacity="0.8"/>
+<rect x="1330.0" y="444.0" width="250.0" height="100.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.2"/>
+<text x="1336.0" y="457.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r-x</text>
+<text x="1469.0" y="497.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.init  .plt  .text  .fini</text>
+<text x="1324.0" y="454.0" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">base+0x1000</text>
+<line x1="1164" y1="494.0" x2="1326" y2="494.0" stroke="#000000" stroke-width="1" marker-end="url(#ablk)" opacity="0.8"/>
+<rect x="1330.0" y="548.0" width="250.0" height="54.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.2"/>
+<text x="1336.0" y="561.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r--</text>
+<text x="1469.0" y="578.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.rodata  .eh_frame</text>
+<text x="1324.0" y="558.0" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">base+0x2000</text>
+<line x1="1164" y1="575.0" x2="1326" y2="575.0" stroke="#000000" stroke-width="1" marker-end="url(#ablk)" opacity="0.8"/>
+<rect x="1330.0" y="606.0" width="250.0" height="108.0" fill="#f2f2f2" stroke="#000000" stroke-width="1.2"/>
+<text x="1336.0" y="619.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">rw-</text>
+<text x="1469.0" y="657.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.init_array .fini_array .dynamic</text>
+<text x="1469.0" y="669.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.got .got.plt .data</text>
+<text x="1324.0" y="616.0" font-size="8.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">base+0x3000</text>
+<line x1="1164" y1="660.0" x2="1326" y2="660.0" stroke="#000000" stroke-width="1" marker-end="url(#ablk)" opacity="0.8"/>
+<text x="1232.0" y="181.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="end" font-style="italic">mmap() by kernel execve / ld.so</text>
+<rect x="1330.0" y="714.0" width="250.0" height="26.0" fill="#ffffff" stroke="#000000" stroke-width="1.1" stroke-dasharray="4,3"/>
+<text x="1455.0" y="725.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.bss — zero-filled by kernel</text>
+<text x="1455.0" y="735.0" font-size="8.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">exists because p_memsz &gt; p_filesz</text>
+<text x="1310.0" y="762.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">below in address space: heap (grows ↓)…</text>
+<text x="1310.0" y="775.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">elsewhere: stack, [vdso], and every shared</text>
+<text x="1310.0" y="788.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">library + ld.so itself, each an ET_DYN ELF</text>
+<text x="1310.0" y="801.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">mapped the same way  (see /proc/PID/maps)</text>
+<text x="1310.0" y="822.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">base: randomized (ASLR) for ET_DYN/PIE;</text>
+<text x="1310.0" y="835.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">fixed (e.g. 0x400000) for ET_EXEC</text>
+<text x="1574.0" y="537.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end" font-weight="bold">← e_entry (_start)</text>
+<text x="960.0" y="886.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">PT_GNU_STACK: has no file bytes at all — its p_flags alone tell the kernel</text>
+<text x="960.0" y="898.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">whether the stack is executable (rw- vs rwx). PT_TLS: thread-local template.</text>
+<path d="M 596.0,356.0 L 612.0,356.0 L 612.0,258.0 L 678.0,258.0" fill="none" stroke="#a00000" stroke-width="1.4" marker-end="url(#ared)"/>
+<path d="M 596.0,374.0 L 624.0,374.0 L 624.0,850.0 L 678.0,850.0" fill="none" stroke="#a00000" stroke-width="1.4" marker-end="url(#ared)"/>
+<path d="M 596.0,500.0 L 636.0,500.0 L 636.0,814.0 L 678.0,814.0" fill="none" stroke="#a00000" stroke-width="1.4" marker-end="url(#ared)"/>
+<path d="M 596.0,338.0 L 650.0,338.0 L 650.0,174.0 L 1240.0,174.0 L 1240.0,452.0 L 1328.0,452.0" fill="none" stroke="#a00000" stroke-width="1.4" marker-end="url(#ared)"/>
+<text x="706.0" y="170.0" font-size="9.5" fill="#a00000" font-family="Helvetica, Arial, sans-serif" font-style="italic">e_entry: first instruction executed</text>
+<path d="M 678,862.0 L 662,862.0 L 662,504.0 L 678,504.0" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#agry)"/>
+<text x="658" y="677.0" font-size="8.5" fill="#999999" font-family="Helvetica, Arial, sans-serif" transform="rotate(-90 658 677.0)" text-anchor="middle">each Shdr: sh_offset → its section</text>
+<rect x="1660.0" y="116.0" width="580.0" height="236.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1660.0" y="116.0" width="580.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1668.0" y="133.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">One file, two views</text>
+<text x="1801.0" y="160.0" font-size="11.5" fill="#000000" font-family="Helvetica, Arial, sans-serif" text-anchor="middle" font-weight="bold">Linking view</text>
+<text x="1801.0" y="173.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">ld(1) at build time: sections</text>
+<rect x="1676.0" y="180.0" width="250.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="1801.0" y="195.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">ELF header</text>
+<rect x="1676.0" y="204.0" width="250.0" height="24.0" fill="#ffffff" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="1801.0" y="219.5" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Program header table (opt.)</text>
+<rect x="1676.0" y="228.0" width="250.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1801.0" y="243.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Section 1</text>
+<rect x="1676.0" y="252.0" width="250.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1801.0" y="267.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">…</text>
+<rect x="1676.0" y="276.0" width="250.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1801.0" y="291.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Section n</text>
+<rect x="1676.0" y="300.0" width="250.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="1801.0" y="315.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Section header table</text>
+<text x="2099.0" y="160.0" font-size="11.5" fill="#000000" font-family="Helvetica, Arial, sans-serif" text-anchor="middle" font-weight="bold">Execution view</text>
+<text x="2099.0" y="173.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle">execve(2)+ld.so(8) at run time: segments</text>
+<rect x="1974.0" y="180.0" width="250.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="2099.0" y="195.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">ELF header</text>
+<rect x="1974.0" y="204.0" width="250.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="2099.0" y="219.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Program header table</text>
+<rect x="1974.0" y="228.0" width="250.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="2099.0" y="243.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Segment 1</text>
+<rect x="1974.0" y="252.0" width="250.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="2099.0" y="267.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Segment 2</text>
+<rect x="1974.0" y="276.0" width="250.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="2099.0" y="291.5" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">…</text>
+<rect x="1974.0" y="300.0" width="250.0" height="24.0" fill="#ffffff" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="2099.0" y="315.5" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">Section header table (opt.)</text>
+<text x="1950.0" y="342.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="middle" font-style="italic">same bytes, two tables slicing them: a segment usually contains many whole sections</text>
+<rect x="1660.0" y="366.0" width="580.0" height="232.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1660.0" y="366.0" width="580.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1668.0" y="383.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">From file to running process</text>
+<text x="1674.0" y="411.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">1</text>
+<text x="1694.0" y="411.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">execve(2): kernel checks magic \x7fELF, reads Ehdr + program headers</text>
+<text x="1674.0" y="433.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">2</text>
+<text x="1694.0" y="433.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">kernel mmaps every PT_LOAD segment (ET_DYN → random base = ASLR/PIE)</text>
+<text x="1674.0" y="455.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">3</text>
+<text x="1694.0" y="455.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">PT_INTERP? → kernel also maps the interpreter (ld.so) and enters it instead</text>
+<text x="1674.0" y="477.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">4</text>
+<text x="1694.0" y="477.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">ld.so walks .dynamic (PT_DYNAMIC): mmaps every DT_NEEDED library, recursively</text>
+<text x="1674.0" y="499.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">5</text>
+<text x="1694.0" y="499.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">relocations applied: .rela.dyn now; .rela.plt lazily via PLT → GOT stubs</text>
+<text x="1674.0" y="521.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">6</text>
+<text x="1694.0" y="521.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">PT_GNU_RELRO region mprotect()ed read-only; .preinit_array/.init/.init_array run</text>
+<text x="1674.0" y="543.0" font-size="11" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">7</text>
+<text x="1694.0" y="543.0" font-size="10.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">jump to e_entry: _start → __libc_start_main → main()</text>
+<text x="1674.0" y="564.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">static binaries: no PT_INTERP/.dynamic — kernel jumps straight to e_entry</text>
+<rect x="1660.0" y="612.0" width="580.0" height="290.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1660.0" y="612.0" width="580.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1668.0" y="629.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">Basic types &amp; struct sizes (ELF32 / ELF64)</text>
+<text x="1674.0" y="652.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ElfN_Addr</text>
+<text x="1778.0" y="652.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">4 / 8  program address</text>
+<text x="1674.0" y="667.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ElfN_Off</text>
+<text x="1778.0" y="667.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">4 / 8  file offset</text>
+<text x="1674.0" y="683.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ElfN_Half</text>
+<text x="1778.0" y="683.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">2 / 2  uint16_t</text>
+<text x="1674.0" y="698.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ElfN_Word</text>
+<text x="1778.0" y="698.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">4 / 4  uint32_t (Sword=int32)</text>
+<text x="1674.0" y="714.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ElfN_Xword</text>
+<text x="1778.0" y="714.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">– / 8  uint64_t (Sxword=int64)</text>
+<text x="1674.0" y="729.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ElfN_Section</text>
+<text x="1778.0" y="729.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">2 / 2  section index</text>
+<text x="1674.0" y="745.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">unsigned char</text>
+<text x="1778.0" y="745.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">1 / 1  e_ident, st_info…</text>
+<text x="1964.0" y="652.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Ehdr</text>
+<text x="2048.0" y="652.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">52 / 64   ELF header</text>
+<text x="1964.0" y="667.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Phdr</text>
+<text x="2048.0" y="667.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">32 / 56   program header</text>
+<text x="1964.0" y="683.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Shdr</text>
+<text x="2048.0" y="683.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">40 / 64   section header</text>
+<text x="1964.0" y="698.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Sym</text>
+<text x="2048.0" y="698.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">16 / 24   symbol</text>
+<text x="1964.0" y="714.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Rel / Rela</text>
+<text x="2048.0" y="714.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif"> 8/16 · 12/24  reloc</text>
+<text x="1964.0" y="729.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Dyn</text>
+<text x="2048.0" y="729.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif"> 8 / 16   dynamic entry</text>
+<text x="1964.0" y="745.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">Nhdr</text>
+<text x="2048.0" y="745.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">12 / 12   note header</text>
+<text x="1674.0" y="775.5" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">every multi-byte field uses the byte order declared in e_ident[EI_DATA];</text>
+<text x="1674.0" y="790.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">structs are naturally aligned — ELF32 offsets shrink where Addr/Off/Xword</text>
+<text x="1674.0" y="804.5" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">fields narrow to 4 bytes.  #include &lt;elf.h&gt; has all of these typedefs.</text>
+<rect x="40.0" y="936.0" width="535.0" height="596.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="40.0" y="936.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="48.0" y="953.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">4. Program header — ElfN_Phdr</text>
+<rect x="52.0" y="970.0" width="511.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="103.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="137.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="255.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="52.0" y="988.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1001.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x00</text>
+<text x="103.0" y="1001.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="137.0" y="1001.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_type</text>
+<text x="255.0" y="1001.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">segment type — PT_* below</text>
+<rect x="52.0" y="1006.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1019.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x04</text>
+<text x="103.0" y="1019.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="137.0" y="1019.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_flags</text>
+<text x="255.0" y="1019.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">PF_R=4  PF_W=2  PF_X=1</text>
+<rect x="52.0" y="1024.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1037.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x08</text>
+<text x="103.0" y="1037.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1037.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_offset</text>
+<text x="255.0" y="1037.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">file offset of segment start</text>
+<rect x="52.0" y="1042.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1055.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x10</text>
+<text x="103.0" y="1055.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1055.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_vaddr</text>
+<text x="255.0" y="1055.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">virtual address in memory</text>
+<rect x="52.0" y="1060.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1073.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x18</text>
+<text x="103.0" y="1073.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1073.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_paddr</text>
+<text x="255.0" y="1073.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">physical addr (unused; = p_vaddr)</text>
+<rect x="52.0" y="1078.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1091.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x20</text>
+<text x="103.0" y="1091.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1091.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_filesz</text>
+<text x="255.0" y="1091.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">bytes of the segment in the file</text>
+<rect x="52.0" y="1096.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1109.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x28</text>
+<text x="103.0" y="1109.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1109.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_memsz</text>
+<text x="255.0" y="1109.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">bytes in memory (≥ filesz; extra ⇒ zeroed)</text>
+<rect x="52.0" y="1114.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1127.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x30</text>
+<text x="103.0" y="1127.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1127.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">p_align</text>
+<text x="255.0" y="1127.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">p_vaddr ≡ p_offset (mod p_align); page size</text>
+<line x1="98.0" y1="970.0" x2="98.0" y2="1132.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="132.0" y1="970.0" x2="132.0" y2="1132.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="250.0" y1="970.0" x2="250.0" y2="1132.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="52.0" y="970.0" width="511.0" height="162.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="52.0" y="1144.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">⚠ ELF32 field order differs: p_flags sits at 0x18, after p_memsz</text>
+<text x="52.0" y="1170.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">p_type:</text>
+<text x="52.0" y="1187.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_NULL</text>
+<text x="194.0" y="1187.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="212.0" y="1187.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">unused entry</text>
+<text x="52.0" y="1203.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_LOAD</text>
+<text x="194.0" y="1203.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="212.0" y="1203.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">loadable: mmap filesz bytes @vaddr, zero-fill to memsz</text>
+<text x="52.0" y="1219.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_DYNAMIC</text>
+<text x="194.0" y="1219.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="212.0" y="1219.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">location of .dynamic</text>
+<text x="52.0" y="1235.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_INTERP</text>
+<text x="194.0" y="1235.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="212.0" y="1235.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">path of interpreter: /lib64/ld-linux-x86-64.so.2</text>
+<text x="52.0" y="1251.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_NOTE</text>
+<text x="194.0" y="1251.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="212.0" y="1251.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">location of notes (Nhdr)</text>
+<text x="52.0" y="1267.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_SHLIB</text>
+<text x="194.0" y="1267.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">5</text>
+<text x="212.0" y="1267.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">reserved, non-conforming</text>
+<text x="52.0" y="1283.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_PHDR</text>
+<text x="194.0" y="1283.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">6</text>
+<text x="212.0" y="1283.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">the program header table itself</text>
+<text x="52.0" y="1299.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_TLS</text>
+<text x="194.0" y="1299.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">7</text>
+<text x="212.0" y="1299.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">thread-local storage template</text>
+<text x="52.0" y="1315.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_GNU_EH_FRAME</text>
+<text x="194.0" y="1315.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="212.0" y="1315.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">unwind tables (.eh_frame_hdr)</text>
+<text x="52.0" y="1331.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_GNU_STACK</text>
+<text x="194.0" y="1331.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="212.0" y="1331.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">stack perms via p_flags only</text>
+<text x="52.0" y="1347.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_GNU_RELRO</text>
+<text x="194.0" y="1347.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="212.0" y="1347.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">make r/o after relocation</text>
+<text x="52.0" y="1363.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">PT_GNU_PROPERTY</text>
+<text x="194.0" y="1363.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="212.0" y="1363.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">.note.gnu.property (CET…)</text>
+<text x="52.0" y="1389.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">Only PT_LOAD bytes reach memory; all other segment</text>
+<text x="52.0" y="1403.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">types just point inside a PT_LOAD (or carry flags).</text>
+<text x="52.0" y="1428.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">A typical /bin/ls has 13 segments: PHDR, INTERP, 4×LOAD,</text>
+<text x="52.0" y="1443.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">DYNAMIC, NOTE ×2, GNU_PROPERTY, GNU_EH_FRAME,</text>
+<text x="52.0" y="1458.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">GNU_STACK, GNU_RELRO.</text>
+<text x="52.0" y="1480.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">readelf -lW  shows segments + section→segment mapping</text>
+<rect x="595.0" y="936.0" width="535.0" height="596.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="595.0" y="936.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="603.0" y="953.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">5. Section header — ElfN_Shdr</text>
+<rect x="607.0" y="970.0" width="511.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="658.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="692.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="810.0" y="983.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="607.0" y="988.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1001.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x00</text>
+<text x="658.0" y="1001.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="692.0" y="1001.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_name</text>
+<text x="810.0" y="1001.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">offset of name in .shstrtab</text>
+<rect x="607.0" y="1006.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1019.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x04</text>
+<text x="658.0" y="1019.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="692.0" y="1019.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_type</text>
+<text x="810.0" y="1019.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">SHT_* — panel 6</text>
+<rect x="607.0" y="1024.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1037.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x08</text>
+<text x="658.0" y="1037.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1037.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_flags</text>
+<text x="810.0" y="1037.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">SHF_* bitmask — panel 6</text>
+<rect x="607.0" y="1042.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1055.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x10</text>
+<text x="658.0" y="1055.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1055.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_addr</text>
+<text x="810.0" y="1055.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">vaddr if SHF_ALLOC, else 0</text>
+<rect x="607.0" y="1060.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1073.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x18</text>
+<text x="658.0" y="1073.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1073.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_offset</text>
+<text x="810.0" y="1073.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">file offset of section data</text>
+<rect x="607.0" y="1078.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1091.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x20</text>
+<text x="658.0" y="1091.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1091.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_size</text>
+<text x="810.0" y="1091.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">size in bytes (in file unless NOBITS)</text>
+<rect x="607.0" y="1096.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1109.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x28</text>
+<text x="658.0" y="1109.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="692.0" y="1109.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_link</text>
+<text x="810.0" y="1109.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">related section index — table below</text>
+<rect x="607.0" y="1114.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1127.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x2c</text>
+<text x="658.0" y="1127.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="692.0" y="1127.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_info</text>
+<text x="810.0" y="1127.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">extra info — table below</text>
+<rect x="607.0" y="1132.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1145.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x30</text>
+<text x="658.0" y="1145.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1145.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_addralign</text>
+<text x="810.0" y="1145.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">alignment, power of two</text>
+<rect x="607.0" y="1150.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1163.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x38</text>
+<text x="658.0" y="1163.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1163.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">sh_entsize</text>
+<text x="810.0" y="1163.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">entry size if section holds a table</text>
+<line x1="653.0" y1="970.0" x2="653.0" y2="1168.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="687.0" y1="970.0" x2="687.0" y2="1168.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="805.0" y1="970.0" x2="805.0" y2="1168.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="607.0" y="970.0" width="511.0" height="198.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="607.0" y="1180.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">ELF32 identical layout, 4-byte flags/addr/off/size/align/entsize</text>
+<text x="607.0" y="1206.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">sh_link / sh_info meaning depends on sh_type:</text>
+<rect x="607.0" y="1214.0" width="511.0" height="16.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="611.0" y="1226.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sh_type</text>
+<text x="743.0" y="1226.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sh_link →</text>
+<text x="933.0" y="1226.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sh_info</text>
+<rect x="607.0" y="1230.0" width="511.0" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="611.0" y="1242.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SYMTAB, DYNSYM</text>
+<text x="743.0" y="1242.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">its string table (.strtab)</text>
+<text x="933.0" y="1242.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">first non-local symbol idx</text>
+<rect x="607.0" y="1247.0" width="511.0" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="611.0" y="1259.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">REL, RELA</text>
+<text x="743.0" y="1259.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">its symbol table</text>
+<text x="933.0" y="1259.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">section relocs apply to</text>
+<rect x="607.0" y="1264.0" width="511.0" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="611.0" y="1276.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DYNAMIC</text>
+<text x="743.0" y="1276.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">.dynstr</text>
+<text x="933.0" y="1276.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">0</text>
+<rect x="607.0" y="1281.0" width="511.0" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="611.0" y="1293.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">HASH, GNU_HASH</text>
+<text x="743.0" y="1293.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">its symbol table</text>
+<text x="933.0" y="1293.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">0</text>
+<rect x="607.0" y="1298.0" width="511.0" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="611.0" y="1310.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">GROUP</text>
+<text x="743.0" y="1310.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">.symtab</text>
+<text x="933.0" y="1310.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">signature symbol index</text>
+<line x1="739.0" y1="1214.0" x2="739.0" y2="1315.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="929.0" y1="1214.0" x2="929.0" y2="1315.0" stroke="#999999" stroke-width="0.6"/>
+<text x="607.0" y="1340.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">First entry (index 0 = SHN_UNDEF) is all zeros — also reused to hold</text>
+<text x="607.0" y="1355.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">huge e_phnum/e_shnum/e_shstrndx values (see panel 1).</text>
+<text x="607.0" y="1370.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">Sections don’t overlap; every file byte belongs to at most one section.</text>
+<text x="607.0" y="1392.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">readelf -SW  •  objdump -h   list all sections</text>
+<rect x="1150.0" y="936.0" width="535.0" height="596.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1150.0" y="936.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1158.0" y="953.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">6. Section types (sh_type) &amp; flags (sh_flags)</text>
+<text x="1162.0" y="980.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">sh_type:</text>
+<text x="1162.0" y="997.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_NULL</text>
+<text x="1320.0" y="997.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="1346.0" y="997.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">inactive, no section</text>
+<text x="1162.0" y="1013.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_PROGBITS</text>
+<text x="1320.0" y="1013.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="1346.0" y="1013.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">program-defined bytes (code, data)</text>
+<text x="1162.0" y="1029.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_SYMTAB</text>
+<text x="1320.0" y="1029.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="1346.0" y="1029.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">full symbol table, for linking</text>
+<text x="1162.0" y="1045.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_STRTAB</text>
+<text x="1320.0" y="1045.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="1346.0" y="1045.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">string table</text>
+<text x="1162.0" y="1061.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_RELA</text>
+<text x="1320.0" y="1061.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="1346.0" y="1061.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">relocations with addend</text>
+<text x="1162.0" y="1077.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_HASH</text>
+<text x="1320.0" y="1077.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">5</text>
+<text x="1346.0" y="1077.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">symbol hash table</text>
+<text x="1162.0" y="1093.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_DYNAMIC</text>
+<text x="1320.0" y="1093.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">6</text>
+<text x="1346.0" y="1093.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">dynamic linking info</text>
+<text x="1162.0" y="1109.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_NOTE</text>
+<text x="1320.0" y="1109.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">7</text>
+<text x="1346.0" y="1109.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">notes</text>
+<text x="1162.0" y="1125.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_NOBITS</text>
+<text x="1320.0" y="1125.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="1346.0" y="1125.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">no bytes in file (.bss)</text>
+<text x="1162.0" y="1141.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_REL</text>
+<text x="1320.0" y="1141.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">9</text>
+<text x="1346.0" y="1141.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">relocations, no addend</text>
+<text x="1162.0" y="1157.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_DYNSYM</text>
+<text x="1320.0" y="1157.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">11</text>
+<text x="1346.0" y="1157.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">minimal symtab for dyn. linking</text>
+<text x="1162.0" y="1173.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_INIT_ARRAY</text>
+<text x="1320.0" y="1173.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">14</text>
+<text x="1346.0" y="1173.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">constructor pointers</text>
+<text x="1162.0" y="1189.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_FINI_ARRAY</text>
+<text x="1320.0" y="1189.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">15</text>
+<text x="1346.0" y="1189.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">destructor pointers</text>
+<text x="1162.0" y="1205.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_PREINIT_ARRAY</text>
+<text x="1320.0" y="1205.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">16</text>
+<text x="1346.0" y="1205.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">pre-init pointers</text>
+<text x="1162.0" y="1221.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_GROUP</text>
+<text x="1320.0" y="1221.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">17</text>
+<text x="1346.0" y="1221.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">COMDAT section group</text>
+<text x="1162.0" y="1237.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_SYMTAB_SHNDX</text>
+<text x="1320.0" y="1237.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">18</text>
+<text x="1346.0" y="1237.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">extended section indices</text>
+<text x="1162.0" y="1253.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_GNU_HASH</text>
+<text x="1320.0" y="1253.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1346.0" y="1253.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">GNU-style hash (0x6ffffff6)</text>
+<text x="1162.0" y="1269.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_GNU_verdef</text>
+<text x="1320.0" y="1269.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1346.0" y="1269.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">version definitions</text>
+<text x="1162.0" y="1285.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_GNU_verneed</text>
+<text x="1320.0" y="1285.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1346.0" y="1285.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">required versions</text>
+<text x="1162.0" y="1301.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHT_GNU_versym</text>
+<text x="1320.0" y="1301.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1346.0" y="1301.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">per-symbol version indices</text>
+<text x="1162.0" y="1329.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">sh_flags (letters as shown by readelf -S):</text>
+<text x="1162.0" y="1346.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_WRITE</text>
+<text x="1304.0" y="1346.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x1</text>
+<text x="1352.0" y="1346.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">W  writable at run time</text>
+<text x="1162.0" y="1362.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_ALLOC</text>
+<text x="1304.0" y="1362.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x2</text>
+<text x="1352.0" y="1362.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">A  occupies memory at run time</text>
+<text x="1162.0" y="1378.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_EXECINSTR</text>
+<text x="1304.0" y="1378.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x4</text>
+<text x="1352.0" y="1378.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">X  executable instructions</text>
+<text x="1162.0" y="1394.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_MERGE</text>
+<text x="1304.0" y="1394.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x10</text>
+<text x="1352.0" y="1394.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">M  mergeable constants</text>
+<text x="1162.0" y="1410.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_STRINGS</text>
+<text x="1304.0" y="1410.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x20</text>
+<text x="1352.0" y="1410.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">S  nul-terminated strings</text>
+<text x="1162.0" y="1426.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_INFO_LINK</text>
+<text x="1304.0" y="1426.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x40</text>
+<text x="1352.0" y="1426.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">I  sh_info is a section index</text>
+<text x="1162.0" y="1442.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_LINK_ORDER</text>
+<text x="1304.0" y="1442.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x80</text>
+<text x="1352.0" y="1442.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">L  ordering with sh_link section</text>
+<text x="1162.0" y="1458.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_GROUP</text>
+<text x="1304.0" y="1458.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x200</text>
+<text x="1352.0" y="1458.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">G  member of section group</text>
+<text x="1162.0" y="1474.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_TLS</text>
+<text x="1304.0" y="1474.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x400</text>
+<text x="1352.0" y="1474.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">T  thread-local storage</text>
+<text x="1162.0" y="1490.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHF_COMPRESSED</text>
+<text x="1304.0" y="1490.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x800</text>
+<text x="1352.0" y="1490.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">C  compressed (Chdr first)</text>
+<text x="1162.0" y="1509.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">The A flag decides what the linker packs into PT_LOAD</text>
+<text x="1162.0" y="1523.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">segments: W+A→rw data, A+X→r-x text, A→r-- rodata.</text>
+<rect x="1705.0" y="936.0" width="535.0" height="596.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1705.0" y="936.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1713.0" y="953.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">7. Special sections — who holds what</text>
+<rect x="1717.0" y="968.0" width="511.0" height="16.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="980.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">name</text>
+<text x="1839.0" y="980.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sh_type</text>
+<text x="1935.0" y="980.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">flags</text>
+<text x="1979.0" y="980.0" font-size="9" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">holds</text>
+<rect x="1717.0" y="984.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="996.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.text</text>
+<text x="1839.0" y="996.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="996.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">AX</text>
+<text x="1979.0" y="996.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">the program’s machine code</text>
+<rect x="1717.0" y="1001.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1014.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.init / .fini</text>
+<text x="1839.0" y="1014.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1014.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">AX</text>
+<text x="1979.0" y="1014.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">process init / termination code</text>
+<rect x="1717.0" y="1019.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1031.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.plt / .got</text>
+<text x="1839.0" y="1031.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1031.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">AX/WA</text>
+<text x="1979.0" y="1031.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">procedure linkage / global offset tables</text>
+<rect x="1717.0" y="1036.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1049.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.rodata</text>
+<text x="1839.0" y="1049.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1049.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1049.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">read-only data (string literals…)</text>
+<rect x="1717.0" y="1054.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1066.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.interp</text>
+<text x="1839.0" y="1066.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1066.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1066.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">path of the dynamic linker</text>
+<rect x="1717.0" y="1071.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1084.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.eh_frame</text>
+<text x="1839.0" y="1084.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1084.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1084.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">stack-unwind (exception) tables</text>
+<rect x="1717.0" y="1089.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1101.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.data</text>
+<text x="1839.0" y="1101.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1101.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">WA</text>
+<text x="1979.0" y="1101.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">initialized variables</text>
+<rect x="1717.0" y="1106.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1119.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.data1/.rodata1</text>
+<text x="1839.0" y="1119.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1119.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">WA/A</text>
+<text x="1979.0" y="1119.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">more of the same (rare)</text>
+<rect x="1717.0" y="1124.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1136.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.bss</text>
+<text x="1839.0" y="1136.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">NOBITS</text>
+<text x="1935.0" y="1136.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">WA</text>
+<text x="1979.0" y="1136.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">zero-initialized vars — no file bytes</text>
+<rect x="1717.0" y="1141.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1154.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.dynamic</text>
+<text x="1839.0" y="1154.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">DYNAMIC</text>
+<text x="1935.0" y="1154.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">WA</text>
+<text x="1979.0" y="1154.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">DT_* entries for ld.so — panel 10</text>
+<rect x="1717.0" y="1159.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1171.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.init_array</text>
+<text x="1839.0" y="1171.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">INIT_ARRAY</text>
+<text x="1935.0" y="1171.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">WA</text>
+<text x="1979.0" y="1171.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">constructor fn pointers (.ctors)</text>
+<rect x="1717.0" y="1176.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1189.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.fini_array</text>
+<text x="1839.0" y="1189.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">FINI_ARRAY</text>
+<text x="1935.0" y="1189.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">WA</text>
+<text x="1979.0" y="1189.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">destructor fn pointers (.dtors)</text>
+<rect x="1717.0" y="1194.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1206.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.dynsym</text>
+<text x="1839.0" y="1206.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">DYNSYM</text>
+<text x="1935.0" y="1206.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1206.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">exported/imported symbols</text>
+<rect x="1717.0" y="1211.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1224.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.dynstr</text>
+<text x="1839.0" y="1224.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">STRTAB</text>
+<text x="1935.0" y="1224.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1224.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">their name strings</text>
+<rect x="1717.0" y="1229.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1241.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.gnu.hash</text>
+<text x="1839.0" y="1241.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">GNU_HASH</text>
+<text x="1935.0" y="1241.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1241.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">fast symbol lookup for ld.so</text>
+<rect x="1717.0" y="1246.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1259.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.gnu.version*</text>
+<text x="1839.0" y="1259.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">versym…</text>
+<text x="1935.0" y="1259.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">A</text>
+<text x="1979.0" y="1259.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">symbol version info</text>
+<rect x="1717.0" y="1264.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1276.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.rel.X .rela.X</text>
+<text x="1839.0" y="1276.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">REL/RELA</text>
+<text x="1935.0" y="1276.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">(A)</text>
+<text x="1979.0" y="1276.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">relocations that patch section X</text>
+<rect x="1717.0" y="1281.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1294.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.note.*</text>
+<text x="1839.0" y="1294.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">NOTE</text>
+<text x="1935.0" y="1294.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">(A)</text>
+<text x="1979.0" y="1294.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">ABI tag, build-id — panel 11</text>
+<rect x="1717.0" y="1299.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1311.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.symtab</text>
+<text x="1839.0" y="1311.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">SYMTAB</text>
+<text x="1935.0" y="1311.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1979.0" y="1311.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">all symbols — for linkers/debuggers</text>
+<rect x="1717.0" y="1316.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1329.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.strtab</text>
+<text x="1839.0" y="1329.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">STRTAB</text>
+<text x="1935.0" y="1329.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1979.0" y="1329.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">symbol name strings</text>
+<rect x="1717.0" y="1334.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1346.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.shstrtab</text>
+<text x="1839.0" y="1346.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">STRTAB</text>
+<text x="1935.0" y="1346.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1979.0" y="1346.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">section name strings</text>
+<rect x="1717.0" y="1351.5" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1364.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.comment</text>
+<text x="1839.0" y="1364.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1364.0" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1979.0" y="1364.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">compiler version notes</text>
+<rect x="1717.0" y="1369.0" width="511.0" height="17.5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1721.0" y="1381.5" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">.debug_*</text>
+<text x="1839.0" y="1381.5" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">PROGBITS</text>
+<text x="1935.0" y="1381.5" font-size="9" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1979.0" y="1381.5" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">DWARF debug info (strippable)</text>
+<line x1="1835.0" y1="968.0" x2="1835.0" y2="1386.5" stroke="#999999" stroke-width="0.6"/>
+<line x1="1931.0" y1="968.0" x2="1931.0" y2="1386.5" stroke="#999999" stroke-width="0.6"/>
+<line x1="1975.0" y1="968.0" x2="1975.0" y2="1386.5" stroke="#999999" stroke-width="0.6"/>
+<rect x="1717.0" y="968.0" width="511.0" height="418.5" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="1717.0" y="1408.5" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">flags: A=ALLOC  W=WRITE  X=EXECINSTR   (A)=only if loaded</text>
+<rect x="40.0" y="1556.0" width="535.0" height="534.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="40.0" y="1556.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="48.0" y="1573.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">8. Symbol table — ElfN_Sym (.symtab / .dynsym)</text>
+<rect x="52.0" y="1590.0" width="511.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="103.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="137.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="255.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="52.0" y="1608.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x00</text>
+<text x="103.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="137.0" y="1621.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">st_name</text>
+<text x="255.0" y="1621.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">offset of name in .strtab / .dynstr</text>
+<rect x="52.0" y="1626.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x04</text>
+<text x="103.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="137.0" y="1639.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">st_info</text>
+<text x="255.0" y="1639.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">bind&lt;&lt;4 | type — see below</text>
+<rect x="52.0" y="1644.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1657.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x05</text>
+<text x="103.0" y="1657.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="137.0" y="1657.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">st_other</text>
+<text x="255.0" y="1657.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">visibility STV_*</text>
+<rect x="52.0" y="1662.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1675.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x06</text>
+<text x="103.0" y="1675.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="137.0" y="1675.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">st_shndx</text>
+<text x="255.0" y="1675.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">section the symbol is defined in</text>
+<rect x="52.0" y="1680.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1693.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x08</text>
+<text x="103.0" y="1693.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1693.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">st_value</text>
+<text x="255.0" y="1693.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">address (or section offset in .o files)</text>
+<rect x="52.0" y="1698.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="57.0" y="1711.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x10</text>
+<text x="103.0" y="1711.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="137.0" y="1711.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">st_size</text>
+<text x="255.0" y="1711.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">size of the object/function, 0 if unknown</text>
+<line x1="98.0" y1="1590.0" x2="98.0" y2="1716.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="132.0" y1="1590.0" x2="132.0" y2="1716.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="250.0" y1="1590.0" x2="250.0" y2="1716.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="52.0" y="1590.0" width="511.0" height="126.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="52.0" y="1728.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">ELF32: same members, order name,value,size,info,other,shndx (16 B)</text>
+<text x="52.0" y="1756.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">st_info — one byte, two fields:</text>
+<rect x="92.0" y="1764.0" width="150.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<rect x="242.0" y="1764.0" width="150.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="167.0" y="1780.0" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">bind = info &gt;&gt; 4</text>
+<text x="317.0" y="1780.0" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">type = info &amp; 0xf</text>
+<text x="86.0" y="1780.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="end">7</text>
+<text x="398.0" y="1780.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="52.0" y="1808.0" font-size="9.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">macros: ELF64_ST_BIND(i), ELF64_ST_TYPE(i), ELF64_ST_INFO(b,t)</text>
+<text x="52.0" y="1828.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">bind:</text>
+<text x="52.0" y="1845.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STB_LOCAL</text>
+<text x="146.0" y="1845.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="162.0" y="1845.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">file-private</text>
+<text x="52.0" y="1860.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STB_GLOBAL</text>
+<text x="146.0" y="1860.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="162.0" y="1860.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">visible to all</text>
+<text x="52.0" y="1875.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STB_WEAK</text>
+<text x="146.0" y="1875.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="162.0" y="1875.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">overridable dflt</text>
+<text x="52.0" y="1898.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">st_other visibility:</text>
+<text x="52.0" y="1915.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STV_DEFAULT</text>
+<text x="162.0" y="1915.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="178.0" y="1915.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">interposable</text>
+<text x="52.0" y="1930.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STV_INTERNAL</text>
+<text x="162.0" y="1930.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="178.0" y="1930.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">proc-specific</text>
+<text x="52.0" y="1945.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STV_HIDDEN</text>
+<text x="162.0" y="1945.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="178.0" y="1945.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">not exported</text>
+<text x="52.0" y="1960.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STV_PROTECTED</text>
+<text x="162.0" y="1960.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="178.0" y="1960.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">no interpose</text>
+<text x="302.0" y="1828.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">type:</text>
+<text x="302.0" y="1845.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_NOTYPE</text>
+<text x="422.0" y="1845.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="444.0" y="1845.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">unspecified</text>
+<text x="302.0" y="1860.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_OBJECT</text>
+<text x="422.0" y="1860.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="444.0" y="1860.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">data object</text>
+<text x="302.0" y="1875.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_FUNC</text>
+<text x="422.0" y="1875.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="444.0" y="1875.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">function</text>
+<text x="302.0" y="1890.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_SECTION</text>
+<text x="422.0" y="1890.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="444.0" y="1890.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">a section</text>
+<text x="302.0" y="1905.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_FILE</text>
+<text x="422.0" y="1905.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="444.0" y="1905.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">source file name</text>
+<text x="302.0" y="1920.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_COMMON</text>
+<text x="422.0" y="1920.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">5</text>
+<text x="444.0" y="1920.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">tentative def</text>
+<text x="302.0" y="1935.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_TLS</text>
+<text x="422.0" y="1935.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">6</text>
+<text x="444.0" y="1935.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">thread-local</text>
+<text x="302.0" y="1950.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">STT_GNU_IFUNC</text>
+<text x="422.0" y="1950.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">10</text>
+<text x="444.0" y="1950.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">resolver fn</text>
+<text x="52.0" y="1983.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">special st_shndx values:</text>
+<text x="52.0" y="2000.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHN_UNDEF</text>
+<text x="156.0" y="2000.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="210.0" y="2000.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">undefined — to be resolved from another object</text>
+<text x="52.0" y="2015.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHN_ABS</text>
+<text x="156.0" y="2015.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0xfff1</text>
+<text x="210.0" y="2015.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">absolute value, not relocated</text>
+<text x="52.0" y="2030.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHN_COMMON</text>
+<text x="156.0" y="2030.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0xfff2</text>
+<text x="210.0" y="2030.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">unallocated common block</text>
+<text x="52.0" y="2045.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">SHN_XINDEX</text>
+<text x="156.0" y="2045.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0xffff</text>
+<text x="210.0" y="2045.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">real index in SHT_SYMTAB_SHNDX</text>
+<text x="52.0" y="2070.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">nm  •  readelf -s  •  nm -D (dynamic)</text>
+<rect x="595.0" y="1556.0" width="535.0" height="534.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="595.0" y="1556.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="603.0" y="1573.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">9. Relocations — ElfN_Rel / ElfN_Rela</text>
+<rect x="607.0" y="1590.0" width="511.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="658.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="692.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="810.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="607.0" y="1608.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x00</text>
+<text x="658.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1621.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r_offset</text>
+<text x="810.0" y="1621.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">where to patch: section offset (.o) or vaddr</text>
+<rect x="607.0" y="1626.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x08</text>
+<text x="658.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1639.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r_info</text>
+<text x="810.0" y="1639.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">symbol index + relocation type, packed</text>
+<rect x="607.0" y="1644.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="612.0" y="1657.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x10</text>
+<text x="658.0" y="1657.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="692.0" y="1657.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">r_addend</text>
+<text x="810.0" y="1657.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">constant to add (Rela only; Rel: implicit)</text>
+<line x1="653.0" y1="1590.0" x2="653.0" y2="1662.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="687.0" y1="1590.0" x2="687.0" y2="1662.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="805.0" y1="1590.0" x2="805.0" y2="1662.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="607.0" y="1590.0" width="511.0" height="72.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="607.0" y="1674.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">Elf64_Rel = 16 B (no addend), Elf64_Rela = 24 B. x86-64 uses only RELA.</text>
+<text x="607.0" y="1702.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">r_info — packed symbol + type:</text>
+<rect x="647.0" y="1710.0" width="190.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<rect x="837.0" y="1710.0" width="190.0" height="24.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="742.0" y="1726.0" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">sym = info &gt;&gt; 32</text>
+<text x="932.0" y="1726.0" font-size="10" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">type = info &amp; 0xffffffff</text>
+<text x="647.0" y="1752.0" font-size="9.5" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">ELF64 (ELF32: sym = info &gt;&gt; 8, type = info &amp; 0xff)</text>
+<text x="607.0" y="1778.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">type is per-architecture, e.g. x86-64:  (S=sym, A=addend, P=place, B=base)</text>
+<text x="607.0" y="1795.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">R_X86_64_64</text>
+<text x="777.0" y="1795.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="797.0" y="1795.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">S + A  — absolute 64-bit address</text>
+<text x="607.0" y="1811.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">R_X86_64_PC32</text>
+<text x="777.0" y="1811.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="797.0" y="1811.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">S + A − P  — PC-relative (calls, jumps)</text>
+<text x="607.0" y="1827.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">R_X86_64_GLOB_DAT</text>
+<text x="777.0" y="1827.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">6</text>
+<text x="797.0" y="1827.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">set a GOT slot to symbol address</text>
+<text x="607.0" y="1843.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">R_X86_64_JUMP_SLOT</text>
+<text x="777.0" y="1843.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">7</text>
+<text x="797.0" y="1843.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">PLT slot — filled lazily by ld.so</text>
+<text x="607.0" y="1859.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">R_X86_64_RELATIVE</text>
+<text x="777.0" y="1859.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="797.0" y="1859.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">B + A  — add load base (PIE fixups)</text>
+<text x="607.0" y="1875.0" font-size="9.8" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">R_X86_64_COPY</text>
+<text x="777.0" y="1875.0" font-size="9.3" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">5</text>
+<text x="797.0" y="1875.0" font-size="9.8" fill="#000000" font-family="Helvetica, Arial, sans-serif">copy lib data into executable</text>
+<text x="607.0" y="1905.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">Where they live:</text>
+<text x="607.0" y="1921.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">  ET_REL .o:  .rela.text, .rela.data… — applied by ld(1) at link time</text>
+<text x="607.0" y="1937.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">  ET_DYN/EXEC:  .rela.dyn (data &amp; GOT, applied at load)</text>
+<text x="607.0" y="1953.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">                .rela.plt (function calls, applied lazily on 1st call)</text>
+<text x="607.0" y="1981.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">Lazy binding, step by step:</text>
+<text x="607.0" y="1998.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">call foo@plt → jmp *GOT[n]; on the 1st call GOT[n] still points</text>
+<text x="607.0" y="2013.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">back into the PLT, which calls ld.so → resolves "foo", writes its</text>
+<text x="607.0" y="2028.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">real address into GOT[n] — every later call jumps straight there.</text>
+<text x="607.0" y="2043.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">(LD_BIND_NOW=1 / DT_BIND_NOW / full RELRO resolve all at startup.)</text>
+<text x="607.0" y="2065.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">readelf -r  •  objdump -R  •  objdump -d -j .plt</text>
+<rect x="1150.0" y="1556.0" width="535.0" height="534.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1150.0" y="1556.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1158.0" y="1573.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">10. Dynamic section — ElfN_Dyn (.dynamic)</text>
+<rect x="1162.0" y="1590.0" width="511.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="1167.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="1213.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="1247.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="1365.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="1162.0" y="1608.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1167.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x00</text>
+<text x="1213.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="1247.0" y="1621.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">d_tag</text>
+<text x="1365.0" y="1621.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">DT_* — selects meaning of d_un</text>
+<rect x="1162.0" y="1626.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1167.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x08</text>
+<text x="1213.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="1247.0" y="1639.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">d_un</text>
+<text x="1365.0" y="1639.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">union: d_val (integer) or d_ptr (address)</text>
+<line x1="1208.0" y1="1590.0" x2="1208.0" y2="1644.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="1242.0" y1="1590.0" x2="1242.0" y2="1644.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="1360.0" y1="1590.0" x2="1360.0" y2="1644.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="1162.0" y="1590.0" width="511.0" height="54.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="1162.0" y="1656.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">an array, terminated by DT_NULL; symbol _DYNAMIC points at it</text>
+<text x="1162.0" y="1680.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_NULL</text>
+<text x="1266.0" y="1680.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0</text>
+<text x="1290.0" y="1680.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">end of array</text>
+<text x="1162.0" y="1696.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_NEEDED</text>
+<text x="1266.0" y="1696.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="1290.0" y="1696.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">needed library *</text>
+<text x="1162.0" y="1713.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_PLTRELSZ</text>
+<text x="1266.0" y="1713.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="1290.0" y="1713.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">size of PLT relocs</text>
+<text x="1162.0" y="1729.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_PLTGOT</text>
+<text x="1266.0" y="1729.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="1290.0" y="1729.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.got.plt address</text>
+<text x="1162.0" y="1746.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_HASH</text>
+<text x="1266.0" y="1746.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="1290.0" y="1746.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">hash table addr</text>
+<text x="1162.0" y="1762.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_STRTAB</text>
+<text x="1266.0" y="1762.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">5</text>
+<text x="1290.0" y="1762.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.dynstr address</text>
+<text x="1162.0" y="1779.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_SYMTAB</text>
+<text x="1266.0" y="1779.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">6</text>
+<text x="1290.0" y="1779.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.dynsym address</text>
+<text x="1162.0" y="1795.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_RELA</text>
+<text x="1266.0" y="1795.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">7</text>
+<text x="1290.0" y="1795.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.rela.dyn address</text>
+<text x="1162.0" y="1812.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_RELASZ</text>
+<text x="1266.0" y="1812.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">8</text>
+<text x="1290.0" y="1812.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">…its total size</text>
+<text x="1162.0" y="1828.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_RELAENT</text>
+<text x="1266.0" y="1828.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">9</text>
+<text x="1290.0" y="1828.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">…entry size</text>
+<text x="1162.0" y="1845.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_STRSZ</text>
+<text x="1266.0" y="1845.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">10</text>
+<text x="1290.0" y="1845.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.dynstr size</text>
+<text x="1162.0" y="1861.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_SYMENT</text>
+<text x="1266.0" y="1861.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">11</text>
+<text x="1290.0" y="1861.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">Sym entry size</text>
+<text x="1162.0" y="1878.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_INIT</text>
+<text x="1266.0" y="1878.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">12</text>
+<text x="1290.0" y="1878.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">init function</text>
+<text x="1162.0" y="1894.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_FINI</text>
+<text x="1266.0" y="1894.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">13</text>
+<text x="1290.0" y="1894.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">fini function</text>
+<text x="1162.0" y="1911.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_SONAME</text>
+<text x="1266.0" y="1911.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">14</text>
+<text x="1290.0" y="1911.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">shared obj name *</text>
+<text x="1423.5" y="1680.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_RPATH</text>
+<text x="1533.5" y="1680.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">15</text>
+<text x="1557.5" y="1680.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">search path * (depr.)</text>
+<text x="1423.5" y="1696.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_SYMBOLIC</text>
+<text x="1533.5" y="1696.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">16</text>
+<text x="1557.5" y="1696.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">resolve self first</text>
+<text x="1423.5" y="1713.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_REL</text>
+<text x="1533.5" y="1713.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">17</text>
+<text x="1557.5" y="1713.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">Rel table address</text>
+<text x="1423.5" y="1729.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_PLTREL</text>
+<text x="1533.5" y="1729.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">20</text>
+<text x="1557.5" y="1729.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">PLT reloc kind</text>
+<text x="1423.5" y="1746.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_DEBUG</text>
+<text x="1533.5" y="1746.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">21</text>
+<text x="1557.5" y="1746.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">r_debug, for gdb</text>
+<text x="1423.5" y="1762.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_TEXTREL</text>
+<text x="1533.5" y="1762.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">22</text>
+<text x="1557.5" y="1762.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">relocs touch text</text>
+<text x="1423.5" y="1779.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_JMPREL</text>
+<text x="1533.5" y="1779.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">23</text>
+<text x="1557.5" y="1779.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.rela.plt address</text>
+<text x="1423.5" y="1795.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_BIND_NOW</text>
+<text x="1533.5" y="1795.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">24</text>
+<text x="1557.5" y="1795.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">no lazy binding</text>
+<text x="1423.5" y="1812.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_INIT_ARRAY</text>
+<text x="1533.5" y="1812.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">25</text>
+<text x="1557.5" y="1812.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.init_array addr</text>
+<text x="1423.5" y="1828.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_FINI_ARRAY</text>
+<text x="1533.5" y="1828.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">26</text>
+<text x="1557.5" y="1828.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.fini_array addr</text>
+<text x="1423.5" y="1845.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_RUNPATH</text>
+<text x="1533.5" y="1845.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">29</text>
+<text x="1557.5" y="1845.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">search path *</text>
+<text x="1423.5" y="1861.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_FLAGS</text>
+<text x="1533.5" y="1861.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">30</text>
+<text x="1557.5" y="1861.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">PIE, NOW, STATIC_TLS…</text>
+<text x="1423.5" y="1878.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_GNU_HASH</text>
+<text x="1533.5" y="1878.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1557.5" y="1878.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">.gnu.hash addr</text>
+<text x="1423.5" y="1894.5" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_VERSYM</text>
+<text x="1533.5" y="1894.5" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1557.5" y="1894.5" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">version tables</text>
+<text x="1423.5" y="1911.0" font-size="9.3" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">DT_VERNEED</text>
+<text x="1533.5" y="1911.0" font-size="8.8" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1557.5" y="1911.0" font-size="9.3" fill="#000000" font-family="Helvetica, Arial, sans-serif">needed versions</text>
+<text x="1162.0" y="1936.5" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">* value is an offset into .dynstr (a string)</text>
+<text x="1162.0" y="1951.5" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">ld.so resolves DT_NEEDED against: DT_RUNPATH →</text>
+<text x="1162.0" y="1966.5" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">LD_LIBRARY_PATH → /etc/ld.so.cache → /lib,/usr/lib.</text>
+<text x="1162.0" y="1988.5" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">readelf -d  •  ldd  •  LD_DEBUG=all ./prog</text>
+<rect x="1705.0" y="1556.0" width="535.0" height="534.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="1705.0" y="1556.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="1713.0" y="1573.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">11. Notes — ElfN_Nhdr (.note.*, core dumps)</text>
+<rect x="1717.0" y="1590.0" width="511.0" height="18.0" fill="#d9d9d9" stroke="#000000" stroke-width="1"/>
+<text x="1722.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">off</text>
+<text x="1768.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">sz</text>
+<text x="1802.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">field</text>
+<text x="1920.0" y="1603.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">meaning</text>
+<rect x="1717.0" y="1608.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1722.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x00</text>
+<text x="1768.0" y="1621.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="1802.0" y="1621.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">n_namesz</text>
+<text x="1920.0" y="1621.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">length of name (defines namespace)</text>
+<rect x="1717.0" y="1626.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1722.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x04</text>
+<text x="1768.0" y="1639.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="1802.0" y="1639.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">n_descsz</text>
+<text x="1920.0" y="1639.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">length of descriptor (the payload)</text>
+<rect x="1717.0" y="1644.0" width="511.0" height="18.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="1722.0" y="1657.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">0x08</text>
+<text x="1768.0" y="1657.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">4</text>
+<text x="1802.0" y="1657.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">n_type</text>
+<text x="1920.0" y="1657.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif">meaning depends on name</text>
+<line x1="1763.0" y1="1590.0" x2="1763.0" y2="1662.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="1797.0" y1="1590.0" x2="1797.0" y2="1662.0" stroke="#999999" stroke-width="0.6"/>
+<line x1="1915.0" y1="1590.0" x2="1915.0" y2="1662.0" stroke="#999999" stroke-width="0.6"/>
+<rect x="1717.0" y="1590.0" width="511.0" height="72.0" fill="none" stroke="#000000" stroke-width="1"/>
+<text x="1717.0" y="1674.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" font-style="italic">name and desc follow the header, each padded to 4-byte alignment</text>
+<text x="1717.0" y="1702.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">e.g. .note.gnu.build-id:</text>
+<rect x="1717.0" y="1708.0" width="88.0" height="22.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1761.0" y="1723.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">namesz=4</text>
+<rect x="1805.0" y="1708.0" width="92.0" height="22.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1851.0" y="1723.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">descsz=20</text>
+<rect x="1897.0" y="1708.0" width="70.0" height="22.0" fill="#f2f2f2" stroke="#000000" stroke-width="1"/>
+<text x="1932.0" y="1723.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">type=3</text>
+<rect x="1967.0" y="1708.0" width="78.0" height="22.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="2006.0" y="1723.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">"GNU\0"</text>
+<rect x="2045.0" y="1708.0" width="180.0" height="22.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text x="2135.0" y="1723.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">20-byte unique build id …</text>
+<text x="1717.0" y="1746.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">NT_GNU_BUILD_ID: same id ⇔ same binary (debuginfod, coredumps)</text>
+<text x="1717.0" y="1770.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">name = "GNU"  (executables &amp; libraries):</text>
+<text x="1717.0" y="1787.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_GNU_ABI_TAG</text>
+<text x="1913.0" y="1787.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="1933.0" y="1787.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">min OS/kernel ABI version</text>
+<text x="1717.0" y="1803.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_GNU_HWCAP</text>
+<text x="1913.0" y="1803.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">2</text>
+<text x="1933.0" y="1803.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">hardware capabilities</text>
+<text x="1717.0" y="1819.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_GNU_BUILD_ID</text>
+<text x="1913.0" y="1819.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="1933.0" y="1819.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">unique content hash</text>
+<text x="1717.0" y="1835.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_GNU_PROPERTY_TYPE_0</text>
+<text x="1913.0" y="1835.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">5</text>
+<text x="1933.0" y="1835.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">CET/BTI properties</text>
+<text x="1717.0" y="1861.0" font-size="11" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">name = "CORE" (e_type = ET_CORE — core dumps are ELF too!):</text>
+<text x="1717.0" y="1878.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_PRSTATUS</text>
+<text x="1857.0" y="1878.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">1</text>
+<text x="1877.0" y="1878.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">registers + signal info, one per thread</text>
+<text x="1717.0" y="1894.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_PRPSINFO</text>
+<text x="1857.0" y="1894.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">3</text>
+<text x="1877.0" y="1894.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">process state, args</text>
+<text x="1717.0" y="1910.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_AUXV</text>
+<text x="1857.0" y="1910.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">6</text>
+<text x="1877.0" y="1910.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">auxiliary vector</text>
+<text x="1717.0" y="1926.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_SIGINFO</text>
+<text x="1857.0" y="1926.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1877.0" y="1926.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">siginfo_t of the kill</text>
+<text x="1717.0" y="1942.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_FILE</text>
+<text x="1857.0" y="1942.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1877.0" y="1942.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">mapped-file list</text>
+<text x="1717.0" y="1958.0" font-size="9.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">NT_X86_XSTATE</text>
+<text x="1857.0" y="1958.0" font-size="9.0" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace"></text>
+<text x="1877.0" y="1958.0" font-size="9.5" fill="#000000" font-family="Helvetica, Arial, sans-serif">FPU/SSE/AVX state</text>
+<text x="1717.0" y="1985.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">A core dump = Ehdr + Phdrs only (no sections):</text>
+<text x="1717.0" y="2000.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">PT_NOTE (process state above) + one PT_LOAD</text>
+<text x="1717.0" y="2015.0" font-size="10" fill="#555555" font-family="Helvetica, Arial, sans-serif">per memory region. gdb reads exactly this.</text>
+<text x="1717.0" y="2035.0" font-size="10" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">readelf -n  •  eu-readelf --notes core</text>
+<rect x="40.0" y="2114.0" width="535.0" height="190.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="40.0" y="2114.0" width="535.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="48.0" y="2131.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">12. String tables (.strtab .dynstr .shstrtab)</text>
+<rect x="52.0" y="2148.0" width="22.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="0.8"/>
+<text x="63.2" y="2162.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">\0</text>
+<text x="53.0" y="2145.0" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">0</text>
+<rect x="74.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="85.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">n</text>
+<text x="75.5" y="2145.0" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">1</text>
+<rect x="97.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="108.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">a</text>
+<rect x="119.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="130.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">m</text>
+<rect x="142.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="153.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">e</text>
+<rect x="164.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="175.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">.</text>
+<rect x="187.0" y="2148.0" width="22.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="0.8"/>
+<text x="198.2" y="2162.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">\0</text>
+<rect x="209.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="220.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">V</text>
+<text x="210.5" y="2145.0" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">7</text>
+<rect x="232.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="243.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">a</text>
+<rect x="254.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="265.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">r</text>
+<rect x="277.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="288.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">i</text>
+<rect x="299.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="310.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">a</text>
+<text x="300.5" y="2145.0" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">11</text>
+<rect x="322.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="333.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">b</text>
+<rect x="344.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="355.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">l</text>
+<rect x="367.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="378.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">e</text>
+<rect x="389.5" y="2148.0" width="22.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="0.8"/>
+<text x="400.8" y="2162.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">\0</text>
+<rect x="412.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="423.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">a</text>
+<text x="413.0" y="2145.0" font-size="8.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">16</text>
+<rect x="434.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="445.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">b</text>
+<rect x="457.0" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="468.2" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">l</text>
+<rect x="479.5" y="2148.0" width="22.5" height="20.0" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+<text x="490.8" y="2162.0" font-size="9" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">e</text>
+<rect x="502.0" y="2148.0" width="22.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="0.8"/>
+<text x="513.2" y="2162.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">\0</text>
+<rect x="524.5" y="2148.0" width="22.5" height="20.0" fill="#d9d9d9" stroke="#000000" stroke-width="0.8"/>
+<text x="535.8" y="2162.0" font-size="9" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" text-anchor="middle">\0</text>
+<text x="52.0" y="2189.0" font-size="10" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">every name in ELF is an offset into some string table:</text>
+<text x="52.0" y="2205.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">idx 1→"name."   7→"Variable"   16→"able"   0→""</text>
+<text x="52.0" y="2221.0" font-size="10" fill="#555555" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">11→"able" — tails of longer strings can be reused!</text>
+<text x="52.0" y="2238.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">byte 0 and the last byte are always \0.  Users: sh_name→.shstrtab,</text>
+<text x="52.0" y="2251.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">st_name→.strtab/.dynstr,  DT_NEEDED→.dynstr</text>
+<rect x="595.0" y="2114.0" width="1645.0" height="190.0" fill="#fbfbfb" stroke="#000000" stroke-width="1.2"/>
+<rect x="595.0" y="2114.0" width="1645.0" height="24.0" fill="#d9d9d9" stroke="#000000" stroke-width="1.2"/>
+<text x="603.0" y="2131.0" font-size="13" fill="#000000" font-family="Helvetica, Arial, sans-serif" font-weight="bold">Observability: how to poke at ELF files  (Gregg-style tool map)</text>
+<text x="607.0" y="2164.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">file</text>
+<text x="607.0" y="2178.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">what is it? class, arch, PIE?</text>
+<text x="877.2" y="2164.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">readelf -h -l -S</text>
+<text x="877.2" y="2178.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">Ehdr · segments · sections</text>
+<text x="1147.3" y="2164.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">readelf -s -r</text>
+<text x="1147.3" y="2178.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">symbols · relocations</text>
+<text x="1417.5" y="2164.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">readelf -d -n</text>
+<text x="1417.5" y="2178.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">dynamic · notes</text>
+<text x="1687.7" y="2164.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">objdump -d</text>
+<text x="1687.7" y="2178.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">disassemble .text</text>
+<text x="1957.8" y="2164.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">objdump -x -R</text>
+<text x="1957.8" y="2178.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">all headers, dyn relocs</text>
+<text x="607.0" y="2210.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">nm / nm -D</text>
+<text x="607.0" y="2224.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">.symtab / .dynsym names</text>
+<text x="877.2" y="2210.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">size</text>
+<text x="877.2" y="2224.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">text/data/bss totals</text>
+<text x="1147.3" y="2210.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">strings -a</text>
+<text x="1147.3" y="2224.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">printable strings</text>
+<text x="1417.5" y="2210.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">ldd</text>
+<text x="1417.5" y="2224.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">DT_NEEDED closure (careful)</text>
+<text x="1687.7" y="2210.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">strip / objcopy</text>
+<text x="1687.7" y="2224.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">remove / extract sections</text>
+<text x="1957.8" y="2210.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">addr2line -e</text>
+<text x="1957.8" y="2224.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">address → source line</text>
+<text x="607.0" y="2256.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">patchelf</text>
+<text x="607.0" y="2270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">edit interp / rpath</text>
+<text x="877.2" y="2256.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">elfedit</text>
+<text x="877.2" y="2270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">tweak the ELF header</text>
+<text x="1147.3" y="2256.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">gdb + core</text>
+<text x="1147.3" y="2270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">debug via notes &amp; symbols</text>
+<text x="1417.5" y="2256.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">cat /proc/PID/maps</text>
+<text x="1417.5" y="2270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">see PT_LOADs in memory</text>
+<text x="1687.7" y="2256.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">hexdump -C | head</text>
+<text x="1687.7" y="2270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">stare at \x7fELF itself</text>
+<text x="1957.8" y="2256.0" font-size="11.5" fill="#a00000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="bold">dl_iterate_phdr(3)</text>
+<text x="1957.8" y="2270.0" font-size="9.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">walk phdrs at run time</text>
+<text x="607.0" y="2292.0" font-size="10.5" fill="#000000" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">man pages: elf(5) · ld.so(8) · core(5) · execve(2) · dlopen(3) · vdso(7) · ld(1) · as(1)  —  and /usr/include/elf.h is the ground truth</text>
+<line x1="40.0" y1="2316.0" x2="2240.0" y2="2316.0" stroke="#999999" stroke-width="0.8"/>
+<text x="40.0" y="2330.0" font-size="10.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">Sources: elf(5) Linux man-pages 6.7 · System V gABI · x86-64 psABI.  Field offsets shown are ELF64/little-endian; a typical dynamically-linked x86-64 binary is drawn — section order and segment count vary.</text>
+<text x="40.0" y="2345.0" font-size="10.5" fill="#555555" font-family="Helvetica, Arial, sans-serif">Diagram style after Brendan Gregg’s Linux performance diagrams (brendangregg.com/linuxperf.html).</text>
+<text x="2240.0" y="2345.0" font-size="10.5" fill="#555555" font-family="Helvetica, Arial, sans-serif" text-anchor="end">2026-09</text>
+</svg>

@@ -1,0 +1,1081 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1284" viewBox="0 0 2560 1284" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">
+<rect x="0.0" y="0.0" width="2560.0" height="4000.0" fill="#f6f5f1"/>
+<rect x="0.0" y="0.0" width="2560.0" height="112.0" fill="#12233d"/>
+<text x="30.0" y="46.0" font-size="30" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">ELF · The Complete Anatomy</text>
+<text x="30.0" y="74.0" font-size="14.5" fill="#b9c6da" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Every structure, every section &amp; segment, and the exact tool + command to read each byte — 64-bit System V ABI (x86-64).</text>
+<text x="30.0" y="96.0" font-size="12" fill="#89a7d6" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">refs: elf(5) · System V gABI + x86-64 psABI · /usr/include/elf.h · kernel fs/binfmt_elf.c · musl ldso/dynlink.c</text>
+<rect x="1560.0" y="30.0" width="15.0" height="15.0" fill="#33517f" stroke="#33517f" stroke-width="1.2" rx="3"/>
+<text x="1581.0" y="42.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">header/table</text>
+<rect x="1756.0" y="30.0" width="15.0" height="15.0" fill="#c0392b" stroke="#c0392b" stroke-width="1.2" rx="3"/>
+<text x="1777.0" y="42.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">code</text>
+<rect x="1952.0" y="30.0" width="15.0" height="15.0" fill="#2e8b57" stroke="#2e8b57" stroke-width="1.2" rx="3"/>
+<text x="1973.0" y="42.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">data</text>
+<rect x="2148.0" y="30.0" width="15.0" height="15.0" fill="#bf931b" stroke="#bf931b" stroke-width="1.2" rx="3"/>
+<text x="2169.0" y="42.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">ro-data</text>
+<rect x="2344.0" y="30.0" width="15.0" height="15.0" fill="#7d4fb0" stroke="#7d4fb0" stroke-width="1.2" rx="3"/>
+<text x="2365.0" y="42.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">sym/hash</text>
+<rect x="1560.0" y="56.0" width="15.0" height="15.0" fill="#9a6fc0" stroke="#9a6fc0" stroke-width="1.2" rx="3"/>
+<text x="1581.0" y="68.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">strings</text>
+<rect x="1756.0" y="56.0" width="15.0" height="15.0" fill="#12868d" stroke="#12868d" stroke-width="1.2" rx="3"/>
+<text x="1777.0" y="68.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">relocs</text>
+<rect x="1952.0" y="56.0" width="15.0" height="15.0" fill="#2b5fd0" stroke="#2b5fd0" stroke-width="1.2" rx="3"/>
+<text x="1973.0" y="68.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">dynamic</text>
+<rect x="2148.0" y="56.0" width="15.0" height="15.0" fill="#1f6fb0" stroke="#1f6fb0" stroke-width="1.2" rx="3"/>
+<text x="2169.0" y="68.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">GOT/PLT</text>
+<rect x="2344.0" y="56.0" width="15.0" height="15.0" fill="#c0791e" stroke="#c0791e" stroke-width="1.2" rx="3"/>
+<text x="2365.0" y="68.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">notes</text>
+<rect x="1560.0" y="82.0" width="15.0" height="15.0" fill="#8a7442" stroke="#8a7442" stroke-width="1.2" rx="3"/>
+<text x="1581.0" y="94.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">unwind</text>
+<rect x="1756.0" y="82.0" width="15.0" height="15.0" fill="#4a9d5b" stroke="#4a9d5b" stroke-width="1.2" rx="3"/>
+<text x="1777.0" y="94.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.bss</text>
+<rect x="1952.0" y="82.0" width="15.0" height="15.0" fill="#1690a6" stroke="#1690a6" stroke-width="1.2" rx="3"/>
+<text x="1973.0" y="94.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">interp</text>
+<rect x="2148.0" y="82.0" width="15.0" height="15.0" fill="#8d8878" stroke="#8d8878" stroke-width="1.2" rx="3"/>
+<text x="2169.0" y="94.0" font-size="11.5" fill="#dfe7f2" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">non-alloc</text>
+<text x="24.0" y="136.0" font-size="14" fill="#5b5140" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">ON-DISK STRUCTURES</text>
+<line x1="24.0" y1="142.0" x2="166.1" y2="142.0" stroke="#b9ad92" stroke-width="1.6"/>
+<text x="562.0" y="136.0" font-size="14" fill="#5b5140" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">ONE FILE · TWO VIEWS</text>
+<line x1="562.0" y1="142.0" x2="719.2" y2="142.0" stroke="#b9ad92" stroke-width="1.6"/>
+<text x="1128.0" y="136.0" font-size="14" fill="#5b5140" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">HOW TO READ EVERY PART</text>
+<line x1="1128.0" y1="142.0" x2="1300.3" y2="142.0" stroke="#b9ad92" stroke-width="1.6"/>
+<text x="1612.0" y="136.0" font-size="14" fill="#5b5140" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">RELOCATION · TLS · HARDENING</text>
+<line x1="1612.0" y1="142.0" x2="1829.7" y2="142.0" stroke="#b9ad92" stroke-width="1.6"/>
+<text x="2088.0" y="136.0" font-size="14" fill="#5b5140" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">TOOLBOX · LOADING</text>
+<line x1="2088.0" y1="142.0" x2="2222.5" y2="142.0" stroke="#b9ad92" stroke-width="1.6"/>
+<text x="562.0" y="156.0" font-size="11.5" fill="#33517f" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">LINKING VIEW ▸ sections (what as / ld build)</text>
+<text x="831.0" y="156.0" font-size="11.5" fill="#b25a2a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">EXECUTION VIEW ▸ segments (readelf -lW)</text>
+<rect x="562.0" y="168.0" width="262.0" height="28.0" fill="#e7eefb" stroke="#33517f" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="168.0" width="5.0" height="28.0" fill="#33517f"/>
+<text x="575.0" y="180.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">ELF Header</text>
+<text x="575.0" y="192.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -h · xxd -l64</text>
+<rect x="562.0" y="199.0" width="262.0" height="28.0" fill="#e7eefb" stroke="#33517f" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="199.0" width="5.0" height="28.0" fill="#33517f"/>
+<text x="575.0" y="211.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">Program Headers</text>
+<text x="575.0" y="223.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -lW</text>
+<rect x="562.0" y="230.0" width="262.0" height="28.0" fill="#d7f0f5" stroke="#1690a6" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="230.0" width="5.0" height="28.0" fill="#1690a6"/>
+<text x="575.0" y="242.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.interp</text>
+<text x="575.0" y="254.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -p .interp</text>
+<rect x="798.0" y="233.0" width="20.0" height="13.0" fill="#ffffff" stroke="#1690a6" stroke-width="1" rx="3"/>
+<text x="808.0" y="243.0" font-size="9" fill="#1690a6" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="261.0" width="262.0" height="28.0" fill="#fdeccf" stroke="#c0791e" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="261.0" width="5.0" height="28.0" fill="#c0791e"/>
+<text x="575.0" y="273.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.note.gnu.property</text>
+<text x="575.0" y="285.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -n</text>
+<rect x="798.0" y="264.0" width="20.0" height="13.0" fill="#ffffff" stroke="#c0791e" stroke-width="1" rx="3"/>
+<text x="808.0" y="274.0" font-size="9" fill="#c0791e" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="292.0" width="262.0" height="28.0" fill="#fdeccf" stroke="#c0791e" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="292.0" width="5.0" height="28.0" fill="#c0791e"/>
+<text x="575.0" y="304.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.note.gnu.build-id</text>
+<text x="575.0" y="316.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -n</text>
+<rect x="798.0" y="295.0" width="20.0" height="13.0" fill="#ffffff" stroke="#c0791e" stroke-width="1" rx="3"/>
+<text x="808.0" y="305.0" font-size="9" fill="#c0791e" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="323.0" width="262.0" height="28.0" fill="#fdeccf" stroke="#c0791e" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="323.0" width="5.0" height="28.0" fill="#c0791e"/>
+<text x="575.0" y="335.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.note.ABI-tag</text>
+<text x="575.0" y="347.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -n</text>
+<rect x="798.0" y="326.0" width="20.0" height="13.0" fill="#ffffff" stroke="#c0791e" stroke-width="1" rx="3"/>
+<text x="808.0" y="336.0" font-size="9" fill="#c0791e" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="354.0" width="262.0" height="28.0" fill="#efe6fb" stroke="#7d4fb0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="354.0" width="5.0" height="28.0" fill="#7d4fb0"/>
+<text x="575.0" y="366.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.gnu.hash</text>
+<text x="575.0" y="378.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -I</text>
+<rect x="798.0" y="357.0" width="20.0" height="13.0" fill="#ffffff" stroke="#7d4fb0" stroke-width="1" rx="3"/>
+<text x="808.0" y="367.0" font-size="9" fill="#7d4fb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="385.0" width="262.0" height="28.0" fill="#efe6fb" stroke="#7d4fb0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="385.0" width="5.0" height="28.0" fill="#7d4fb0"/>
+<text x="575.0" y="397.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.dynsym</text>
+<text x="575.0" y="409.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf --dyn-syms · nm -D</text>
+<rect x="798.0" y="388.0" width="20.0" height="13.0" fill="#ffffff" stroke="#7d4fb0" stroke-width="1" rx="3"/>
+<text x="808.0" y="398.0" font-size="9" fill="#7d4fb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="416.0" width="262.0" height="28.0" fill="#f5eefb" stroke="#9a6fc0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="416.0" width="5.0" height="28.0" fill="#9a6fc0"/>
+<text x="575.0" y="428.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.dynstr</text>
+<text x="575.0" y="440.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -p .dynstr</text>
+<rect x="798.0" y="419.0" width="20.0" height="13.0" fill="#ffffff" stroke="#9a6fc0" stroke-width="1" rx="3"/>
+<text x="808.0" y="429.0" font-size="9" fill="#9a6fc0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="447.0" width="262.0" height="28.0" fill="#efe6fb" stroke="#7d4fb0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="447.0" width="5.0" height="28.0" fill="#7d4fb0"/>
+<text x="575.0" y="459.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.gnu.version</text>
+<text x="575.0" y="471.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -V</text>
+<rect x="798.0" y="450.0" width="20.0" height="13.0" fill="#ffffff" stroke="#7d4fb0" stroke-width="1" rx="3"/>
+<text x="808.0" y="460.0" font-size="9" fill="#7d4fb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="478.0" width="262.0" height="28.0" fill="#efe6fb" stroke="#7d4fb0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="478.0" width="5.0" height="28.0" fill="#7d4fb0"/>
+<text x="575.0" y="490.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.gnu.version_r</text>
+<text x="575.0" y="502.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -V</text>
+<rect x="798.0" y="481.0" width="20.0" height="13.0" fill="#ffffff" stroke="#7d4fb0" stroke-width="1" rx="3"/>
+<text x="808.0" y="491.0" font-size="9" fill="#7d4fb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="509.0" width="262.0" height="28.0" fill="#d6f0f2" stroke="#12868d" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="509.0" width="5.0" height="28.0" fill="#12868d"/>
+<text x="575.0" y="521.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.rela.dyn</text>
+<text x="575.0" y="533.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -r · objdump -R</text>
+<rect x="798.0" y="512.0" width="20.0" height="13.0" fill="#ffffff" stroke="#12868d" stroke-width="1" rx="3"/>
+<text x="808.0" y="522.0" font-size="9" fill="#12868d" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="540.0" width="262.0" height="28.0" fill="#d6f0f2" stroke="#12868d" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="540.0" width="5.0" height="28.0" fill="#12868d"/>
+<text x="575.0" y="552.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.rela.plt</text>
+<text x="575.0" y="564.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -r · objdump -R</text>
+<rect x="791.0" y="543.0" width="27.0" height="13.0" fill="#ffffff" stroke="#12868d" stroke-width="1" rx="3"/>
+<text x="804.5" y="553.0" font-size="9" fill="#12868d" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AI</text>
+<rect x="562.0" y="571.0" width="262.0" height="28.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="571.0" width="5.0" height="28.0" fill="#c0392b"/>
+<text x="575.0" y="583.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.init</text>
+<text x="575.0" y="595.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d -j .init</text>
+<rect x="791.0" y="574.0" width="27.0" height="13.0" fill="#ffffff" stroke="#c0392b" stroke-width="1" rx="3"/>
+<text x="804.5" y="584.0" font-size="9" fill="#c0392b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AX</text>
+<rect x="562.0" y="602.0" width="262.0" height="28.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="602.0" width="5.0" height="28.0" fill="#c0392b"/>
+<text x="575.0" y="614.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.plt</text>
+<text x="575.0" y="626.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d -j .plt</text>
+<rect x="791.0" y="605.0" width="27.0" height="13.0" fill="#ffffff" stroke="#c0392b" stroke-width="1" rx="3"/>
+<text x="804.5" y="615.0" font-size="9" fill="#c0392b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AX</text>
+<rect x="562.0" y="633.0" width="262.0" height="28.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="633.0" width="5.0" height="28.0" fill="#c0392b"/>
+<text x="575.0" y="645.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.plt.got</text>
+<text x="575.0" y="657.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d -j .plt.got</text>
+<rect x="791.0" y="636.0" width="27.0" height="13.0" fill="#ffffff" stroke="#c0392b" stroke-width="1" rx="3"/>
+<text x="804.5" y="646.0" font-size="9" fill="#c0392b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AX</text>
+<rect x="562.0" y="664.0" width="262.0" height="28.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="664.0" width="5.0" height="28.0" fill="#c0392b"/>
+<text x="575.0" y="676.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.plt.sec</text>
+<text x="575.0" y="688.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d -j .plt.sec</text>
+<rect x="791.0" y="667.0" width="27.0" height="13.0" fill="#ffffff" stroke="#c0392b" stroke-width="1" rx="3"/>
+<text x="804.5" y="677.0" font-size="9" fill="#c0392b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AX</text>
+<rect x="562.0" y="695.0" width="262.0" height="28.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="695.0" width="5.0" height="28.0" fill="#c0392b"/>
+<text x="575.0" y="707.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.text</text>
+<text x="575.0" y="719.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d · readelf -x .text</text>
+<rect x="791.0" y="698.0" width="27.0" height="13.0" fill="#ffffff" stroke="#c0392b" stroke-width="1" rx="3"/>
+<text x="804.5" y="708.0" font-size="9" fill="#c0392b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AX</text>
+<rect x="562.0" y="726.0" width="262.0" height="28.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="726.0" width="5.0" height="28.0" fill="#c0392b"/>
+<text x="575.0" y="738.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.fini</text>
+<text x="575.0" y="750.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d -j .fini</text>
+<rect x="791.0" y="729.0" width="27.0" height="13.0" fill="#ffffff" stroke="#c0392b" stroke-width="1" rx="3"/>
+<text x="804.5" y="739.0" font-size="9" fill="#c0392b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">AX</text>
+<rect x="562.0" y="757.0" width="262.0" height="28.0" fill="#fff2d0" stroke="#bf931b" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="757.0" width="5.0" height="28.0" fill="#bf931b"/>
+<text x="575.0" y="769.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.rodata</text>
+<text x="575.0" y="781.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -p .rodata · strings</text>
+<rect x="798.0" y="760.0" width="20.0" height="13.0" fill="#ffffff" stroke="#bf931b" stroke-width="1" rx="3"/>
+<text x="808.0" y="770.0" font-size="9" fill="#bf931b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="788.0" width="262.0" height="28.0" fill="#ece6da" stroke="#8a7442" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="788.0" width="5.0" height="28.0" fill="#8a7442"/>
+<text x="575.0" y="800.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.eh_frame_hdr</text>
+<text x="575.0" y="812.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf --debug-dump=frames</text>
+<rect x="798.0" y="791.0" width="20.0" height="13.0" fill="#ffffff" stroke="#8a7442" stroke-width="1" rx="3"/>
+<text x="808.0" y="801.0" font-size="9" fill="#8a7442" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="819.0" width="262.0" height="28.0" fill="#ece6da" stroke="#8a7442" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="819.0" width="5.0" height="28.0" fill="#8a7442"/>
+<text x="575.0" y="831.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.eh_frame</text>
+<text x="575.0" y="843.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump --dwarf=frames</text>
+<rect x="798.0" y="822.0" width="20.0" height="13.0" fill="#ffffff" stroke="#8a7442" stroke-width="1" rx="3"/>
+<text x="808.0" y="832.0" font-size="9" fill="#8a7442" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">A</text>
+<rect x="562.0" y="850.0" width="262.0" height="28.0" fill="#e0f3e5" stroke="#2e8b57" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="850.0" width="5.0" height="28.0" fill="#2e8b57"/>
+<text x="575.0" y="862.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.init_array</text>
+<text x="575.0" y="874.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -x .init_array</text>
+<rect x="791.0" y="853.0" width="27.0" height="13.0" fill="#ffffff" stroke="#2e8b57" stroke-width="1" rx="3"/>
+<text x="804.5" y="863.0" font-size="9" fill="#2e8b57" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="881.0" width="262.0" height="28.0" fill="#e0f3e5" stroke="#2e8b57" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="881.0" width="5.0" height="28.0" fill="#2e8b57"/>
+<text x="575.0" y="893.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.fini_array</text>
+<text x="575.0" y="905.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -x .fini_array</text>
+<rect x="791.0" y="884.0" width="27.0" height="13.0" fill="#ffffff" stroke="#2e8b57" stroke-width="1" rx="3"/>
+<text x="804.5" y="894.0" font-size="9" fill="#2e8b57" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="912.0" width="262.0" height="28.0" fill="#e0f3e5" stroke="#2e8b57" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="912.0" width="5.0" height="28.0" fill="#2e8b57"/>
+<text x="575.0" y="924.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.data.rel.ro</text>
+<text x="575.0" y="936.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -x .data.rel.ro</text>
+<rect x="791.0" y="915.0" width="27.0" height="13.0" fill="#ffffff" stroke="#2e8b57" stroke-width="1" rx="3"/>
+<text x="804.5" y="925.0" font-size="9" fill="#2e8b57" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="943.0" width="262.0" height="28.0" fill="#dde8ff" stroke="#2b5fd0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="943.0" width="5.0" height="28.0" fill="#2b5fd0"/>
+<text x="575.0" y="955.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.dynamic</text>
+<text x="575.0" y="967.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -d</text>
+<rect x="791.0" y="946.0" width="27.0" height="13.0" fill="#ffffff" stroke="#2b5fd0" stroke-width="1" rx="3"/>
+<text x="804.5" y="956.0" font-size="9" fill="#2b5fd0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="974.0" width="262.0" height="28.0" fill="#d7ecff" stroke="#1f6fb0" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="974.0" width="5.0" height="28.0" fill="#1f6fb0"/>
+<text x="575.0" y="986.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.got / .got.plt</text>
+<text x="575.0" y="998.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -R · readelf -x .got</text>
+<rect x="791.0" y="977.0" width="27.0" height="13.0" fill="#ffffff" stroke="#1f6fb0" stroke-width="1" rx="3"/>
+<text x="804.5" y="987.0" font-size="9" fill="#1f6fb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="1005.0" width="262.0" height="28.0" fill="#e0f3e5" stroke="#2e8b57" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="1005.0" width="5.0" height="28.0" fill="#2e8b57"/>
+<text x="575.0" y="1017.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.data</text>
+<text x="575.0" y="1029.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -s -j .data</text>
+<rect x="791.0" y="1008.0" width="27.0" height="13.0" fill="#ffffff" stroke="#2e8b57" stroke-width="1" rx="3"/>
+<text x="804.5" y="1018.0" font-size="9" fill="#2e8b57" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="1036.0" width="262.0" height="28.0" fill="#eef7ef" stroke="#4a9d5b" stroke-width="1.2" stroke-dasharray="4,3" rx="4"/>
+<rect x="562.0" y="1036.0" width="5.0" height="28.0" fill="#4a9d5b"/>
+<text x="575.0" y="1048.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.bss</text>
+<text x="575.0" y="1060.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -S (NOBITS: size only)</text>
+<rect x="791.0" y="1039.0" width="27.0" height="13.0" fill="#ffffff" stroke="#4a9d5b" stroke-width="1" rx="3"/>
+<text x="804.5" y="1049.0" font-size="9" fill="#4a9d5b" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">WA</text>
+<rect x="562.0" y="1067.0" width="262.0" height="28.0" fill="#eceae4" stroke="#8d8878" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="1067.0" width="5.0" height="28.0" fill="#8d8878"/>
+<text x="575.0" y="1079.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.symtab</text>
+<text x="575.0" y="1091.0" font-size="8.45" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -s · nm (gone if stripped)</text>
+<rect x="562.0" y="1098.0" width="262.0" height="28.0" fill="#eceae4" stroke="#8d8878" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="1098.0" width="5.0" height="28.0" fill="#8d8878"/>
+<text x="575.0" y="1110.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.strtab</text>
+<text x="575.0" y="1122.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -p .strtab</text>
+<rect x="562.0" y="1129.0" width="262.0" height="28.0" fill="#eceae4" stroke="#8d8878" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="1129.0" width="5.0" height="28.0" fill="#8d8878"/>
+<text x="575.0" y="1141.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.shstrtab</text>
+<text x="575.0" y="1153.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -x .shstrtab</text>
+<rect x="562.0" y="1160.0" width="262.0" height="28.0" fill="#e7eefb" stroke="#33517f" stroke-width="1.2" rx="4"/>
+<rect x="562.0" y="1160.0" width="5.0" height="28.0" fill="#33517f"/>
+<text x="575.0" y="1172.0" font-size="12" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">Section Headers</text>
+<text x="575.0" y="1184.0" font-size="9.2" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -SW · objdump -h</text>
+<rect x="831.0" y="168.0" width="62.0" height="400.0" fill="#7da7d9" stroke="#33517f" stroke-width="1.2" rx="4"/>
+<text x="862.0" y="367.0" font-size="10" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">LOAD</text>
+<text x="862.0" y="379.0" font-size="8.6" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle">R</text>
+<rect x="831.0" y="571.0" width="62.0" height="183.0" fill="#e07a5f" stroke="#a94430" stroke-width="1.2" rx="4"/>
+<text x="862.0" y="661.5" font-size="10" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">LOAD</text>
+<text x="862.0" y="673.5" font-size="8.6" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle">R·X</text>
+<rect x="831.0" y="757.0" width="62.0" height="90.0" fill="#7da7d9" stroke="#33517f" stroke-width="1.2" rx="4"/>
+<text x="862.0" y="801.0" font-size="10" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">LOAD</text>
+<text x="862.0" y="813.0" font-size="8.6" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle">R</text>
+<rect x="831.0" y="850.0" width="62.0" height="214.0" fill="#81b29a" stroke="#3f7a5e" stroke-width="1.2" rx="4"/>
+<text x="862.0" y="956.0" font-size="10" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">LOAD</text>
+<text x="862.0" y="968.0" font-size="8.6" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle">R·W</text>
+<rect x="900.0" y="199.0" width="96.0" height="28.0" fill="#33517f" stroke="#22375a" stroke-width="1.2" rx="4"/>
+<text x="948.0" y="216.5" font-size="9.5" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">PHDR R</text>
+<rect x="900.0" y="230.0" width="96.0" height="28.0" fill="#1690a6" stroke="#0e6a7a" stroke-width="1.2" rx="4"/>
+<text x="948.0" y="247.5" font-size="9.5" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">INTERP R</text>
+<rect x="900.0" y="261.0" width="96.0" height="28.0" fill="#d9a441" stroke="#a3762a" stroke-width="1.2" rx="4"/>
+<text x="948.0" y="278.5" font-size="9.5" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">NOTE R</text>
+<rect x="900.0" y="292.0" width="96.0" height="59.0" fill="#d9a441" stroke="#a3762a" stroke-width="1.2" rx="4"/>
+<text x="948.0" y="320.5" font-size="10" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">NOTE</text>
+<text x="948.0" y="332.5" font-size="8.6" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle">R</text>
+<rect x="900.0" y="788.0" width="96.0" height="28.0" fill="#8a7442" stroke="#665527" stroke-width="1.2" rx="4"/>
+<text x="948.0" y="805.5" font-size="9.5" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">EH_FRAME R</text>
+<rect x="900.0" y="943.0" width="96.0" height="28.0" fill="#5468b8" stroke="#3a4b96" stroke-width="1.2" rx="4"/>
+<text x="948.0" y="960.5" font-size="9.5" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">DYNAMIC RW</text>
+<rect x="1003.0" y="261.0" width="106.0" height="28.0" fill="#c0791e" stroke="#8f5a13" stroke-width="1.2" rx="4"/>
+<text x="1056.0" y="278.5" font-size="9.5" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">PROPERTY R</text>
+<rect x="1003.0" y="850.0" width="106.0" height="152.0" fill="#c05555" stroke="#8f3535" stroke-width="1.2" rx="4"/>
+<text x="1056.0" y="925.0" font-size="10" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">GNU_RELRO</text>
+<text x="1056.0" y="937.0" font-size="8.6" fill="#ffffff" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle">R</text>
+<text x="1003.0" y="1017.0" font-size="8.4" fill="#8f3535" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">after relocation, ld.so</text>
+<text x="1003.0" y="1028.0" font-size="8.4" fill="#8f3535" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">mprotects RELRO ⇒ R/O</text>
+<rect x="831.0" y="1198.0" width="278.0" height="40.0" fill="#fbeef3" stroke="#b85c8a" stroke-width="1.1" rx="4"/>
+<text x="839.0" y="1213.0" font-size="10" fill="#8f3560" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">PT_GNU_STACK</text>
+<text x="839.0" y="1228.0" font-size="9" fill="#8f3560" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">no section · RW (no X) ⇒ non-exec stack (NX)</text>
+<rect x="562.0" y="1198.0" width="262.0" height="40.0" fill="#efede6" stroke="#8d8878" stroke-width="1.1" rx="4"/>
+<text x="570.0" y="1213.0" font-size="8.8" fill="#55503f" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Non-alloc sections (.symtab/.strtab/.debug*) live</text>
+<text x="570.0" y="1226.0" font-size="8.8" fill="#55503f" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">in NO segment — on disk only, never mapped at runtime.</text>
+<rect x="24.0" y="146.0" width="252.0" height="107.0" fill="#ffffff" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<rect x="24.0" y="146.0" width="252.0" height="21.0" fill="#33517f" stroke="#33517f" stroke-width="1" rx="3"/>
+<text x="31.0" y="160.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">byte 0 — e_ident[16], the magic</text>
+<rect x="36.0" y="175.0" width="25.5" height="20.0" fill="#e7eefb" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="48.8" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">7f</text>
+<rect x="64.5" y="175.0" width="25.5" height="20.0" fill="#e7eefb" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="77.2" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">45</text>
+<rect x="93.0" y="175.0" width="25.5" height="20.0" fill="#e7eefb" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="105.8" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">4c</text>
+<rect x="121.5" y="175.0" width="25.5" height="20.0" fill="#e7eefb" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="134.2" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">46</text>
+<rect x="150.0" y="175.0" width="25.5" height="20.0" fill="#fff2d0" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="162.8" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">02</text>
+<rect x="178.5" y="175.0" width="25.5" height="20.0" fill="#e0f3e5" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="191.2" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">01</text>
+<rect x="207.0" y="175.0" width="25.5" height="20.0" fill="#f5eefb" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="219.8" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">01</text>
+<rect x="235.5" y="175.0" width="25.5" height="20.0" fill="#fde0d9" stroke="#8a8a8a" stroke-width="0.8" rx="2"/>
+<text x="248.2" y="189.0" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" text-anchor="middle" font-weight="bold">00</text>
+<text x="91.5" y="208.0" font-size="8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" text-anchor="middle">\x7f E L F</text>
+<text x="162.8" y="208.0" font-size="8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" text-anchor="middle">64b</text>
+<text x="191.2" y="208.0" font-size="8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" text-anchor="middle">LE</text>
+<text x="219.8" y="208.0" font-size="8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" text-anchor="middle">v1</text>
+<text x="248.2" y="208.0" font-size="8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" text-anchor="middle">ABI</text>
+<text x="36.0" y="225.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">bytes 8–15: EI_ABIVERSION + zero padding</text>
+<text x="36.0" y="239.0" font-size="7.3" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">file prog · xxd -l16 prog · magic is 7f 45 4c 46</text>
+<rect x="24.0" y="285.3" width="252.0" height="117.0" fill="#ffffff" stroke="#8a5a2b" stroke-width="1.1" rx="3"/>
+<rect x="24.0" y="285.3" width="252.0" height="21.0" fill="#8a5a2b" stroke="#8a5a2b" stroke-width="1" rx="3"/>
+<text x="31.0" y="299.8" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">e_type — the four flavors</text>
+<text x="31.0" y="318.3" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">#</text>
+<text x="53.0" y="318.3" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">type</text>
+<text x="127.0" y="318.3" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="29.0" y1="322.3" x2="271.0" y2="322.3" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="31.0" y="333.8" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">1</text>
+<text x="53.0" y="333.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ET_REL</text>
+<text x="127.0" y="333.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.o relocatable object</text>
+<rect x="26.0" y="339.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="349.3" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">2</text>
+<text x="53.0" y="349.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ET_EXEC</text>
+<text x="127.0" y="349.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">fixed-address executable</text>
+<text x="31.0" y="364.8" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">3</text>
+<text x="53.0" y="364.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ET_DYN</text>
+<text x="127.0" y="364.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.so &amp; PIE executable</text>
+<rect x="26.0" y="370.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="380.3" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4</text>
+<text x="53.0" y="380.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ET_CORE</text>
+<text x="127.0" y="380.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">core dump (crash image)</text>
+<text x="31.0" y="397.3" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">pipeline: .c —cc→ .s —as→ .o —ld→ exe/.so</text>
+<rect x="24.0" y="434.6" width="252.0" height="352.0" fill="#ffffff" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<rect x="24.0" y="434.6" width="252.0" height="21.0" fill="#33517f" stroke="#33517f" stroke-width="1" rx="3"/>
+<text x="31.0" y="449.1" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Ehdr (64 bytes) · readelf -h</text>
+<text x="31.0" y="467.6" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="57.0" y="467.6" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="149.0" y="467.6" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="29.0" y1="471.6" x2="271.0" y2="471.6" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="31.0" y="483.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="57.0" y="483.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_ident[0:4]</text>
+<text x="149.0" y="483.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">7F 'E' 'L' 'F' magic</text>
+<rect x="26.0" y="488.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="498.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4</text>
+<text x="57.0" y="498.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">EI_CLASS</text>
+<text x="149.0" y="498.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">1=32-bit 2=64-bit</text>
+<text x="31.0" y="514.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">5</text>
+<text x="57.0" y="514.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">EI_DATA</text>
+<text x="149.0" y="514.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">1=little 2=big endian</text>
+<rect x="26.0" y="519.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="529.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">6</text>
+<text x="57.0" y="529.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">EI_VERSION</text>
+<text x="149.0" y="529.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">1 = EV_CURRENT</text>
+<text x="31.0" y="545.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">7</text>
+<text x="57.0" y="545.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">EI_OSABI</text>
+<text x="149.0" y="545.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">0=SysV 3=Linux</text>
+<rect x="26.0" y="550.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="560.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="57.0" y="560.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">EI_ABIVERSION</text>
+<text x="149.0" y="560.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">usually 0</text>
+<text x="31.0" y="576.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">9</text>
+<text x="57.0" y="576.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">EI_PAD[7]</text>
+<text x="149.0" y="576.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">zero padding</text>
+<rect x="26.0" y="581.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="591.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">16</text>
+<text x="57.0" y="591.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_type</text>
+<text x="149.0" y="591.6" font-size="8.85" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">REL / EXEC / DYN / CORE</text>
+<text x="31.0" y="607.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">18</text>
+<text x="57.0" y="607.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_machine</text>
+<text x="149.0" y="607.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">62=x86-64 183=arm64</text>
+<rect x="26.0" y="612.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="622.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">20</text>
+<text x="57.0" y="622.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_version</text>
+<text x="149.0" y="622.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">1</text>
+<text x="31.0" y="638.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">24</text>
+<text x="57.0" y="638.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_entry</text>
+<text x="149.0" y="638.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">entry-point vaddr</text>
+<rect x="26.0" y="643.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="653.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">32</text>
+<text x="57.0" y="653.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_phoff</text>
+<text x="149.0" y="653.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">prog-hdr table offset</text>
+<text x="31.0" y="669.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">40</text>
+<text x="57.0" y="669.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_shoff</text>
+<text x="149.0" y="669.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">sec-hdr table offset</text>
+<rect x="26.0" y="674.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="684.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">48</text>
+<text x="57.0" y="684.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_flags</text>
+<text x="149.0" y="684.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">arch-specific flags</text>
+<text x="31.0" y="700.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">52</text>
+<text x="57.0" y="700.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_ehsize</text>
+<text x="149.0" y="700.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">this header = 64</text>
+<rect x="26.0" y="705.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="715.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">54</text>
+<text x="57.0" y="715.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_phentsize</text>
+<text x="149.0" y="715.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">phdr entry = 56</text>
+<text x="31.0" y="731.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">56</text>
+<text x="57.0" y="731.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_phnum</text>
+<text x="149.0" y="731.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif"># program headers</text>
+<rect x="26.0" y="736.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="746.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">58</text>
+<text x="57.0" y="746.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_shentsize</text>
+<text x="149.0" y="746.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">shdr entry = 64</text>
+<text x="31.0" y="762.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">60</text>
+<text x="57.0" y="762.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_shnum</text>
+<text x="149.0" y="762.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif"># section headers</text>
+<rect x="26.0" y="767.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="777.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">62</text>
+<text x="57.0" y="777.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">e_shstrndx</text>
+<text x="149.0" y="777.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.shstrtab index</text>
+<rect x="24.0" y="818.9" width="252.0" height="148.0" fill="#ffffff" stroke="#7d4fb0" stroke-width="1.1" rx="3"/>
+<rect x="24.0" y="818.9" width="252.0" height="21.0" fill="#7d4fb0" stroke="#7d4fb0" stroke-width="1" rx="3"/>
+<text x="31.0" y="833.4" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Sym (24 B)</text>
+<text x="31.0" y="851.9" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="57.0" y="851.9" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="149.0" y="851.9" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="29.0" y1="855.9" x2="271.0" y2="855.9" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="31.0" y="867.4" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="57.0" y="867.4" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">st_name</text>
+<text x="149.0" y="867.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">offset into strtab</text>
+<rect x="26.0" y="872.9" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="882.9" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4</text>
+<text x="57.0" y="882.9" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">st_info</text>
+<text x="149.0" y="882.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">bind&lt;&lt;4 | type</text>
+<text x="31.0" y="898.4" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">5</text>
+<text x="57.0" y="898.4" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">st_other</text>
+<text x="149.0" y="898.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">visibility (2 bits)</text>
+<rect x="26.0" y="903.9" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="913.9" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">6</text>
+<text x="57.0" y="913.9" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">st_shndx</text>
+<text x="149.0" y="913.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">sec idx / SHN_*</text>
+<text x="31.0" y="929.4" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="57.0" y="929.4" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">st_value</text>
+<text x="149.0" y="929.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">addr / offset / value</text>
+<rect x="26.0" y="934.9" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="944.9" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">16</text>
+<text x="57.0" y="944.9" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">st_size</text>
+<text x="149.0" y="944.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">object size in bytes</text>
+<text x="31.0" y="961.9" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -s · nm / nm -C</text>
+<rect x="24.0" y="999.2" width="252.0" height="107.5" fill="#ffffff" stroke="#7d4fb0" stroke-width="1.1" rx="3"/>
+<rect x="24.0" y="999.2" width="252.0" height="21.0" fill="#7d4fb0" stroke="#7d4fb0" stroke-width="1" rx="3"/>
+<text x="31.0" y="1013.7" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">symbol bind · type · shndx</text>
+<text x="31.0" y="1034.7" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">bind</text>
+<text x="75.0" y="1034.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">0 LOCAL · 1 GLOBAL · 2 WEAK</text>
+<rect x="26.0" y="1040.2" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="1050.2" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">type</text>
+<text x="75.0" y="1050.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">NOTYPE OBJECT FUNC SECTION</text>
+<text x="31.0" y="1065.7" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace"></text>
+<text x="75.0" y="1065.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">FILE TLS IFUNC</text>
+<rect x="26.0" y="1071.2" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="1081.2" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">vis</text>
+<text x="75.0" y="1081.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DEFAULT HIDDEN PROTECTED INTERNAL</text>
+<text x="31.0" y="1096.7" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">shndx</text>
+<text x="75.0" y="1096.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">UNDEF=0 ABS=0xfff1 COMMON=0xfff2</text>
+<rect x="24.0" y="1139.0" width="252.0" height="99.0" fill="#ffffff" stroke="#2b5fd0" stroke-width="1.1" rx="3"/>
+<rect x="24.0" y="1139.0" width="252.0" height="21.0" fill="#2b5fd0" stroke="#2b5fd0" stroke-width="1" rx="3"/>
+<text x="31.0" y="1153.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Dyn (16 B)</text>
+<text x="31.0" y="1172.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="57.0" y="1172.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="149.0" y="1172.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="29.0" y1="1176.0" x2="271.0" y2="1176.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="31.0" y="1187.5" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="57.0" y="1187.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">d_tag</text>
+<text x="149.0" y="1187.5" font-size="8.1" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DT_* — what this entry is</text>
+<rect x="26.0" y="1193.0" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="31.0" y="1203.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="57.0" y="1203.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">d_un</text>
+<text x="149.0" y="1203.0" font-size="7.85" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">d_val number or d_ptr addr</text>
+<text x="31.0" y="1220.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">the array in .dynamic; ends with DT_NULL</text>
+<text x="31.0" y="1233.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -d</text>
+<rect x="292.0" y="146.0" width="252.0" height="179.0" fill="#ffffff" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<rect x="292.0" y="146.0" width="252.0" height="21.0" fill="#33517f" stroke="#33517f" stroke-width="1" rx="3"/>
+<text x="299.0" y="160.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Phdr (56 B) — segment</text>
+<text x="299.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="325.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="417.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="297.0" y1="183.0" x2="539.0" y2="183.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="299.0" y="194.5" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="325.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_type</text>
+<text x="417.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">LOAD/DYNAMIC/INTERP/…</text>
+<rect x="294.0" y="200.0" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="210.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4</text>
+<text x="325.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_flags</text>
+<text x="417.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">R=4 W=2 X=1</text>
+<text x="299.0" y="225.5" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="325.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_offset</text>
+<text x="417.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">file offset</text>
+<rect x="294.0" y="231.0" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="241.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">16</text>
+<text x="325.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_vaddr</text>
+<text x="417.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">virtual address</text>
+<text x="299.0" y="256.5" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">24</text>
+<text x="325.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_paddr</text>
+<text x="417.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">physical (unused)</text>
+<rect x="294.0" y="262.0" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="272.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">32</text>
+<text x="325.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_filesz</text>
+<text x="417.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">bytes in file</text>
+<text x="299.0" y="287.5" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">40</text>
+<text x="325.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_memsz</text>
+<text x="417.0" y="287.5" font-size="7.1" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">bytes in mem (&gt;filesz ⇒ .bss)</text>
+<rect x="294.0" y="293.0" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="303.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">48</text>
+<text x="325.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">p_align</text>
+<text x="417.0" y="303.0" font-size="8.1" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">alignment (page = 0x1000)</text>
+<text x="299.0" y="320.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -lW</text>
+<rect x="292.0" y="361.3" width="252.0" height="185.0" fill="#ffffff" stroke="#b25a2a" stroke-width="1.1" rx="3"/>
+<rect x="292.0" y="361.3" width="252.0" height="21.0" fill="#b25a2a" stroke="#b25a2a" stroke-width="1" rx="3"/>
+<text x="299.0" y="375.8" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">p_type values</text>
+<text x="299.0" y="396.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">1 LOAD</text>
+<text x="403.0" y="396.8" font-size="8.85" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">mapped segment (code/data)</text>
+<rect x="294.0" y="402.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="412.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">2 DYNAMIC</text>
+<text x="403.0" y="412.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.dynamic array for ld.so</text>
+<text x="299.0" y="427.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">3 INTERP</text>
+<text x="403.0" y="427.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">path of the interpreter</text>
+<rect x="294.0" y="433.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="443.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4 NOTE</text>
+<text x="403.0" y="443.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">vendor notes (build-id…)</text>
+<text x="299.0" y="458.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">6 PHDR</text>
+<text x="403.0" y="458.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">the phdr table itself</text>
+<rect x="294.0" y="464.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="474.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">7 TLS</text>
+<text x="403.0" y="474.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">thread-local template</text>
+<text x="299.0" y="489.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">GNU_EH_FRAME</text>
+<text x="403.0" y="489.8" font-size="9.1" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">unwind index (0x6474e550)</text>
+<rect x="294.0" y="495.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="505.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">GNU_STACK</text>
+<text x="403.0" y="505.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">stack perms (…551)</text>
+<text x="299.0" y="520.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">GNU_RELRO</text>
+<text x="403.0" y="520.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">relro→read-only (…552)</text>
+<rect x="294.0" y="526.3" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="536.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">GNU_PROPERTY</text>
+<text x="403.0" y="536.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">CET/BTI notes (…553)</text>
+<rect x="292.0" y="582.6" width="252.0" height="210.0" fill="#ffffff" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<rect x="292.0" y="582.6" width="252.0" height="21.0" fill="#33517f" stroke="#33517f" stroke-width="1" rx="3"/>
+<text x="299.0" y="597.1" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Shdr (64 B) — section</text>
+<text x="299.0" y="615.6" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="325.0" y="615.6" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="417.0" y="615.6" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="297.0" y1="619.6" x2="539.0" y2="619.6" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="299.0" y="631.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="325.0" y="631.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_name</text>
+<text x="417.0" y="631.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">offset into .shstrtab</text>
+<rect x="294.0" y="636.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="646.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4</text>
+<text x="325.0" y="646.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_type</text>
+<text x="417.0" y="646.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PROGBITS/SYMTAB/…</text>
+<text x="299.0" y="662.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="325.0" y="662.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_flags</text>
+<text x="417.0" y="662.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">WRITE/ALLOC/EXECINSTR</text>
+<rect x="294.0" y="667.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="677.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">16</text>
+<text x="325.0" y="677.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_addr</text>
+<text x="417.0" y="677.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">vaddr if ALLOC</text>
+<text x="299.0" y="693.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">24</text>
+<text x="325.0" y="693.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_offset</text>
+<text x="417.0" y="693.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">file offset</text>
+<rect x="294.0" y="698.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="708.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">32</text>
+<text x="325.0" y="708.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_size</text>
+<text x="417.0" y="708.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">size (bytes)</text>
+<text x="299.0" y="724.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">40</text>
+<text x="325.0" y="724.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_link</text>
+<text x="417.0" y="724.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">linked section idx</text>
+<rect x="294.0" y="729.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="739.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">44</text>
+<text x="325.0" y="739.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_info</text>
+<text x="417.0" y="739.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">extra info</text>
+<text x="299.0" y="755.1" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">48</text>
+<text x="325.0" y="755.1" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_addralign</text>
+<text x="417.0" y="755.1" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">alignment</text>
+<rect x="294.0" y="760.6" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="770.6" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">56</text>
+<text x="325.0" y="770.6" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">sh_entsize</text>
+<text x="417.0" y="770.6" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">table entry size</text>
+<text x="299.0" y="787.6" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -SW · objdump -h</text>
+<rect x="292.0" y="828.9" width="252.0" height="107.5" fill="#ffffff" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<rect x="292.0" y="828.9" width="252.0" height="21.0" fill="#33517f" stroke="#33517f" stroke-width="1" rx="3"/>
+<text x="299.0" y="843.4" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">sh_type · sh_flags</text>
+<text x="299.0" y="864.4" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">type</text>
+<text x="339.0" y="864.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PROGBITS NOBITS SYMTAB DYNSYM</text>
+<rect x="294.0" y="869.9" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="879.9" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace"></text>
+<text x="339.0" y="879.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">STRTAB RELA REL HASH GNU_HASH DYN-</text>
+<text x="299.0" y="895.4" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace"></text>
+<text x="339.0" y="895.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">AMIC NOTE INIT/FINI_ARRAY VERSYM</text>
+<rect x="294.0" y="900.9" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="910.9" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">flags</text>
+<text x="339.0" y="910.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">W write · A alloc · X exec</text>
+<text x="299.0" y="926.4" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace"></text>
+<text x="339.0" y="926.4" font-size="8.35" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">M merge · S strings · T tls · I info-link</text>
+<rect x="292.0" y="972.7" width="252.0" height="114.5" fill="#ffffff" stroke="#12868d" stroke-width="1.1" rx="3"/>
+<rect x="292.0" y="972.7" width="252.0" height="21.0" fill="#12868d" stroke="#12868d" stroke-width="1" rx="3"/>
+<text x="299.0" y="987.2" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Rela (24 B)</text>
+<text x="299.0" y="1005.7" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="325.0" y="1005.7" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="417.0" y="1005.7" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="297.0" y1="1009.7" x2="539.0" y2="1009.7" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="299.0" y="1021.2" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="325.0" y="1021.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">r_offset</text>
+<text x="417.0" y="1021.2" font-size="9.35" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">where to patch (vaddr)</text>
+<rect x="294.0" y="1026.7" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="1036.7" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="325.0" y="1036.7" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">r_info</text>
+<text x="417.0" y="1036.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">sym&lt;&lt;32 | type</text>
+<text x="299.0" y="1052.2" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">16</text>
+<text x="325.0" y="1052.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">r_addend</text>
+<text x="417.0" y="1052.2" font-size="9.35" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">constant A (Rela only)</text>
+<text x="299.0" y="1069.2" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">Rel has no addend (implicit, in-place).</text>
+<text x="299.0" y="1082.2" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -r</text>
+<rect x="292.0" y="1123.5" width="252.0" height="114.5" fill="#ffffff" stroke="#c0791e" stroke-width="1.1" rx="3"/>
+<rect x="292.0" y="1123.5" width="252.0" height="21.0" fill="#c0791e" stroke="#c0791e" stroke-width="1" rx="3"/>
+<text x="299.0" y="1138.0" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Elf64_Nhdr — note format</text>
+<text x="299.0" y="1156.5" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">off</text>
+<text x="325.0" y="1156.5" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">field</text>
+<text x="417.0" y="1156.5" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning</text>
+<line x1="297.0" y1="1160.5" x2="539.0" y2="1160.5" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="299.0" y="1172.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">0</text>
+<text x="325.0" y="1172.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">n_namesz</text>
+<text x="417.0" y="1172.0" font-size="8.1" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">name length ("GNU\0" = 4)</text>
+<rect x="294.0" y="1177.5" width="248.0" height="14.5" fill="#f7f6f2"/>
+<text x="299.0" y="1187.5" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4</text>
+<text x="325.0" y="1187.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">n_descsz</text>
+<text x="417.0" y="1187.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">descriptor length</text>
+<text x="299.0" y="1203.0" font-size="9.6" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">8</text>
+<text x="325.0" y="1203.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">n_type</text>
+<text x="417.0" y="1203.0" font-size="9.35" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">NT_* — meaning of desc</text>
+<text x="299.0" y="1220.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">then: name + desc, each padded to 4 bytes</text>
+<text x="299.0" y="1233.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -n (build-id, ABI-tag, CET)</text>
+<rect x="1128.0" y="146.0" width="466.0" height="460.5" fill="#ffffff" stroke="#12233d" stroke-width="1.1" rx="3"/>
+<rect x="1128.0" y="146.0" width="466.0" height="21.0" fill="#12233d" stroke="#12233d" stroke-width="1" rx="3"/>
+<text x="1135.0" y="160.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">part → command that reveals it</text>
+<text x="1135.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">what you want to see</text>
+<text x="1353.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">command</text>
+<line x1="1133.0" y1="183.0" x2="1589.0" y2="183.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1135.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">ELF header / class / entry</text>
+<text x="1353.0" y="194.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -h · file</text>
+<rect x="1130.0" y="200.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Program headers (segments)</text>
+<text x="1353.0" y="210.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -lW</text>
+<text x="1135.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Section headers (table)</text>
+<text x="1353.0" y="225.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -SW · objdump -h</text>
+<rect x="1130.0" y="231.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Section ↔ segment mapping</text>
+<text x="1353.0" y="241.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -lW (bottom)</text>
+<text x="1135.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Interpreter (ld.so path)</text>
+<text x="1353.0" y="256.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -p .interp</text>
+<rect x="1130.0" y="262.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Dynamic table</text>
+<text x="1353.0" y="272.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -d</text>
+<text x="1135.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Shared-lib deps (NEEDED)</text>
+<text x="1353.0" y="287.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -d | grep NEEDED · ldd</text>
+<rect x="1130.0" y="293.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Dynamic symbols</text>
+<text x="1353.0" y="303.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf --dyn-syms · nm -D</text>
+<text x="1135.0" y="318.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Full symbol table</text>
+<text x="1353.0" y="318.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -s · nm · nm -C</text>
+<rect x="1130.0" y="324.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="334.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Relocations (all)</text>
+<text x="1353.0" y="334.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -r · objdump -dr</text>
+<text x="1135.0" y="349.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Dynamic relocations only</text>
+<text x="1353.0" y="349.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -R</text>
+<rect x="1130.0" y="355.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="365.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PLT / GOT stubs</text>
+<text x="1353.0" y="365.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d -j .plt · -R</text>
+<text x="1135.0" y="380.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Disassemble code</text>
+<text x="1353.0" y="380.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump -d · -M intel</text>
+<rect x="1130.0" y="386.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="396.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Hex-dump a section</text>
+<text x="1353.0" y="396.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -x .text</text>
+<text x="1135.0" y="411.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Strings of a section</text>
+<text x="1353.0" y="411.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -p .rodata · strings</text>
+<rect x="1130.0" y="417.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="427.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Notes (build-id, ABI, CET)</text>
+<text x="1353.0" y="427.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -n</text>
+<text x="1135.0" y="442.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Symbol versioning</text>
+<text x="1353.0" y="442.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -V</text>
+<rect x="1130.0" y="448.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="458.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">GNU hash histogram</text>
+<text x="1353.0" y="458.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf -I</text>
+<text x="1135.0" y="473.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Exception/unwind frames</text>
+<text x="1353.0" y="473.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf --debug-dump=frames</text>
+<rect x="1130.0" y="479.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="489.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DWARF debug info</text>
+<text x="1353.0" y="489.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf --debug-dump · objdump -g</text>
+<text x="1135.0" y="504.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DWARF (better tools)</text>
+<text x="1353.0" y="504.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">llvm-dwarfdump · pahole</text>
+<rect x="1130.0" y="510.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="520.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Section sizes</text>
+<text x="1353.0" y="520.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">size -A</text>
+<text x="1135.0" y="535.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Raw bytes</text>
+<text x="1353.0" y="535.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">xxd · od -Ax -tx1 · hexdump -C</text>
+<rect x="1130.0" y="541.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="551.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Security mitigations</text>
+<text x="1353.0" y="551.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">checksec --file · hardening-check</text>
+<text x="1135.0" y="566.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Runtime lib calls / syscalls</text>
+<text x="1353.0" y="566.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ltrace · strace</text>
+<rect x="1130.0" y="572.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="582.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Loader trace</text>
+<text x="1353.0" y="582.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">LD_DEBUG=all,bindings ./p</text>
+<text x="1135.0" y="597.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Live GOT resolution</text>
+<text x="1353.0" y="597.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">gdb / pwndbg / gef</text>
+<rect x="1128.0" y="623.3" width="466.0" height="259.0" fill="#ffffff" stroke="#2b5fd0" stroke-width="1.1" rx="3"/>
+<rect x="1128.0" y="623.3" width="466.0" height="21.0" fill="#2b5fd0" stroke="#2b5fd0" stroke-width="1" rx="3"/>
+<text x="1135.0" y="637.8" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">.dynamic — key tags (readelf -d)</text>
+<text x="1135.0" y="656.3" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">d_tag</text>
+<text x="1307.0" y="656.3" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">meaning / points to</text>
+<line x1="1133.0" y1="660.3" x2="1589.0" y2="660.3" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1135.0" y="671.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_NEEDED</text>
+<text x="1307.0" y="671.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">shared library to load (one per dep)</text>
+<rect x="1130.0" y="677.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="687.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_SONAME</text>
+<text x="1307.0" y="687.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">this object's canonical name</text>
+<text x="1135.0" y="702.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_RPATH / DT_RUNPATH</text>
+<text x="1307.0" y="702.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">extra library search paths</text>
+<rect x="1130.0" y="708.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="718.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_INIT / DT_FINI</text>
+<text x="1307.0" y="718.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">init / finalize functions</text>
+<text x="1135.0" y="733.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_INIT_ARRAY / _ARRAYSZ</text>
+<text x="1307.0" y="733.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">constructor pointer array</text>
+<rect x="1130.0" y="739.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="749.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_FINI_ARRAY</text>
+<text x="1307.0" y="749.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">destructor pointer array</text>
+<text x="1135.0" y="764.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_GNU_HASH / DT_HASH</text>
+<text x="1307.0" y="764.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">symbol lookup hash table</text>
+<rect x="1130.0" y="770.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="780.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_STRTAB / DT_SYMTAB</text>
+<text x="1307.0" y="780.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.dynstr / .dynsym address</text>
+<text x="1135.0" y="795.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_RELA / SZ / ENT</text>
+<text x="1307.0" y="795.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">data relocation table (.rela.dyn)</text>
+<rect x="1130.0" y="801.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="811.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_JMPREL / DT_PLTRELSZ</text>
+<text x="1307.0" y="811.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PLT relocations (.rela.plt)</text>
+<text x="1135.0" y="826.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_PLTGOT</text>
+<text x="1307.0" y="826.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.got.plt address</text>
+<rect x="1130.0" y="832.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="842.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_FLAGS / DT_FLAGS_1</text>
+<text x="1307.0" y="842.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">BIND_NOW, PIE, NODELETE, NOW…</text>
+<text x="1135.0" y="857.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_VERNEED / DT_VERSYM</text>
+<text x="1307.0" y="857.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">symbol version requirements</text>
+<rect x="1130.0" y="863.3" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="873.3" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DT_NULL</text>
+<text x="1307.0" y="873.3" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">end-of-array marker</text>
+<rect x="1128.0" y="899.2" width="466.0" height="161.0" fill="#ffffff" stroke="#555555" stroke-width="1.1" rx="3"/>
+<rect x="1128.0" y="899.2" width="466.0" height="21.0" fill="#555555" stroke="#555555" stroke-width="1" rx="3"/>
+<text x="1135.0" y="913.7" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">DWARF &amp; debug sections</text>
+<text x="1135.0" y="932.2" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">section</text>
+<text x="1293.0" y="932.2" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">holds</text>
+<line x1="1133.0" y1="936.2" x2="1589.0" y2="936.2" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1135.0" y="947.7" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.debug_info</text>
+<text x="1293.0" y="947.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">the DIE tree: types, vars, functions</text>
+<rect x="1130.0" y="953.2" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="963.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.debug_abbrev</text>
+<text x="1293.0" y="963.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">abbreviation tables for the DIEs</text>
+<text x="1135.0" y="978.7" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.debug_line</text>
+<text x="1293.0" y="978.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">machine address ↔ source line</text>
+<rect x="1130.0" y="984.2" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="994.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.debug_str / _line_str</text>
+<text x="1293.0" y="994.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">string pools</text>
+<text x="1135.0" y="1009.7" font-size="9.35" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.debug_loclists/_rnglists</text>
+<text x="1293.0" y="1009.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">variable locations / addr ranges</text>
+<rect x="1130.0" y="1015.2" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="1025.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.debug_frame / .eh_frame</text>
+<text x="1293.0" y="1025.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">CFI — call-frame unwind tables</text>
+<text x="1135.0" y="1042.2" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: objdump -g · readelf --debug-dump=… · llvm-dwarfdump · pahole · gdb</text>
+<text x="1135.0" y="1055.2" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">gcc -g emits it; split: objcopy --only-keep-debug + .gnu_debuglink</text>
+<rect x="1128.0" y="1077.0" width="466.0" height="161.0" fill="#ffffff" stroke="#6b4a2b" stroke-width="1.1" rx="3"/>
+<rect x="1128.0" y="1077.0" width="466.0" height="21.0" fill="#6b4a2b" stroke="#6b4a2b" stroke-width="1" rx="3"/>
+<text x="1135.0" y="1091.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Core dump (ET_CORE) — PT_NOTE contents</text>
+<text x="1135.0" y="1110.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">note type</text>
+<text x="1307.0" y="1110.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">captures</text>
+<line x1="1133.0" y1="1114.0" x2="1589.0" y2="1114.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1135.0" y="1125.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">NT_PRSTATUS</text>
+<text x="1307.0" y="1125.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">GP registers + signal, per thread</text>
+<rect x="1130.0" y="1131.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="1141.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">NT_PRPSINFO</text>
+<text x="1307.0" y="1141.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">process name, pid, ppid, state</text>
+<text x="1135.0" y="1156.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">NT_FPREGSET / X86_XSTATE</text>
+<text x="1307.0" y="1156.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">FP / SSE / AVX register state</text>
+<rect x="1130.0" y="1162.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="1172.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">NT_SIGINFO</text>
+<text x="1307.0" y="1172.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">the signal that caused the dump</text>
+<text x="1135.0" y="1187.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">NT_FILE</text>
+<text x="1307.0" y="1187.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">mmap'd files (paths + address ranges)</text>
+<rect x="1130.0" y="1193.0" width="462.0" height="14.5" fill="#f7f6f2"/>
+<text x="1135.0" y="1203.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">NT_AUXV</text>
+<text x="1307.0" y="1203.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">the auxiliary vector</text>
+<text x="1135.0" y="1220.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">produce: ulimit -c unlimited · gcore &lt;pid&gt; · kernel elf_core_dump()</text>
+<text x="1135.0" y="1233.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: gdb ./prog core · readelf -n core · eu-readelf -n</text>
+<rect x="1612.0" y="146.0" width="458.0" height="207.5" fill="#ffffff" stroke="#12868d" stroke-width="1.1" rx="3"/>
+<rect x="1612.0" y="146.0" width="458.0" height="21.0" fill="#12868d" stroke="#12868d" stroke-width="1" rx="3"/>
+<text x="1619.0" y="160.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Relocation math — x86-64 (readelf -r)</text>
+<text x="1619.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">type</text>
+<text x="1777.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">writes</text>
+<text x="1885.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">used for</text>
+<line x1="1617.0" y1="183.0" x2="2065.0" y2="183.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1619.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_64</text>
+<text x="1777.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">S + A</text>
+<text x="1885.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">absolute 64-bit ref</text>
+<rect x="1614.0" y="200.0" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_PC32</text>
+<text x="1777.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">S + A − P</text>
+<text x="1885.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PC-relative (rel call)</text>
+<text x="1619.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_PLT32</text>
+<text x="1777.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">L + A − P</text>
+<text x="1885.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">call via PLT</text>
+<rect x="1614.0" y="231.0" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_GOTPCREL</text>
+<text x="1777.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">G + GOT + A − P</text>
+<text x="1885.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">load addr from GOT</text>
+<text x="1619.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_GLOB_DAT</text>
+<text x="1777.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">S</text>
+<text x="1885.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">GOT data slot (.rela.dyn)</text>
+<rect x="1614.0" y="262.0" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_JUMP_SLOT</text>
+<text x="1777.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">S</text>
+<text x="1885.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PLT slot (.rela.plt)</text>
+<text x="1619.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_RELATIVE</text>
+<text x="1777.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">B + A</text>
+<text x="1885.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PIE self-relocation</text>
+<rect x="1614.0" y="293.0" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_IRELATIVE</text>
+<text x="1777.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">resolver()</text>
+<text x="1885.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">IFUNC selection</text>
+<text x="1619.0" y="318.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">R_X86_64_32 / 32S</text>
+<text x="1777.0" y="318.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">S + A</text>
+<text x="1885.0" y="318.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">32-bit abs (no-PIE)</text>
+<text x="1619.0" y="335.5" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">S=symbol value · A=addend · P=place (r_offset) · B=load base</text>
+<text x="1619.0" y="348.5" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">L=PLT entry · G=GOT-relative offset · GOT=.got address</text>
+<rect x="1612.0" y="393.1" width="458.0" height="264.0" fill="#ffffff" stroke="#1f6fb0" stroke-width="1.1" rx="3"/>
+<rect x="1612.0" y="393.1" width="458.0" height="21.0" fill="#1f6fb0" stroke="#1f6fb0" stroke-width="1" rx="3"/>
+<text x="1619.0" y="407.6" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Lazy binding: PLT → GOT → resolver (first call)</text>
+<rect x="1620.0" y="421.1" width="442.0" height="30.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.1" rx="3"/>
+<text x="1628.0" y="434.1" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">call puts@plt</text>
+<text x="1628.0" y="446.1" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">your .text calls the stub</text>
+<line x1="1841.0" y1="451.1" x2="1841.0" y2="456.1" stroke="#c0392b" stroke-width="1.4"/>
+<path d="M1837.4,454.6 L1844.6,454.6 L1841.0,460.1 z" fill="#c0392b"/>
+<rect x="1620.0" y="460.1" width="442.0" height="30.0" fill="#fff2d0" stroke="#bf931b" stroke-width="1.1" rx="3"/>
+<text x="1628.0" y="473.1" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">.plt.sec: jmp *puts@GOT</text>
+<text x="1628.0" y="485.1" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">1st time GOT points back after the jmp</text>
+<line x1="1841.0" y1="490.1" x2="1841.0" y2="495.1" stroke="#bf931b" stroke-width="1.4"/>
+<path d="M1837.4,493.6 L1844.6,493.6 L1841.0,499.1 z" fill="#bf931b"/>
+<rect x="1620.0" y="499.1" width="442.0" height="30.0" fill="#d7ecff" stroke="#1f6fb0" stroke-width="1.1" rx="3"/>
+<text x="1628.0" y="512.1" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">push idx ; jmp .plt[0]</text>
+<text x="1628.0" y="524.1" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">push relocation index, go to PLT[0]</text>
+<line x1="1841.0" y1="529.1" x2="1841.0" y2="534.1" stroke="#1f6fb0" stroke-width="1.4"/>
+<path d="M1837.4,532.6 L1844.6,532.6 L1841.0,538.1 z" fill="#1f6fb0"/>
+<rect x="1620.0" y="538.1" width="442.0" height="30.0" fill="#dde8ff" stroke="#2b5fd0" stroke-width="1.1" rx="3"/>
+<text x="1628.0" y="551.1" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">PLT[0]: push GOT[1]; jmp *GOT[2]</text>
+<text x="1628.0" y="563.1" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">GOT[1]=link_map · GOT[2]=_dl_runtime_resolve</text>
+<line x1="1841.0" y1="568.1" x2="1841.0" y2="573.1" stroke="#2b5fd0" stroke-width="1.4"/>
+<path d="M1837.4,571.6 L1844.6,571.6 L1841.0,577.1 z" fill="#2b5fd0"/>
+<rect x="1620.0" y="577.1" width="442.0" height="30.0" fill="#efe6fb" stroke="#7d4fb0" stroke-width="1.1" rx="3"/>
+<text x="1628.0" y="590.1" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">_dl_runtime_resolve()</text>
+<text x="1628.0" y="602.1" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">search .dynsym via .gnu.hash; find puts</text>
+<line x1="1841.0" y1="607.1" x2="1841.0" y2="612.1" stroke="#7d4fb0" stroke-width="1.4"/>
+<path d="M1837.4,610.6 L1844.6,610.6 L1841.0,616.1 z" fill="#7d4fb0"/>
+<rect x="1620.0" y="616.1" width="442.0" height="30.0" fill="#e0f3e5" stroke="#2e8b57" stroke-width="1.1" rx="3"/>
+<text x="1628.0" y="629.1" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">GOT[n] ← &amp;puts ; jump</text>
+<text x="1628.0" y="641.1" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">next calls jump straight to puts (bound)</text>
+<rect x="1612.0" y="696.8" width="458.0" height="163.5" fill="#ffffff" stroke="#0e6a7a" stroke-width="1.1" rx="3"/>
+<rect x="1612.0" y="696.8" width="458.0" height="21.0" fill="#0e6a7a" stroke="#0e6a7a" stroke-width="1" rx="3"/>
+<text x="1619.0" y="711.2" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Thread-Local Storage (TLS)</text>
+<text x="1619.0" y="729.8" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">piece</text>
+<text x="1737.0" y="729.8" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">role</text>
+<line x1="1617.0" y1="733.8" x2="2065.0" y2="733.8" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1619.0" y="745.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">PT_TLS</text>
+<text x="1737.0" y="745.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">per-thread template: .tdata + .tbss</text>
+<rect x="1614.0" y="750.8" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="760.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.tdata / .tbss</text>
+<text x="1737.0" y="760.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">init'd / zeroed TLS data (flag T)</text>
+<text x="1619.0" y="776.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">%fs:0 (x86-64)</text>
+<text x="1737.0" y="776.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">thread pointer → TCB self-pointer</text>
+<rect x="1614.0" y="781.8" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="791.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">DTV</text>
+<text x="1737.0" y="791.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">dynamic thread vector, per thread</text>
+<text x="1619.0" y="807.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">models</text>
+<text x="1737.0" y="807.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">GD → LD → IE → LE (ld relaxes)</text>
+<rect x="1614.0" y="812.8" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="822.8" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">__tls_get_addr</text>
+<text x="1737.0" y="822.8" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">resolver call in dynamic models</text>
+<text x="1619.0" y="838.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">relocs</text>
+<text x="1737.0" y="838.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">TPOFF64 · DTPMOD64 · DTPOFF64</text>
+<text x="1619.0" y="855.2" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">read: readelf -lW (TLS row) · readelf -r | grep TPOFF</text>
+<rect x="1612.0" y="899.9" width="458.0" height="179.0" fill="#ffffff" stroke="#7a3b5e" stroke-width="1.1" rx="3"/>
+<rect x="1612.0" y="899.9" width="458.0" height="21.0" fill="#7a3b5e" stroke="#7a3b5e" stroke-width="1" rx="3"/>
+<text x="1619.0" y="914.4" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Hardening — checksec / how it's encoded</text>
+<text x="1619.0" y="932.9" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">mitigation</text>
+<text x="1747.0" y="932.9" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">how to detect in the ELF</text>
+<line x1="1617.0" y1="936.9" x2="2065.0" y2="936.9" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1619.0" y="948.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">NX / DEP</text>
+<text x="1747.0" y="948.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PT_GNU_STACK flags = RW (no X)</text>
+<rect x="1614.0" y="953.9" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="963.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PIE</text>
+<text x="1747.0" y="963.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">e_type = ET_DYN + PT_INTERP present</text>
+<text x="1619.0" y="979.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Partial RELRO</text>
+<text x="1747.0" y="979.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">PT_GNU_RELRO present</text>
+<rect x="1614.0" y="984.9" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="994.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Full RELRO</text>
+<text x="1747.0" y="994.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">+ DT_BIND_NOW / DF_BIND_NOW (GOT ro)</text>
+<text x="1619.0" y="1010.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Stack canary</text>
+<text x="1747.0" y="1010.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">imports __stack_chk_fail</text>
+<rect x="1614.0" y="1015.9" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="1025.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">FORTIFY</text>
+<text x="1747.0" y="1025.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">*_chk symbols (memcpy_chk…)</text>
+<text x="1619.0" y="1041.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">CET / shadow-stk</text>
+<text x="1747.0" y="1041.4" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.note.gnu.property IBT / SHSTK</text>
+<rect x="1614.0" y="1046.9" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="1056.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">RPATH/RUNPATH</text>
+<text x="1747.0" y="1056.9" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DT_RPATH / DT_RUNPATH in .dynamic</text>
+<text x="1619.0" y="1073.9" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">dynamic tags: readelf -d · quick check: checksec --file=./p</text>
+<rect x="1612.0" y="1118.5" width="458.0" height="119.5" fill="#ffffff" stroke="#555555" stroke-width="1.1" rx="3"/>
+<rect x="1612.0" y="1118.5" width="458.0" height="21.0" fill="#555555" stroke="#555555" stroke-width="1" rx="3"/>
+<text x="1619.0" y="1133.0" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Stripping &amp; separate debug info</text>
+<text x="1619.0" y="1151.5" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">action</text>
+<text x="1769.0" y="1151.5" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">effect / where</text>
+<line x1="1617.0" y1="1155.5" x2="2065.0" y2="1155.5" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="1619.0" y="1167.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">strip -s</text>
+<text x="1769.0" y="1167.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">drop .symtab/.strtab + debug</text>
+<rect x="1614.0" y="1172.5" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="1182.5" font-size="8.85" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objcopy --only-keep-debug</text>
+<text x="1769.0" y="1182.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">save debug into prog.debug</text>
+<text x="1619.0" y="1198.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">--add-gnu-debuglink</text>
+<text x="1769.0" y="1198.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.gnu_debuglink → name + CRC</text>
+<rect x="1614.0" y="1203.5" width="454.0" height="14.5" fill="#f7f6f2"/>
+<text x="1619.0" y="1213.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">build-id lookup</text>
+<text x="1769.0" y="1213.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">/usr/lib/debug/.build-id/xx/….debug</text>
+<text x="1619.0" y="1229.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">debuginfod</text>
+<text x="1769.0" y="1229.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DEBUGINFOD_URLS=… gdb auto-fetch</text>
+<rect x="2088.0" y="146.0" width="448.0" height="352.0" fill="#ffffff" stroke="#4a3a6b" stroke-width="1.1" rx="3"/>
+<rect x="2088.0" y="146.0" width="448.0" height="21.0" fill="#4a3a6b" stroke="#4a3a6b" stroke-width="1" rx="3"/>
+<text x="2095.0" y="160.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">The toolbox</text>
+<text x="2095.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">tool</text>
+<text x="2199.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">shows</text>
+<text x="2357.0" y="179.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">key flags</text>
+<line x1="2093.0" y1="183.0" x2="2531.0" y2="183.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="2095.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">readelf</text>
+<text x="2199.0" y="194.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">the ELF parser</text>
+<text x="2357.0" y="194.5" font-size="8.85" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-h -l -S -s -r -d -n -V -x -p</text>
+<rect x="2090.0" y="200.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objdump</text>
+<text x="2199.0" y="210.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">disasm + relocs</text>
+<text x="2357.0" y="210.0" font-size="9.35" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-d -D -dr -R -t -T -h -s -g</text>
+<text x="2095.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">nm</text>
+<text x="2199.0" y="225.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">symbols</text>
+<text x="2357.0" y="225.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-D -C -u --defined-only</text>
+<rect x="2090.0" y="231.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">size</text>
+<text x="2199.0" y="241.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">section sizes</text>
+<text x="2357.0" y="241.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-A --format=sysv</text>
+<text x="2095.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">strings</text>
+<text x="2199.0" y="256.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">printable text</text>
+<text x="2357.0" y="256.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-n 6 -t x</text>
+<rect x="2090.0" y="262.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">file</text>
+<text x="2199.0" y="272.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">quick identity</text>
+<text x="2357.0" y="272.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace"></text>
+<text x="2095.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">xxd / od</text>
+<text x="2199.0" y="287.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">raw bytes</text>
+<text x="2357.0" y="287.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-l -s / -Ax -tx1</text>
+<rect x="2090.0" y="293.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ldd</text>
+<text x="2199.0" y="303.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">shared deps (runs!)</text>
+<text x="2357.0" y="303.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace"></text>
+<text x="2095.0" y="318.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">patchelf</text>
+<text x="2199.0" y="318.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">edit interp/rpath</text>
+<text x="2357.0" y="318.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">--set-interpreter …</text>
+<rect x="2090.0" y="324.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="334.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">objcopy</text>
+<text x="2199.0" y="334.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">copy/extract secs</text>
+<text x="2357.0" y="334.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-O binary -j .text</text>
+<text x="2095.0" y="349.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">strip</text>
+<text x="2199.0" y="349.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">remove sym/debug</text>
+<text x="2357.0" y="349.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-s --strip-debug</text>
+<rect x="2090.0" y="355.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="365.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">gdb+pwndbg</text>
+<text x="2199.0" y="365.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">runtime, GOT</text>
+<text x="2357.0" y="365.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">got · vmmap · telescope</text>
+<text x="2095.0" y="380.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">ltrace/strace</text>
+<text x="2199.0" y="380.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">lib/syscall trace</text>
+<text x="2357.0" y="380.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-f -e</text>
+<rect x="2090.0" y="386.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="396.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">checksec</text>
+<text x="2199.0" y="396.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">mitigations</text>
+<text x="2357.0" y="396.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">--file=…</text>
+<text x="2095.0" y="411.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">LIEF</text>
+<text x="2199.0" y="411.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">py read+modify ELF</text>
+<text x="2357.0" y="411.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">import lief</text>
+<rect x="2090.0" y="417.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="427.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">pyelftools</text>
+<text x="2199.0" y="427.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">py pure parser</text>
+<text x="2357.0" y="427.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">from elftools…</text>
+<text x="2095.0" y="442.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">pahole</text>
+<text x="2199.0" y="442.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">struct layout</text>
+<text x="2357.0" y="442.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-C type a.out</text>
+<rect x="2090.0" y="448.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="458.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">llvm-dwarfdump</text>
+<text x="2199.0" y="458.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">DWARF</text>
+<text x="2357.0" y="458.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">--debug-info</text>
+<text x="2095.0" y="473.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">eu-readelf</text>
+<text x="2199.0" y="473.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">elfutils readelf</text>
+<text x="2357.0" y="473.5" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-a -w</text>
+<rect x="2090.0" y="479.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="489.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">dumpelf/scanelf</text>
+<text x="2199.0" y="489.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">pax-utils</text>
+<text x="2357.0" y="489.0" font-size="9.6" fill="#2b6cb0" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">-a / -e</text>
+<rect x="2088.0" y="517.8" width="448.0" height="381.0" fill="#ffffff" stroke="#2e5a3a" stroke-width="1.1" rx="3"/>
+<rect x="2088.0" y="517.8" width="448.0" height="21.0" fill="#2e5a3a" stroke="#2e5a3a" stroke-width="1" rx="3"/>
+<text x="2095.0" y="532.3" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">From execve() to main()</text>
+<rect x="2096.0" y="545.8" width="432.0" height="30.0" fill="#e7eefb" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="558.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">execve(2)</text>
+<text x="2104.0" y="570.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">kernel: fs/exec.c → search_binary_handler</text>
+<line x1="2312.0" y1="575.8" x2="2312.0" y2="580.8" stroke="#33517f" stroke-width="1.4"/>
+<path d="M2308.4,579.3 L2315.6,579.3 L2312.0,584.8 z" fill="#33517f"/>
+<rect x="2096.0" y="584.8" width="432.0" height="30.0" fill="#e7eefb" stroke="#33517f" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="597.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">load_elf_binary()</text>
+<text x="2104.0" y="609.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">fs/binfmt_elf.c — sanity-check e_ident</text>
+<line x1="2312.0" y1="614.8" x2="2312.0" y2="619.8" stroke="#33517f" stroke-width="1.4"/>
+<path d="M2308.4,618.3 L2315.6,618.3 L2312.0,623.8 z" fill="#33517f"/>
+<rect x="2096.0" y="623.8" width="432.0" height="30.0" fill="#d7ecff" stroke="#1f6fb0" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="636.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">elf_map() PT_LOAD</text>
+<text x="2104.0" y="648.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">mmap each segment with p_flags perms</text>
+<line x1="2312.0" y1="653.8" x2="2312.0" y2="658.8" stroke="#1f6fb0" stroke-width="1.4"/>
+<path d="M2308.4,657.3 L2315.6,657.3 L2312.0,662.8 z" fill="#1f6fb0"/>
+<rect x="2096.0" y="662.8" width="432.0" height="30.0" fill="#d7f0f5" stroke="#1690a6" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="675.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">load PT_INTERP</text>
+<text x="2104.0" y="687.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">map ld.so if dynamic (else skip)</text>
+<line x1="2312.0" y1="692.8" x2="2312.0" y2="697.8" stroke="#1690a6" stroke-width="1.4"/>
+<path d="M2308.4,696.3 L2315.6,696.3 L2312.0,701.8 z" fill="#1690a6"/>
+<rect x="2096.0" y="701.8" width="432.0" height="30.0" fill="#fff2d0" stroke="#bf931b" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="714.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">create_elf_tables()</text>
+<text x="2104.0" y="726.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">build stack: argc argv envp AUXV</text>
+<line x1="2312.0" y1="731.8" x2="2312.0" y2="736.8" stroke="#bf931b" stroke-width="1.4"/>
+<path d="M2308.4,735.3 L2315.6,735.3 L2312.0,740.8 z" fill="#bf931b"/>
+<rect x="2096.0" y="740.8" width="432.0" height="30.0" fill="#fde0d9" stroke="#c0392b" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="753.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">start_thread → e_entry</text>
+<text x="2104.0" y="765.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">jump to ld.so entry (or _start if static)</text>
+<line x1="2312.0" y1="770.8" x2="2312.0" y2="775.8" stroke="#c0392b" stroke-width="1.4"/>
+<path d="M2308.4,774.3 L2315.6,774.3 L2312.0,779.8 z" fill="#c0392b"/>
+<rect x="2096.0" y="779.8" width="432.0" height="30.0" fill="#efe6fb" stroke="#7d4fb0" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="792.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">ld.so</text>
+<text x="2104.0" y="804.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">self-reloc, map DT_NEEDED, relocate, init</text>
+<line x1="2312.0" y1="809.8" x2="2312.0" y2="814.8" stroke="#7d4fb0" stroke-width="1.4"/>
+<path d="M2308.4,813.3 L2315.6,813.3 L2312.0,818.8 z" fill="#7d4fb0"/>
+<rect x="2096.0" y="818.8" width="432.0" height="30.0" fill="#e0f3e5" stroke="#2e8b57" stroke-width="1.1" rx="3"/>
+<text x="2104.0" y="831.8" font-size="10.5" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">_start → __libc_start_main</text>
+<text x="2104.0" y="843.8" font-size="8.8" fill="#41403b" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">runs .init_array, then calls main()</text>
+<text x="2096.0" y="867.8" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">auxv: getauxval() · LD_SHOW_AUXV=1 · /proc/self/auxv →</text>
+<text x="2096.0" y="880.8" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">AT_PHDR AT_PHNUM AT_ENTRY AT_BASE AT_PAGESZ AT_RANDOM</text>
+<text x="2096.0" y="893.8" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">AT_EXECFN AT_SYSINFO_EHDR (vDSO)</text>
+<rect x="2088.0" y="918.7" width="448.0" height="120.5" fill="#ffffff" stroke="#2b5fd0" stroke-width="1.1" rx="3"/>
+<rect x="2088.0" y="918.7" width="448.0" height="21.0" fill="#2b5fd0" stroke="#2b5fd0" stroke-width="1" rx="3"/>
+<text x="2095.0" y="933.2" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">Where ld.so finds libraries (in order)</text>
+<text x="2095.0" y="954.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">1 DT_RPATH</text>
+<text x="2243.0" y="954.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">deprecated; skipped if RUNPATH set</text>
+<rect x="2090.0" y="959.7" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="969.7" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">2 LD_LIBRARY_PATH</text>
+<text x="2243.0" y="969.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">environment (ignored if setuid)</text>
+<text x="2095.0" y="985.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">3 DT_RUNPATH</text>
+<text x="2243.0" y="985.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">this object only</text>
+<rect x="2090.0" y="990.7" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="1000.7" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">4 /etc/ld.so.cache</text>
+<text x="2243.0" y="1000.7" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">ldconfig -p to list it</text>
+<text x="2095.0" y="1016.2" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">5 /lib64 · /usr/lib64</text>
+<text x="2243.0" y="1016.2" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">default trusted dirs</text>
+<text x="2095.0" y="1033.2" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">LD_PRELOAD interposes before all of it · man ld.so</text>
+<rect x="2088.0" y="1059.0" width="448.0" height="179.0" fill="#ffffff" stroke="#3b4a2b" stroke-width="1.1" rx="3"/>
+<rect x="2088.0" y="1059.0" width="448.0" height="21.0" fill="#3b4a2b" stroke="#3b4a2b" stroke-width="1" rx="3"/>
+<text x="2095.0" y="1073.5" font-size="11.5" fill="#ffffff" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">ELF the kernel makes &amp; eats</text>
+<text x="2095.0" y="1092.0" font-size="8.5" fill="#5a6572" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-weight="bold">thing</text>
+<text x="2191.0" y="1092.0" font-size="8.5" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-weight="bold">what to know / how to read</text>
+<line x1="2093.0" y1="1096.0" x2="2531.0" y2="1096.0" stroke="#d8d4c8" stroke-width="0.8"/>
+<text x="2095.0" y="1107.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">vDSO</text>
+<text x="2191.0" y="1107.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">ET_DYN mapped by kernel; base in AT_SYSINFO_EHDR</text>
+<rect x="2090.0" y="1113.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="1123.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">↳ dump it</text>
+<text x="2191.0" y="1123.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">cp from /proc/self/maps [vdso]; objdump -d</text>
+<text x="2095.0" y="1138.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">↳ symbols</text>
+<text x="2191.0" y="1138.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">__vdso_gettimeofday, __vdso_clock_gettime</text>
+<rect x="2090.0" y="1144.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="1154.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">.ko module</text>
+<text x="2191.0" y="1154.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">ET_REL relocatable; insmod/modprobe loads</text>
+<text x="2095.0" y="1169.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">↳ sections</text>
+<text x="2191.0" y="1169.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">.modinfo · __ksymtab · .rela.* (kernel relocs)</text>
+<rect x="2090.0" y="1175.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="1185.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">↳ read</text>
+<text x="2191.0" y="1185.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">readelf -Srs mod.ko; apply_relocate_add()</text>
+<text x="2095.0" y="1200.5" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">vmlinux</text>
+<text x="2191.0" y="1200.5" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">full ELF of the kernel (symbols, DWARF)</text>
+<rect x="2090.0" y="1206.0" width="444.0" height="14.5" fill="#f7f6f2"/>
+<text x="2095.0" y="1216.0" font-size="9.6" fill="#1a1a1a" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace">bzImage</text>
+<text x="2191.0" y="1216.0" font-size="9.6" fill="#1a1a1a" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">compressed boot blob — NOT an ELF</text>
+<text x="2095.0" y="1233.0" font-size="8.8" fill="#5a6572" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif" font-style="italic">src: fs/binfmt_elf.c · kernel/module/main.c · arch/x86/entry/vdso/</text>
+<text x="24.0" y="1268.0" font-size="11" fill="#7b7360" font-family="Arial, Helvetica, 'DejaVu Sans', sans-serif">Generated for the ELF Mastery Roadmap · sizes are Elf64 (LP64) · flags: A=alloc W=write X=exec I=info-link T=tls · inspired by Brendan Gregg’s tools maps.</text>
+</svg>
