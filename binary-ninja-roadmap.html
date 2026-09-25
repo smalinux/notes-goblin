@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Ninja Mastery Roadmap — Reverse Engineer + Tool Builder</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 70px; }
+  code, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  a { color: var(--accent); }
+  i { color: #d8c9f0; }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 10px; font-size: 36px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 780px; margin: 0 auto; font-size: 15.5px; }
+  .hero p b { color: #e6edf3; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 21px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #0d1117;
+  }
+  h2.sec .hint { color: var(--dim); font-weight: 400; font-size: 13.5px; margin-left: auto; white-space: nowrap; }
+  .cm0{background:var(--accent)} .cm1{background:var(--orange)} .cm2{background:var(--green)}
+  .cm3{background:var(--yellow)} .cm4{background:var(--purple)} .cm5a{background:var(--pink)}
+  .cm5b{background:var(--cyan)} .cm6{background:var(--red)} .cinf{background:#6e7681}
+
+  .goal { margin: 10px 0 12px; }
+  .goal > b { color: var(--red); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 16px; margin: 12px 0;
+  }
+  .row { padding: 10px 2px; border-bottom: 1px solid #21262d; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 3px; }
+  .row .k .note { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--dim); font-size: 12.5px; }
+  .k-learn { color: var(--cyan); } .k-read { color: var(--purple); }
+  .k-watch { color: var(--red); } .k-tools { color: var(--orange); }
+  .k-src { color: var(--green); }
+  .row p, .row ul { margin: 0; color: #cdd6e0; }
+  .row p + ul, .row ul + p { margin-top: 6px; }
+  .row ul { padding-left: 20px; }
+  .row li { margin: 3px 0; }
+  .row b { color: #fff; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: #12233c88; border-radius: 0 8px 8px 0;
+    padding: 10px 14px; margin: 12px 0; font-size: 14px; color: #cfe0f5;
+  }
+  .callout b { color: #fff; }
+  .callout.warn { border-color: var(--yellow); background: #2b231344; color: #e8dfc0; }
+  .ch { background: #ffffff08; color: #d5dbe5; }
+  .ch ol { margin: 6px 0 0; padding-left: 22px; }
+  .ch li { margin: 4px 0; }
+  .ch-m0 { border-color: var(--accent); } .ch-m1 { border-color: var(--orange); }
+  .ch-m2 { border-color: var(--green); }  .ch-m3 { border-color: var(--yellow); }
+  .ch-m4 { border-color: var(--purple); } .ch-m5a { border-color: var(--pink); }
+  .ch-m5b { border-color: var(--cyan); }
+
+  ul.plain { margin: 8px 0; padding-left: 22px; }
+  ul.plain li { margin: 5px 0; color: #cdd6e0; }
+  ul.plain b { color: #fff; }
+
+  .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .cap-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .cap-card.re { border-color: #ff7bc655; }
+  .cap-card.pf { border-color: #39c5cf55; }
+  .cap-card p { margin: 0; color: #cdd6e0; }
+  .cap-card b { color: #fff; }
+
+  .qgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .qcard { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .qcard h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .qcard p { margin: 0; font-size: 13.5px; color: #cdd6e0; }
+  .qcard b { color: #fff; }
+  .qd h3 { color: var(--accent); } .qk h3 { color: var(--yellow); } .qb h3 { color: var(--purple); }
+  .qch h3 { color: var(--pink); } .qtk h3 { color: var(--red); } .qp h3 { color: var(--orange); }
+  .qa h3 { color: var(--green); }
+  .qcard.wide { grid-column: 1 / -1; }
+
+  .svgbox { margin: 24px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 26px 0 6px; }
+  .toc a {
+    text-decoration: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+    background: #161b22; border: 1px solid var(--border); color: var(--dim);
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+
+  @media (max-width: 760px) { .caps, .qgrid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Binary Ninja Mastery Roadmap</h1>
+  <p>Reverse Engineer + Tool Builder. A milestone-driven path. Each milestone lists what to
+    learn, what to read, what to <b>watch</b> (videos &amp; streams), and a <b>validation challenge</b>
+    you must complete before moving on. Two tracks converge: <b>RE</b> (analyze hostile/unknown
+    binaries using BN as your primary lens) and <b>PLATFORM</b> (bend BN itself — the API, BNIL,
+    architectures, and analysis passes — to your will).</p>
+  <div class="tag">SHARED CORE 0–4 → RE TRACK 5A / PLATFORM TRACK 5B → CAPSTONE 6</div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <a href="#howto">How to use</a>
+  <a href="#m0">0 Install &amp; UI</a>
+  <a href="#m1">1 Navigation</a>
+  <a href="#m2">2 BNIL</a>
+  <a href="#m3">3 Types</a>
+  <a href="#m4">4 API</a>
+  <a href="#m5a">5A RE track</a>
+  <a href="#m5b">5B Platform track</a>
+  <a href="#m6">6 Capstone</a>
+  <a href="#practice">Practice</a>
+  <a href="#quickref">Quick reference</a>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 920 290" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b3"/>
+    </marker>
+  </defs>
+
+  <text x="293" y="100" text-anchor="middle" fill="#6e7681" font-size="11" font-style="italic">shared core · ~1–2 weeks per milestone</text>
+
+  <!-- shared core 0→4 -->
+  <rect x="14"  y="115" width="96" height="52" rx="9" fill="#12233c" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="62"  y="136" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="700">M0</text>
+  <text x="62"  y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Install &amp; UI</text>
+
+  <rect x="128" y="115" width="96" height="52" rx="9" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="176" y="136" text-anchor="middle" fill="#ffa657" font-size="12" font-weight="700">M1</text>
+  <text x="176" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Nav &amp; console</text>
+
+  <rect x="242" y="115" width="96" height="52" rx="9" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="290" y="136" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">M2</text>
+  <text x="290" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">BNIL stack</text>
+
+  <rect x="356" y="115" width="96" height="52" rx="9" fill="#2b2313" stroke="#e3b341" stroke-width="1.5"/>
+  <text x="404" y="136" text-anchor="middle" fill="#e3b341" font-size="12" font-weight="700">M3</text>
+  <text x="404" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Types &amp; sigs</text>
+
+  <rect x="470" y="115" width="96" height="52" rx="9" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="518" y="136" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="700">M4</text>
+  <text x="518" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">API &amp; headless</text>
+
+  <path d="M 110 141 L 126 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 224 141 L 240 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 338 141 L 354 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 452 141 L 468 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- split into tracks -->
+  <rect x="600" y="28" width="158" height="54" rx="9" fill="#2b1220" stroke="#ff7bc6" stroke-width="1.5"/>
+  <text x="679" y="50" text-anchor="middle" fill="#ff7bc6" font-size="12" font-weight="700">5A · RE TRACK</text>
+  <text x="679" y="67" text-anchor="middle" fill="#e6edf3" font-size="9">dynamic · deobfuscation · malware</text>
+
+  <rect x="600" y="208" width="158" height="54" rx="9" fill="#0e2528" stroke="#39c5cf" stroke-width="1.5"/>
+  <text x="679" y="230" text-anchor="middle" fill="#39c5cf" font-size="12" font-weight="700">5B · PLATFORM TRACK</text>
+  <text x="679" y="247" text-anchor="middle" fill="#e6edf3" font-size="9">architectures · workflows · passes</text>
+
+  <path d="M 566 128 C 580 100 584 80 597 62"  stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <path d="M 566 154 C 580 182 584 202 597 220" stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- converge at the capstone -->
+  <rect x="796" y="115" width="110" height="52" rx="9" fill="#2b1512" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="851" y="136" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="700">M6</text>
+  <text x="851" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Capstone</text>
+
+  <path d="M 758 62 C 775 76 780 102 793 126"  stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <path d="M 758 220 C 775 206 780 180 793 156" stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- practice rail -->
+  <line x1="14" y1="282" x2="906" y2="282" stroke="#ff7bc6" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="460" y="276" text-anchor="middle" fill="#ff7bc6" font-size="11" font-style="italic">practice grounds (ongoing) — crackmes.one · pwnable.kr/tw · ROP Emporium · Pwn Adventure · CTFs · HackTheBox</text>
+</svg>
+<div class="cap">Do milestones in order; 0→4 are the shared core, 5 splits into tracks, both converge at the capstone.</div>
+</div>
+
+<div class="callout">
+  <b>Primary references always open in a tab:</b> the official docs at <b><code>docs.binary.ninja</code></b>
+  (User Guide + Dev Guide) and the <b>BNIL series</b> (Overview → LLIL → MLIL → HLIL).
+  Keep the <b>Python API reference</b> (<code>api.binary.ninja</code>) one click away.
+</div>
+
+<div class="callout warn">
+  <b>Version note:</b> this targets Binary Ninja <b>6.x</b> (2026). The commercial license is
+  what unlocks headless automation and the full IL stack; the free <b>cloud</b> version
+  (<code>cloud.binary.ninja</code>) is enough for Milestones 0–2 if you don't own a license yet.
+</div>
+
+<!-- ==================== how to use ==================== -->
+<h2 class="sec" id="howto"><span class="n cinf">i</span> How to use this</h2>
+<div class="panel">
+  <ul class="plain">
+    <li>Do milestones in order; 0→4 are the shared core, 5 splits into tracks.</li>
+    <li>After each milestone, finish the challenge and commit your solution to <code>lab/</code>.</li>
+    <li>Keep notes in <code>cheatsheet.md</code> as you go (hotkeys, API idioms, IL gotchas).</li>
+    <li>Budget ~1–2 weeks per milestone if part-time.</li>
+    <li><b>The API is the point.</b> BN's edge over Ghidra/IDA-as-a-clicker is scripting. Get
+      into the Python console (<code>~</code> key) by Milestone 1 and never leave it.</li>
+  </ul>
+</div>
+
+<!-- ==================== milestone 0 ==================== -->
+<h2 class="sec" id="m0"><span class="n cm0">0</span> Install, UI &amp; mental model <span class="hint">Milestone 0</span></h2>
+<p class="goal"><b>Goal:</b> get BN running, learn to move, and understand <i>what BN is doing to a binary</i>
+  before you touch a single instruction.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>the analysis pipeline (load → linear sweep + recursive descent → function
+      detection → lift to BNIL → data-flow → types). The difference between the <b>Linear
+      view</b> (everything, top to bottom) and the <b>Graph view</b> (one function's CFG). The
+      four "view levels" you cycle with <code>i</code>: Disassembly, LLIL, MLIL, HLIL.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>User Guide</b> on <code>docs.binary.ninja</code> — <i>Getting Started</i>, <i>Analysis</i>, <i>UI</i> pages.</li>
+      <li>The <b>BNIL Overview</b> page (just skim — you'll return to it in M2).</li>
+      <li><i>Practical Binary Analysis</i> (Andriesse) Ch. 1–2 for the tool-agnostic RE mindset.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>Vector 35 — official YouTube channel</b> (<code>@vector35</code>): start with any recent
+        "getting started / what's new in 6.x" walkthrough.</li>
+      <li><b>InvokeReversing</b> (YouTube + Twitch) — the single best BN-focused stream channel;
+        begin with an intro/CTF episode to see the workflow at speed.</li>
+      <li><b>LiveOverflow</b> — "Binary Ninja" intro-flavored episodes for the beginner mental
+        model (tool-agnostic but great pacing).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools to install &amp; try</div>
+    <p>Binary Ninja itself, the <b>Python console</b> (<code>~</code>), the
+      <b>Triage view</b> (drag a binary onto a fresh tab), and the <b>entropy graph</b> for
+      spotting packed regions.</p>
+  </div>
+</div>
+<div class="callout ch ch-m0">
+  <b>Challenge 0:</b> Load the same simple binary (compile <code>int main(){puts("hi");return 0;}</code>)
+  and, without any scripting, (1) find <code>main</code>, (2) cycle all four view levels on it with
+  <code>i</code> and note in <code>cheatsheet.md</code> what disappears/appears at each level, (3) open the
+  entropy graph and Triage view and describe what each tells you. Then repeat on <code>/bin/ls</code>
+  and write down where BN's auto-analysis got the function boundaries right vs. missed.
+</div>
+
+<!-- ==================== milestone 1 ==================== -->
+<h2 class="sec" id="m1"><span class="n cm1">1</span> Navigation, cross-references &amp; the console <span class="hint">Milestone 1</span></h2>
+<p class="goal"><b>Goal:</b> move through a binary like a native, and start querying it from Python.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>hotkeys (<code>g</code> go-to, <code>x</code> xrefs, <code>n</code> rename, <code>y</code> change type, <code>;</code> comment,
+      <code>i</code> cycle IL, <code>Tab</code> disasm↔graph, <code>[</code>/<code>]</code> navigation history); code vs. data xrefs;
+      the <code>current_function</code>, <code>current_il_instruction</code>, <code>bv</code> (BinaryView) magic variables in
+      the console; basic BinaryView/Function/BasicBlock/Instruction object model.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>Dev Guide</b> — <i>Getting Started with the API</i> and <i>Concepts</i> (esp. "Operating on IL
+        versus Native" and "Instruction Index vs Expression Index").</li>
+      <li><b>User Guide</b> — <i>Cross References</i> and <i>Navigating</i>.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>gynvael coldwind + carstein</b> — "creating plugins for Binary Ninja" livestream
+        (console usage, BinaryView/Functions/BasicBlocks/Instructions walkthrough).</li>
+      <li><b>Vector 35</b> — API/console intro clips.</li>
+      <li><b>InvokeReversing</b> — any full-length reversing session; watch <i>how</i> they pivot on
+        xrefs and rename as they go, then mimic that muscle memory.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p>Python console, the <b>cross-reference pane</b>, the <b>types/symbols sidebars</b>.</p>
+  </div>
+</div>
+<div class="callout ch ch-m1">
+  <b>Challenge 1:</b> In the console, write a one-liner that iterates <code>bv.functions</code> and
+  prints each function's name, start address, and basic-block count. Then, for a chosen
+  function, print all of its callers and all of its callees using the xref APIs. Diff
+  your caller list against what the <code>x</code>-key xref pane shows in the UI — they must match.
+</div>
+
+<!-- ==================== milestone 2 ==================== -->
+<h2 class="sec" id="m2"><span class="n cm2">2</span> BNIL: the intermediate language stack <span class="hint">Milestone 2</span></h2>
+<p class="goal"><b>Goal:</b> understand BN's core superpower — the family of ILs — and read/query each
+  layer fluently. This is the milestone that separates BN users from BN <i>masters</i>.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>the real BNIL stack — <b>Lifted IL → LLIL → MLIL → HLIL</b>, plus the <b>SSA form</b>
+      of each. What each layer buys you:</p>
+    <ul>
+      <li><b>LLIL</b> — architecture-normalized instructions, still register/flag-level.</li>
+      <li><b>MLIL</b> — registers become <b>typed variables</b>, the <b>stack concept disappears</b>,
+        call parameters inferred, <b>data flow</b> computed, constants propagated, dead code
+        removed.</li>
+      <li><b>HLIL</b> — the decompiler output; expressions folded, high-level control flow
+        recovered, reads like C.</li>
+      <li><b>SSA</b> — every variable defined exactly once; the foundation for real data-flow
+        queries (def-use chains, <code>PossibleValueSet</code>).</li>
+    </ul>
+    <p>The many-to-many mapping between layers (<code>instr.llil</code> vs <code>instr.llils</code>,
+      <code>.mlil</code>/<code>.hlil</code>, <code>.ssa_form</code>), and why analysis scripts should target MLIL/HLIL, not
+      disassembly.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>BNIL series in full</b>: Overview → <b>Part 1 LLIL</b> → <b>Part 2 MLIL</b> →
+        <b>Part 3 HLIL</b> on <code>docs.binary.ninja</code>. Do every inline console example.</li>
+      <li><b>Dev Guide</b> — <i>Working with the IL</i> and the <b>PossibleValueSet / value-set
+        analysis</b> notes.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>Rusty Wagner / Vector 35 — "Modern Binary Analysis with ILs"</b> (the classic BNIL
+        talk; slides on <code>binary.ninja/presentations</code>, video on Vimeo). This is <i>the</i> lecture
+        on why the IL stack exists.</li>
+      <li><b>Vector 35</b> — any deep-dive on MLIL/HLIL or data-flow.</li>
+      <li><b>InvokeReversing</b> — episodes where they drop from HLIL to MLIL to defeat obfuscation
+        show the practical payoff of the stack.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p>the <code>i</code>-cycle IL views, <b>IL-view side-by-side</b> (select an HLIL line, watch the
+      LLIL/disasm highlight), the console's <code>.ssa_form</code> / <code>.non_ssa_form</code> toggles.</p>
+  </div>
+</div>
+<div class="callout ch ch-m2">
+  <b>Challenge 2:</b> Pick a function with a loop and a couple of calls. (1) Print the same
+  function at LLIL, MLIL, and HLIL from the console and annotate in <code>cheatsheet.md</code> what
+  collapsed at each step. (2) Take one MLIL variable and walk its <b>SSA def-use chain</b> —
+  find where it's defined and every use. (3) Use <code>PossibleValueSet</code> on a variable feeding
+  a <code>switch</code>/jump table and show BN's computed value range matches the actual cases.
+</div>
+
+<!-- ==================== milestone 3 ==================== -->
+<h2 class="sec" id="m3"><span class="n cm3">3</span> Types, structures, signatures &amp; symbol recovery <span class="hint">Milestone 3</span></h2>
+<p class="goal"><b>Goal:</b> turn a pile of <code>int64_t</code>s and <code>sub_401000</code>s into a typed, named,
+  understandable program — the daily grind of real RE.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>the type system and confidence model; applying/creating <b>structs, enums,
+      unions</b>; the <b>type parser</b> (import C headers); <b>function signatures</b> and calling
+      conventions; <b>tags</b> and <b>user vs. auto</b> annotations; the <b>Signature Library</b>
+      (Signature Kit / warp) for auto-identifying statically-linked library funcs; stripped-
+      binary function-boundary recovery.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>User Guide</b> — <i>Types</i>, <i>Type Library / Signature Library</i>, <i>Tags</i>.</li>
+      <li><b>Dev Guide</b> — <i>Types API</i>, <i>Applying Types Programmatically</i>.</li>
+      <li><i>Practical Binary Analysis</i> Ch. 6–8 (disassembly &amp; data-structure recovery, tool-
+        agnostic but directly applicable).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>Joshua Reynolds (Vector 35) — REcon workshop on recovering C++ symbol &amp; type
+        information with Binary Ninja</b> (look for the recorded workshop / talk). Gold for
+        vtables and C++.</li>
+      <li><b>InvokeReversing</b> — struct-recovery and type-application segments in their malware
+        streams.</li>
+      <li><b>OALabs</b> — type/struct recovery workflow (often IDA, but the <i>method</i> transfers 1:1).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p>the <b>Types view</b>, <b>type parser</b>, <b>Signature Kit / WARP</b> plugin, the
+      <code>bv.define_user_type</code> / <code>Type.*</code> APIs.</p>
+  </div>
+</div>
+<div class="callout ch ch-m3">
+  <b>Challenge 3:</b> Take a stripped binary that statically links a known lib. (1) Run the
+  signature library and recover named library functions. (2) Reverse one custom struct by
+  hand (from field-access patterns in MLIL), define it as a BN type, apply it, and show
+  HLIL now renders <code>obj-&gt;field</code> instead of <code>*(x + 8)</code>. (3) Import a real C header via the
+  type parser and apply a function prototype so BN infers the arguments at every call site.
+</div>
+
+<!-- ==================== milestone 4 ==================== -->
+<h2 class="sec" id="m4"><span class="n cm4">4</span> The API: scripting &amp; headless automation <span class="hint">Milestone 4</span></h2>
+<p class="goal"><b>Goal:</b> stop clicking. Drive BN from Python (and know the C++/Rust bindings exist),
+  run it <b>headless</b>, and write your first real plugin.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>the plugin model (<code>PluginCommand</code>, background tasks, UI vs. headless);
+      <b>headless analysis</b> (<code>binaryninja.load(path)</code> / <code>open_view</code>, <code>bv.update_analysis_and_wait()</code>);
+      iterating IL programmatically; the <code>.traverse()</code> / visitor + <code>match</code>/<code>case</code> pattern for
+      walking IL trees; writing results back (comments, tags, renames); batch-processing many
+      binaries; where C++ and Rust bindings fit (perf, native arch/analysis plugins).</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>Dev Guide</b> — <i>Writing Plugins</i>, <i>Headless</i>, <i>Cookbook</i> (copy-paste recipes),
+        <i>Automation</i>.</li>
+      <li><b>Python API reference</b> (<code>api.binary.ninja</code>) — bookmark BinaryView, Function,
+        the <code>*il</code> modules, Type, Variable.</li>
+      <li>Skim the <b>C++ and Rust API</b> landing pages so you know what's there.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>gynvael + carstein plugin stream</b> (revisit — now you can follow the API parts
+        fully: syscall annotation, walking instruction lists, block detection).</li>
+      <li><b>Vector 35</b> — headless / automation / "scripting Binary Ninja" sessions and any
+        plugin-dev office-hours streams.</li>
+      <li><b>InvokeReversing</b> — automation methodology segments (their AMBT course material
+        leans hard on scripting repetitive malware tasks).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p>the console → snippet editor → standalone plugin progression; <code>pip install
+      binaryninja</code> headless bindings; the <b>Plugin Manager</b>; the <b>Snippets</b> plugin.</p>
+  </div>
+</div>
+<div class="callout ch ch-m4">
+  <b>Challenge 4:</b> Write a headless Python script that opens a binary, waits for analysis,
+  and produces a report: every function, its HLIL call targets, any RWX or suspicious
+  sections, and a flag on functions that call known-dangerous imports (<code>system</code>, <code>exec*</code>,
+  <code>strcpy</code>, …). Run it over a <i>directory</i> of binaries in batch, no UI. Then wrap the core
+  logic as a <code>PluginCommand</code> so it also runs from the UI menu on the current view.
+</div>
+
+<!-- ==================== milestone 5A ==================== -->
+<h2 class="sec" id="m5a"><span class="n cm5a">5A</span> RE TRACK: dynamic analysis, deobfuscation &amp; malware <span class="hint">Milestone 5A</span></h2>
+<p class="goal"><b>Goal:</b> analyze binaries that fight back — packed, obfuscated, anti-analysis — and
+  combine BN's static power with dynamic execution.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>the <b>built-in debugger</b> (local &amp; remote; Windows/macOS/Linux); <b>Time Travel
+      Debugging (TTD)</b> integration; breakpoints/stepping/register+memory inspection tied
+      back to IL; <b>stack strings</b> &amp; string deobfuscation; <b>control-flow flattening</b> and
+      opaque predicates (and using MLIL/SSA + value-set analysis to undo them); unpacking
+      (dump-after-decompress, rebuild); emulation for small routines; combining BN with
+      external tools (Frida/x64dbg/WinDbg TTD traces).</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>User Guide</b> — <i>Debugger</i>, <i>Time Travel Debugging</i>.</li>
+      <li><i>Practical Binary Analysis</i> Ch. 12–13 (dynamic taint / symbolic-ish techniques).</li>
+      <li><i>Practical Malware Analysis</i> (Sikorski &amp; Honig) — the classic; tool-agnostic core.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>InvokeReversing — Advanced Malware Binary Triage (AMBT) launch stream</b> and their
+        ongoing malware-triage streams (BN + dnSpy real-sample walkthroughs). Primary source
+        for this track.</li>
+      <li><b>Xusheng Li (Vector 35) — Advanced Time Travel Debugging in Binary Ninja</b> (the TTD
+        deep-dive stream, hosted with InvokeReversing).</li>
+      <li><b>OALabs / MalwareTech / hasherezade</b> — unpacking &amp; malware-config extraction
+        methodology (adapt their steps into BN).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p>BN <b>debugger</b> + <b>TTD</b>, <code>checksec</code>-style triage, emulation plugins, LIEF/
+      pyelftools for rebuild steps, Frida for instrumentation.</p>
+  </div>
+</div>
+<div class="callout ch ch-m5a">
+  <b>Challenge 5A:</b>
+  <ol>
+    <li>Take a UPX-packed binary; use the BN debugger to run to the OEP after the stub
+      decompresses, dump memory, and rebuild an analyzable binary in BN.</li>
+    <li>Defeat one <b>control-flow-flattening</b> or opaque-predicate sample: use MLIL/SSA +
+      <code>PossibleValueSet</code> to identify the real successor blocks and script a pass that
+      annotates (or patches) the dispatcher.</li>
+    <li>Record a <b>TTD</b> trace of a small malicious-ish sample and reverse a routine by
+      travelling backward from an interesting API call to its inputs.</li>
+    <li>Solve 5 Linux crackmes from <b>crackmes.one</b> using BN as your only static tool
+      (start "easy," escalate).</li>
+  </ol>
+</div>
+
+<!-- ==================== milestone 5B ==================== -->
+<h2 class="sec" id="m5b"><span class="n cm5b">5B</span> PLATFORM TRACK: architectures, workflows &amp; analysis passes <span class="hint">Milestone 5B</span></h2>
+<p class="goal"><b>Goal:</b> extend BN itself — teach it new instruction sets, new file formats, and new
+  automated reasoning.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>writing an <b>Architecture plugin</b> (lifting bytes → <b>Lifted IL</b>, the one place
+      you author IL by hand); <b>BinaryView / loader</b> plugins for custom formats; the
+      <b>Workflow</b> system (inserting custom analysis passes into the pipeline); custom
+      <b>data-flow / dataflow-pass</b> ideas built on SSA + value sets; the <b>UI API</b> (sidebars,
+      custom views, render layers); when to drop to <b>C++/Rust</b> for performance-critical
+      plugins.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><b>Dev Guide</b> — <i>Architecture Plugins</i>, <i>BinaryView / Loaders</i>, <i>Workflows</i>,
+        <i>UI Plugins</i>.</li>
+      <li>The <b>BNIL LLIL</b> page again — now as an <i>author</i>, not a reader (you emit these).</li>
+      <li><b>Rust API</b> docs and an example native plugin.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-watch">Watch <span class="note">(videos &amp; streams)</span></div>
+    <ul>
+      <li><b>Vector 35</b> — architecture-plugin and workflow deep-dives / dev office hours (the
+        most authoritative source; watch how a lifter is structured).</li>
+      <li><b>gynvael + carstein</b> — plugin-authoring stream (foundation for the API surface you
+        now build on).</li>
+      <li>Conference talks (<b>REcon</b>, <b>Recon</b> panels featuring Rusty Wagner) on IL design —
+        useful for understanding <i>why</i> the lifter API is shaped the way it is.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p>the Architecture/CallingConvention/Platform APIs, the <b>Workflow</b> API, a small
+      test corpus for your target arch/format, C++/Rust toolchains for native builds.</p>
+  </div>
+</div>
+<div class="callout ch ch-m5b">
+  <b>Challenge 5B:</b>
+  <ol>
+    <li>Write a minimal <b>Architecture plugin</b> for a tiny/toy ISA (or a rarely-supported
+      one): decode a handful of instructions and <b>lift them to LLIL</b>; verify MLIL/HLIL
+      render sensibly on a hand-assembled test blob.</li>
+    <li>Write a <b>BinaryView loader</b> for a simple custom/container format so BN maps its
+      segments and finds entry.</li>
+    <li>Register a <b>Workflow</b> activity that runs after analysis and automatically tags a
+      pattern of interest (e.g., every indirect call whose target BN couldn't resolve).</li>
+  </ol>
+</div>
+
+<!-- ==================== milestone 6 ==================== -->
+<h2 class="sec" id="m6"><span class="n cm6">6</span> Capstone (choose per track or do both) <span class="hint">Milestone 6</span></h2>
+<div class="caps">
+  <div class="cap-card re">
+    <p><b style="color:var(--pink)">RE capstone:</b> Build an <b>automated triage plugin</b> that, for an arbitrary binary,
+      produces a full report: header/segments/sections, resolved imports &amp; call graph, RWX
+      or high-entropy regions, suspicious-import flags, recovered/likely obfuscation, and
+      (where present) recovered structs/types — all driven off HLIL/MLIL, runnable both
+      headless (batch over a folder) and from the UI. Test on real malware samples in a VM
+      and on CTF binaries.</p>
+  </div>
+  <div class="cap-card pf">
+    <p><b style="color:var(--cyan)">Platform capstone:</b> Ship a real <b>community plugin</b> to the Plugin Manager — either
+      a new <b>architecture</b> with a complete LLIL lifter and a test suite, or a <b>workflow-
+      based analysis pass</b> that recovers something BN doesn't out of the box (e.g., a
+      specific obfuscator's original control flow, or a framework's dispatch tables). Document
+      it, add examples, and get it published.</p>
+  </div>
+</div>
+
+<!-- ==================== practice ==================== -->
+<h2 class="sec" id="practice"><span class="n cm5a">★</span> Practice grounds (ongoing)</h2>
+<div class="panel">
+  <ul class="plain">
+    <li><b>crackmes.one</b> — reversing at every level; BN as your primary static tool.</li>
+    <li><b>pwnable.kr / pwnable.tw</b> — exploitation that forces deep loader/PLT/GOT reasoning,
+      now viewed through BNIL.</li>
+    <li><b>ROP Emporium</b> — GOT/PLT hijacking; use BN to find gadgets and map the plan.</li>
+    <li><b>Pwn Adventure</b> (Vector 35's own hackable games) — RE practice built by BN's authors.</li>
+    <li><b>CTFs</b> (pwn/rev categories) — the fastest way to build BN speed under pressure.</li>
+    <li><b>HackTheBox / reversing.kr</b> — broader reversing practice.</li>
+    <li>Rebuild your favorite <b>crackme solutions as BN scripts</b> — force the API into muscle
+      memory.</li>
+  </ul>
+</div>
+
+<!-- ==================== quick reference ==================== -->
+<h2 class="sec" id="quickref"><span class="n cm5b">⚑</span> Quick reference — the essential set</h2>
+<div class="qgrid">
+  <div class="qcard qd">
+    <h3>Docs (always open)</h3>
+    <p>User Guide · Dev Guide · <b>BNIL series</b> (Overview/LLIL/MLIL/
+      HLIL) · Cookbook · Python API reference (<code>api.binary.ninja</code>) · C++ &amp; Rust API.</p>
+  </div>
+  <div class="qcard qk">
+    <h3>Concepts to own</h3>
+    <p>linking-sweep vs. recursive-descent · the 4 view levels · <b>Lifted
+      IL → LLIL → MLIL → HLIL</b> + <b>SSA</b> · many-to-many IL mapping · InstructionIndex vs
+      ExpressionIndex · confidence system · <code>PossibleValueSet</code> / value-set analysis · user vs.
+      auto annotations.</p>
+  </div>
+  <div class="qcard qb">
+    <h3>Books (tool-agnostic core)</h3>
+    <p>Andriesse <i>Practical Binary Analysis</i> · Sikorski &amp; Honig
+      <i>Practical Malware Analysis</i> · Yurichev <i>Reverse Engineering for Beginners</i> (free) ·
+      (BN itself has no canonical book — <b>the docs are the reference</b>).</p>
+  </div>
+  <div class="qcard qch">
+    <h3>Channels / streams</h3>
+    <p><b>Vector 35</b> (official YouTube + Vimeo + presentations) ·
+      <b>InvokeReversing</b> (YouTube/Twitch — the BN-centric RE + malware channel) ·
+      <b>gynvael coldwind</b> (plugin livestreams w/ carstein) · <b>LiveOverflow</b> (beginner
+      mental model) · <b>OALabs / hasherezade / MalwareTech</b> (malware method, adapt to BN) ·
+      <b>REcon/Recon talks</b> (Rusty Wagner on IL design).</p>
+  </div>
+  <div class="qcard qtk">
+    <h3>Key talks to bookmark</h3>
+    <p>Rusty Wagner — <i>Modern Binary Analysis with ILs</i> · Joshua
+      Reynolds — <i>C++ symbol &amp; type recovery in Binary Ninja</i> (REcon) · Xusheng Li — <i>Advanced
+      Time Travel Debugging in Binary Ninja</i>.</p>
+  </div>
+  <div class="qcard qp">
+    <h3>Plugins to know</h3>
+    <p>Debugger (built-in) · Signature Kit / WARP · Snippets · Plugin
+      Manager (browse everything) · community MCP bridges (LLM-assisted RE).</p>
+  </div>
+  <div class="qcard qa wide">
+    <h3>API surface to memorize</h3>
+    <p><code>BinaryView</code> (<code>bv</code>) · <code>Function</code> · <code>BasicBlock</code> ·
+      <code>*il</code> modules (<code>lowlevelil</code>/<code>mediumlevelil</code>/<code>highlevelil</code>) · <code>Variable</code> · <code>Type</code> ·
+      <code>PluginCommand</code> · <code>Workflow</code> · <code>Architecture</code> · <code>binaryninja.load()</code> +
+      <code>update_analysis_and_wait()</code> (headless).</p>
+  </div>
+</div>
+
+<div class="footer">
+  Converted from <code>Binary_Ninja_ROADMAP.md</code> · Part of <a href="https://github.com/smalinux/notes-goblin">notes-goblin</a> 🧌
+</div>
+
+</div>
+</body>
+</html>

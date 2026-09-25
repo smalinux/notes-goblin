@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELF Mastery Roadmap — Reverse Engineer + Kernel Developer</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 70px; }
+  code, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  a { color: var(--accent); }
+  i { color: #d8c9f0; }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 10px; font-size: 36px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 760px; margin: 0 auto; font-size: 15.5px; }
+  .hero p b { color: #e6edf3; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 21px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #0d1117;
+  }
+  h2.sec .hint { color: var(--dim); font-weight: 400; font-size: 13.5px; margin-left: auto; white-space: nowrap; }
+  .cm0{background:var(--accent)} .cm1{background:var(--orange)} .cm2{background:var(--green)}
+  .cm3{background:var(--yellow)} .cm4{background:var(--purple)} .cm5a{background:var(--pink)}
+  .cm5b{background:var(--cyan)} .cm6{background:var(--red)} .cinf{background:#6e7681}
+
+  .goal { margin: 10px 0 12px; }
+  .goal > b { color: var(--red); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 16px; margin: 12px 0;
+  }
+  .row { padding: 10px 2px; border-bottom: 1px solid #21262d; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 3px; }
+  .row .k .note { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--dim); font-size: 12.5px; }
+  .k-learn { color: var(--cyan); } .k-read { color: var(--purple); }
+  .k-tools { color: var(--orange); } .k-src { color: var(--green); }
+  .row p, .row ul { margin: 0; color: #cdd6e0; }
+  .row ul { padding-left: 20px; }
+  .row li { margin: 3px 0; }
+  .row b { color: #fff; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: #12233c88; border-radius: 0 8px 8px 0;
+    padding: 10px 14px; margin: 12px 0; font-size: 14px; color: #cfe0f5;
+  }
+  .callout b { color: #fff; }
+  .ch { background: #ffffff08; color: #d5dbe5; }
+  .ch ol { margin: 6px 0 0; padding-left: 22px; }
+  .ch li { margin: 4px 0; }
+  .ch-m0 { border-color: var(--accent); } .ch-m1 { border-color: var(--orange); }
+  .ch-m2 { border-color: var(--green); }  .ch-m3 { border-color: var(--yellow); }
+  .ch-m4 { border-color: var(--purple); } .ch-m5a { border-color: var(--pink); }
+  .ch-m5b { border-color: var(--cyan); }
+
+  ul.plain { margin: 8px 0; padding-left: 22px; }
+  ul.plain li { margin: 5px 0; color: #cdd6e0; }
+  ul.plain b { color: #fff; }
+
+  .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .cap-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .cap-card.re { border-color: #ff7bc655; }
+  .cap-card.kn { border-color: #39c5cf55; }
+  .cap-card p { margin: 0; color: #cdd6e0; }
+  .cap-card b { color: #fff; }
+
+  .qgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .qcard { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .qcard h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .qcard p { margin: 0; font-size: 13.5px; color: #cdd6e0; }
+  .qb h3 { color: var(--purple); } .qs h3 { color: var(--yellow); } .qm h3 { color: var(--accent); }
+  .qt h3 { color: var(--orange); } .qc h3 { color: var(--green); }
+  .qcard.wide { grid-column: 1 / -1; }
+
+  .svgbox { margin: 24px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 26px 0 6px; }
+  .toc a {
+    text-decoration: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+    background: #161b22; border: 1px solid var(--border); color: var(--dim);
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+
+  @media (max-width: 760px) { .caps, .qgrid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>ELF Mastery Roadmap</h1>
+  <p>Reverse Engineer + Kernel Developer. A milestone-driven path. Each milestone lists what to
+    learn, what to read, and a <b>validation challenge</b> you must complete before moving on.
+    Two tracks converge: <b>RE</b> (understand &amp; manipulate binaries you didn't write) and
+    <b>KERNEL</b> (know how the OS actually parses, loads, and runs ELF).</p>
+  <div class="tag">SHARED CORE 0–4 → RE TRACK 5A / KERNEL TRACK 5B → CAPSTONE 6</div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <a href="#howto">How to use</a>
+  <a href="#m0">0 Toolchain</a>
+  <a href="#m1">1 ELF header</a>
+  <a href="#m2">2 Static linking</a>
+  <a href="#m3">3 Dynamic linking</a>
+  <a href="#m4">4 Loading</a>
+  <a href="#m5a">5A RE track</a>
+  <a href="#m5b">5B Kernel track</a>
+  <a href="#m6">6 Capstone</a>
+  <a href="#practice">Practice</a>
+  <a href="#quickref">Quick reference</a>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 920 290" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b3"/>
+    </marker>
+  </defs>
+
+  <text x="293" y="100" text-anchor="middle" fill="#6e7681" font-size="11" font-style="italic">shared core · ~1–2 weeks per milestone</text>
+
+  <!-- shared core 0→4 -->
+  <rect x="14"  y="115" width="96" height="52" rx="9" fill="#12233c" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="62"  y="136" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="700">M0</text>
+  <text x="62"  y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Toolchain</text>
+
+  <rect x="128" y="115" width="96" height="52" rx="9" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="176" y="136" text-anchor="middle" fill="#ffa657" font-size="12" font-weight="700">M1</text>
+  <text x="176" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">ELF header</text>
+
+  <rect x="242" y="115" width="96" height="52" rx="9" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="290" y="136" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">M2</text>
+  <text x="290" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Static linking</text>
+
+  <rect x="356" y="115" width="96" height="52" rx="9" fill="#2b2313" stroke="#e3b341" stroke-width="1.5"/>
+  <text x="404" y="136" text-anchor="middle" fill="#e3b341" font-size="12" font-weight="700">M3</text>
+  <text x="404" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Dynamic linking</text>
+
+  <rect x="470" y="115" width="96" height="52" rx="9" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="518" y="136" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="700">M4</text>
+  <text x="518" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Loading &amp; exec</text>
+
+  <path d="M 110 141 L 126 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 224 141 L 240 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 338 141 L 354 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 452 141 L 468 141" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- split into tracks -->
+  <rect x="600" y="28" width="158" height="54" rx="9" fill="#2b1220" stroke="#ff7bc6" stroke-width="1.5"/>
+  <text x="679" y="50" text-anchor="middle" fill="#ff7bc6" font-size="12" font-weight="700">5A · RE TRACK</text>
+  <text x="679" y="67" text-anchor="middle" fill="#e6edf3" font-size="9.5">analysis · obfuscation · forensics</text>
+
+  <rect x="600" y="208" width="158" height="54" rx="9" fill="#0e2528" stroke="#39c5cf" stroke-width="1.5"/>
+  <text x="679" y="230" text-anchor="middle" fill="#39c5cf" font-size="12" font-weight="700">5B · KERNEL TRACK</text>
+  <text x="679" y="247" text-anchor="middle" fill="#e6edf3" font-size="9.5">modules · vDSO · core dumps</text>
+
+  <path d="M 566 128 C 580 100 584 80 597 62"  stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <path d="M 566 154 C 580 182 584 202 597 220" stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- converge at the capstone -->
+  <rect x="796" y="115" width="110" height="52" rx="9" fill="#2b1512" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="851" y="136" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="700">M6</text>
+  <text x="851" y="153" text-anchor="middle" fill="#e6edf3" font-size="10.5">Capstone</text>
+
+  <path d="M 758 62 C 775 76 780 102 793 126"  stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <path d="M 758 220 C 775 206 780 180 793 156" stroke="#9aa7b3" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- practice rail -->
+  <line x1="14" y1="282" x2="906" y2="282" stroke="#ff7bc6" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="460" y="276" text-anchor="middle" fill="#ff7bc6" font-size="11" font-style="italic">practice grounds (ongoing) — crackmes.one · pwnable.kr/tw · ROP Emporium · exploit.education · Nightmare</text>
+</svg>
+<div class="cap">Do milestones in order; 0→4 are the shared core, 5 splits into tracks, both converge at the capstone.</div>
+</div>
+
+<div class="callout">
+  <b>Primary reference always open in a tab:</b> <code>/usr/include/elf.h</code> and the
+  <b>System V ABI</b> + <b>x86-64 psABI</b> PDFs.
+</div>
+
+<!-- ==================== how to use ==================== -->
+<h2 class="sec" id="howto"><span class="n cinf">i</span> How to use this</h2>
+<div class="panel">
+  <ul class="plain">
+    <li>Do milestones in order; 0→4 are the shared core, 5 splits into tracks.</li>
+    <li>After each milestone, finish the challenge and commit your solution to <code>lab/</code>.</li>
+    <li>Keep notes in <code>cheatsheet.md</code> as you go (offsets, struct layouts, gotchas).</li>
+    <li>Budget ~1–2 weeks per milestone if part-time.</li>
+  </ul>
+</div>
+
+<!-- ==================== milestone 0 ==================== -->
+<h2 class="sec" id="m0"><span class="n cm0">0</span> Toolchain &amp; mental model <span class="hint">Milestone 0</span></h2>
+<p class="goal"><b>Goal:</b> know what a compiler, assembler, and linker each produce, and read raw bytes.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>compilation pipeline (<code>.c → .s → .o → a.out</code>), the difference between the
+      <b>linking view</b> (sections) and the <b>execution view</b> (segments/program headers).</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (books)</div>
+    <ul>
+      <li>CS:APP (<i>Computer Systems: A Programmer's Perspective</i>) — <b>Ch. 7 Linking</b>. Best on-ramp.</li>
+      <li><i>Linkers and Loaders</i>, John Levine — Ch. 1–3.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (man)</div>
+    <ul>
+      <li><code>elf(5)</code> — read it three times; it is the map for everything below.</li>
+      <li><code>gcc(1)</code> (<code>-c</code>, <code>-S</code>, <code>-static</code>, <code>-no-pie</code>, <code>-nostdlib</code>), <code>as(1)</code>, <code>ld(1)</code>.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools to install &amp; try</div>
+    <p><code>readelf</code>, <code>objdump</code>, <code>nm</code>, <code>size</code>, <code>file</code>, <code>xxd</code>/<code>hexdump</code>,
+      <code>strings</code>. (Debian: <code>binutils</code>, <code>elfutils</code>.)</p>
+  </div>
+</div>
+<div class="callout ch ch-m0">
+  <b>Challenge 0:</b> Compile <code>int main(){return 42;}</code> four ways: default, <code>-static</code>,
+  <code>-no-pie</code>, and <code>-nostdlib</code> (with a hand-written <code>_start</code>). For each, run
+  <code>readelf -h</code>, <code>-l</code>, <code>-S</code> and explain in <code>cheatsheet.md</code> why the type, entry point,
+  and segment count differ. Confirm exit code with <code>echo $?</code>.
+</div>
+
+<!-- ==================== milestone 1 ==================== -->
+<h2 class="sec" id="m1"><span class="n cm1">1</span> The ELF header &amp; structure by hand <span class="hint">Milestone 1</span></h2>
+<p class="goal"><b>Goal:</b> decode the ELF header, section headers, and program headers from raw bytes, without tools.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p><code>Elf64_Ehdr</code>, <code>Elf64_Shdr</code>, <code>Elf64_Phdr</code> field-by-field; <code>e_type</code>
+      (REL/EXEC/DYN/CORE), section types (<code>SHT_*</code>), section flags (<code>SHF_*</code>), segment types
+      (<code>PT_LOAD</code>, <code>PT_DYNAMIC</code>, <code>PT_INTERP</code>, <code>PT_GNU_STACK</code>, <code>PT_NOTE</code>).</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <p><code>elf(5)</code> again (now for the structs), and skim the <b>ELF spec</b> (TIS v1.2 or
+      System V ABI Ch. 4–5). Study <code>/usr/include/elf.h</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p><code>readelf -h -S -l -x</code>, <code>xxd</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-src">Source to navigate</div>
+    <ul>
+      <li><code>/usr/include/elf.h</code> — canonical struct definitions.</li>
+      <li>Linux <code>include/uapi/linux/elf.h</code> — the kernel's copy (compare the two).</li>
+    </ul>
+  </div>
+</div>
+<div class="callout ch ch-m1">
+  <b>Challenge 1:</b> Write a C (or Python) program <code>myreadelf</code> that mmaps an ELF file
+  and prints the <code>-h</code> header and <code>-S</code> section table <b>matching <code>readelf</code> output</b>.
+  Validate by diffing your output against <code>readelf</code> on <code>/bin/ls</code>, a <code>.o</code>, and a <code>.so</code>.
+</div>
+
+<!-- ==================== milestone 2 ==================== -->
+<h2 class="sec" id="m2"><span class="n cm2">2</span> Static linking, symbols &amp; relocations <span class="hint">Milestone 2</span></h2>
+<p class="goal"><b>Goal:</b> understand object files, symbol tables, and how the linker patches addresses.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p><code>.symtab</code>/<code>.strtab</code>, symbol binding (LOCAL/GLOBAL/WEAK) &amp; types
+      (FUNC/OBJECT/SECTION), <code>SHN_UNDEF</code>/<code>SHN_ABS</code>/<code>SHN_COMMON</code>; relocation entries
+      (<code>Elf64_Rela</code>), relocation types (<code>R_X86_64_PC32</code>, <code>R_X86_64_PLT32</code>,
+      <code>R_X86_64_64</code>), the meaning of A/S/P in reloc formulas; static libraries (<code>.a</code>).</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><i>Linkers and Loaders</i> — Ch. 4–7 (symbols, relocation, libraries).</li>
+      <li>CS:APP Ch. 7 (relocation section).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (man)</div>
+    <p><code>nm(1)</code>, <code>ar(1)</code>, <code>ranlib(1)</code>, <code>ld(1)</code>, <code>strip(1)</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p><code>nm</code>, <code>readelf -r -s</code>, <code>objdump -dr</code>, <code>ar</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-src">Source</div>
+    <p>binutils <code>bfd/</code> (skim) and <code>ld/</code> to see how a real linker is organized.</p>
+  </div>
+</div>
+<div class="callout ch ch-m2">
+  <b>Challenge 2:</b> Compile two <code>.o</code> files where one calls a function in the other,
+  <i>without linking</i>. Using <code>readelf -r</code> and <code>objdump -dr</code>, find the relocation for the
+  call site, compute the final address the linker will write <b>by hand</b>, then link and
+  confirm the disassembled call matches your computation.
+</div>
+
+<!-- ==================== milestone 3 ==================== -->
+<h2 class="sec" id="m3"><span class="n cm3">3</span> Dynamic linking, PLT/GOT &amp; the loader <span class="hint">Milestone 3</span></h2>
+<p class="goal"><b>Goal:</b> understand shared objects, lazy binding, and runtime symbol resolution.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p><code>PT_INTERP</code> / <code>ld.so</code>, <code>.dynamic</code> (<code>DT_NEEDED</code>, <code>DT_RELA</code>, <code>DT_JMPREL</code>,
+      <code>DT_PLTGOT</code>, <code>DT_SYMTAB</code>, <code>DT_HASH</code>/<code>DT_GNU_HASH</code>), <code>.plt</code>/<code>.got</code>/<code>.got.plt</code>, lazy vs.
+      eager binding (<code>LD_BIND_NOW</code>), symbol interposition, <code>RUNPATH</code>/<code>RPATH</code>, PIE and
+      relocation types <code>R_X86_64_GLOB_DAT</code>/<code>R_X86_64_JUMP_SLOT</code>/<code>R_X86_64_RELATIVE</code>, IFUNC.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><i>Linkers and Loaders</i> — Ch. 8–10 (dynamic linking, loading).</li>
+      <li>Ulrich Drepper, <i>How To Write Shared Libraries</i> (free PDF) — essential.</li>
+      <li><i>Learning Linux Binary Analysis</i> (Ryan "elfmaster" O'Neill) — Ch. 1–2.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (man)</div>
+    <p><code>ld.so(8)</code>, <code>dlopen(3)</code>, <code>dlsym(3)</code>, <code>dl_iterate_phdr(3)</code>, <code>ldd(1)</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools</div>
+    <p><code>readelf -d</code>, <code>objdump -R</code>, <code>ltrace</code>, <code>LD_DEBUG=all ./prog</code>, <code>patchelf</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-src">Source to navigate <span class="note">(pick musl first — it's readable)</span></div>
+    <ul>
+      <li><b>musl</b> <code>ldso/dynlink.c</code> — the whole dynamic linker in one clean file.</li>
+      <li><b>glibc</b> <code>elf/rtld.c</code>, <code>elf/dl-load.c</code>, <code>elf/dl-runtime.c</code>, <code>sysdeps/x86_64/dl-trampoline.S</code>.</li>
+    </ul>
+  </div>
+</div>
+<div class="callout ch ch-m3">
+  <b>Challenge 3:</b> In <code>gdb</code>, set a breakpoint in <code>main</code>, print <code>.got.plt</code> entries before
+  and after the first call to a libc function, and watch a JUMP_SLOT get resolved (use
+  <code>LD_DEBUG=bindings</code> to cross-check). Then write an <code>LD_PRELOAD</code> library that intercepts
+  <code>malloc</code> (or <code>puts</code>) and logs calls — prove interposition works.
+</div>
+
+<!-- ==================== milestone 4 ==================== -->
+<h2 class="sec" id="m4"><span class="n cm4">4</span> Loading &amp; execution (kernel + userspace loader) <span class="hint">Milestone 4</span></h2>
+<p class="goal"><b>Goal:</b> know exactly what happens between <code>execve()</code> and your <code>_start</code> running.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p><code>execve</code> path, how the kernel maps <code>PT_LOAD</code> segments, sets up the stack
+      (argv/envp/<b>auxv</b>), hands control to <code>ld.so</code>, then to <code>_start</code>; <code>AT_*</code> auxiliary
+      vector entries; brk/mmap layout, ASLR.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><i>Linux System Programming</i> (Robert Love) — process &amp; exec.</li>
+      <li>APUE — process control chapters.</li>
+      <li>LWN articles: "How programs get run: ELF binaries" (Lameter/Corbet).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (man)</div>
+    <p><code>execve(2)</code>, <code>mmap(2)</code>, <code>getauxval(3)</code>, <code>vdso(7)</code>, <code>proc(5)</code> (maps/auxv).</p>
+  </div>
+  <div class="row">
+    <div class="k k-src">Source to navigate <span class="note">(the crown jewel)</span></div>
+    <ul>
+      <li>Linux <b><code>fs/binfmt_elf.c</code></b> — <code>load_elf_binary()</code>, <code>load_elf_interp()</code>,
+        <code>create_elf_tables()</code> (stack/auxv setup), <code>elf_map()</code>. Read it line by line.</li>
+      <li><code>fs/binfmt_elf_fdpic.c</code> (no-MMU variant) — optional contrast.</li>
+      <li><code>fs/exec.c</code> — <code>do_execve</code> / <code>search_binary_handler</code>.</li>
+    </ul>
+  </div>
+</div>
+<div class="callout ch ch-m4">
+  <b>Challenge 4:</b> Write a <b>userspace ELF loader</b> in C: mmap the <code>PT_LOAD</code> segments of
+  a <i>static, no-PIE</i> executable with correct perms, set up the stack + auxv, and jump to
+  <code>e_entry</code>. Run <code>/bin/busybox</code> or your own static binary with it. (Stretch: handle PIE
+  by processing <code>R_X86_64_RELATIVE</code>.) Then read <code>binfmt_elf.c</code> and annotate where your
+  loader diverges from the kernel's.
+</div>
+
+<!-- ==================== milestone 5A ==================== -->
+<h2 class="sec" id="m5a"><span class="n cm5a">5A</span> RE TRACK: analysis, obfuscation, forensics <span class="hint">Milestone 5A</span></h2>
+<p class="goal"><b>Goal:</b> analyze hostile/unknown binaries; manipulate ELF structure.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>stripped binaries, section vs. segment reconstruction, packing (UPX),
+      anti-debugging/anti-disassembly, ELF infection techniques (PT_NOTE→PT_LOAD, text
+      padding, reverse-text), symbol recovery, DWARF basics.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><i>Learning Linux Binary Analysis</i> — Ch. 3–8 (the ELF virus/forensics core).</li>
+      <li><i>Practical Binary Analysis</i> (Dennis Andriesse) — Ch. 1–7, 12–13.</li>
+      <li><i>Programming Linux Anti-Reversing Techniques</i> (Jonathan Thomas).</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (man)</div>
+    <p><code>strace(1)</code>, <code>ltrace(1)</code>, <code>ptrace(2)</code>, <code>objcopy(1)</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-tools">Tools to master</div>
+    <p><code>gdb</code> + <b>pwndbg/GEF</b>, <b>Ghidra</b> (free), <b>rizin/Cutter</b> or
+      radare2, <code>checksec</code>, <b>LIEF</b> (Python ELF manipulation), <b>pyelftools</b>, <code>pahole</code>,
+      <code>llvm-dwarfdump</code>, capstone/keystone.</p>
+  </div>
+  <div class="row">
+    <div class="k k-src">Source</div>
+    <p><b>LIEF</b> and <b>pyelftools</b> source — great references for parsing edge cases.</p>
+  </div>
+</div>
+<div class="callout ch ch-m5a">
+  <b>Challenge 5A:</b>
+  <ol>
+    <li>Pack a binary with UPX, then <b>unpack it manually</b> in gdb (dump memory after the
+      stub decompresses, rebuild a runnable ELF).</li>
+    <li>Take a stripped binary and recover function boundaries + rename them in Ghidra.</li>
+    <li>Use LIEF to <b>add a section and inject a code cave</b> that prints a message before
+      <code>main</code>, and have it still run.</li>
+    <li>Solve 5 Linux crackmes from <b>crackmes.one</b> (start "easy", work up).</li>
+  </ol>
+</div>
+
+<!-- ==================== milestone 5B ==================== -->
+<h2 class="sec" id="m5b"><span class="n cm5b">5B</span> KERNEL TRACK: modules, vDSO, core dumps <span class="hint">Milestone 5B</span></h2>
+<p class="goal"><b>Goal:</b> understand ELF as the kernel consumes and produces it.</p>
+<div class="panel">
+  <div class="row">
+    <div class="k k-learn">Learn</div>
+    <p>kernel module format (relocatable ELF <code>.ko</code>, <code>MODINFO</code>, module relocations,
+      <code>__ksymtab</code>), how the kernel resolves module symbols; <b>vDSO</b> construction &amp; mapping;
+      <b>core dump</b> generation (<code>PT_NOTE</code> with <code>NT_PRSTATUS</code>, <code>NT_PRPSINFO</code>, register/aux
+      state); <code>kallsyms</code>; the difference between <code>vmlinux</code> (ELF) and <code>bzImage</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read</div>
+    <ul>
+      <li><i>Linux Kernel Development</i> (Robert Love) — modules chapter.</li>
+      <li><i>Understanding the Linux Kernel</i> (Bovet &amp; Cesati) — program execution chapter.</li>
+      <li>LWN: vDSO and module-loading articles.</li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="k k-read">Read (man)</div>
+    <p><code>core(5)</code>, <code>vdso(7)</code>, <code>gcore(1)</code>, <code>insmod(8)</code>/<code>modprobe(8)</code>, <code>kallsyms</code>.</p>
+  </div>
+  <div class="row">
+    <div class="k k-src">Source to navigate</div>
+    <ul>
+      <li><b><code>kernel/module/main.c</code></b> (older trees: <code>kernel/module.c</code>) —
+        <code>load_module()</code>, <code>simplify_symbols()</code>, <code>apply_relocations()</code>, <code>layout_sections()</code>.</li>
+      <li><code>arch/x86/kernel/module.c</code> — <code>apply_relocate_add()</code> (kernel-side relocs!).</li>
+      <li><code>arch/x86/entry/vdso/</code> — vDSO build &amp; <code>vdso2c</code>.</li>
+      <li><code>fs/binfmt_elf.c</code> — <code>elf_core_dump()</code> (core generation path).</li>
+    </ul>
+  </div>
+</div>
+<div class="callout ch ch-m5b">
+  <b>Challenge 5B:</b>
+  <ol>
+    <li>Write a "hello" kernel module; then dissect its <code>.ko</code> with <code>readelf -Srs</code> and map
+      each section/reloc to what <code>load_module()</code> does with it.</li>
+    <li>Extract the running <b>vDSO</b> from <code>/proc/self/maps</code>, dump it, and disassemble
+      <code>__vdso_gettimeofday</code>.</li>
+    <li>Trigger a core dump (<code>ulimit -c unlimited</code>), then write a tool that parses the
+      <code>PT_NOTE</code> and prints the crashing thread's registers (compare with <code>gdb core</code>).</li>
+  </ol>
+</div>
+
+<!-- ==================== milestone 6 ==================== -->
+<h2 class="sec" id="m6"><span class="n cm6">6</span> Capstone (choose per track or do both) <span class="hint">Milestone 6</span></h2>
+<div class="caps">
+  <div class="cap-card re">
+    <p><b style="color:var(--pink)">RE capstone:</b> Write your own <b>ELF analysis tool</b> (in C or Python) that, for an
+      arbitrary binary, prints header/segments/sections, resolves dynamic symbols &amp;
+      PLT/GOT targets, flags suspicious traits (RWX segments, packed entropy, unusual
+      PT_LOAD), and dumps DWARF function info if present. Test on real malware samples in a
+      VM or on CTF binaries.</p>
+  </div>
+  <div class="cap-card kn">
+    <p><b style="color:var(--cyan)">Kernel capstone:</b> Extend your Milestone 4 loader into a working <b><code>binfmt</code>-style
+      interpreter</b>, OR patch/instrument <code>fs/binfmt_elf.c</code> in a kernel build to log every
+      segment it maps for a given binary, boot it in QEMU, and verify against your userspace
+      loader's behavior.</p>
+  </div>
+</div>
+
+<!-- ==================== practice ==================== -->
+<h2 class="sec" id="practice"><span class="n cm5a">★</span> Practice grounds (ongoing)</h2>
+<div class="panel">
+  <ul class="plain">
+    <li><b>crackmes.one</b> — Linux/ELF reversing, all levels.</li>
+    <li><b>pwnable.kr</b>, <b>pwnable.tw</b> — exploitation forces deep ELF/loader knowledge.</li>
+    <li><b>ROP Emporium</b> — teaches GOT/PLT hijacking hands-on.</li>
+    <li><b>exploit.education</b> (Phoenix) — memory &amp; format internals.</li>
+    <li><b>reversing.kr</b>, <b>HackTheBox</b> (reversing) — broader practice.</li>
+    <li><b>Nightmare</b> (guyinatuxedo) — free structured pwn/RE course with writeups.</li>
+  </ul>
+</div>
+
+<!-- ==================== quick reference ==================== -->
+<h2 class="sec" id="quickref"><span class="n cm5b">⚑</span> Quick reference — the essential set</h2>
+<div class="qgrid">
+  <div class="qcard qb">
+    <h3>Books</h3>
+    <p>CS:APP (Ch.7) · Levine <i>Linkers and Loaders</i> · elfmaster <i>Learning Linux
+      Binary Analysis</i> · Andriesse <i>Practical Binary Analysis</i> · Drepper <i>How To Write
+      Shared Libraries</i> · Love <i>Linux Kernel Development</i> + <i>Linux System Programming</i>.</p>
+  </div>
+  <div class="qcard qs">
+    <h3>Specs</h3>
+    <p>System V ABI · x86-64 psABI · TIS ELF v1.2 · DWARF 5.</p>
+  </div>
+  <div class="qcard qm">
+    <h3>Man pages</h3>
+    <p><code>elf(5)</code> · <code>ld.so(8)</code> · <code>ld(1)</code> · <code>as(1)</code> · <code>nm(1)</code> · <code>ar(1)</code> ·
+      <code>objdump(1)</code> · <code>readelf(1)</code> · <code>strip(1)</code>/<code>objcopy(1)</code> · <code>execve(2)</code> · <code>mmap(2)</code> ·
+      <code>dlopen(3)</code> · <code>dl_iterate_phdr(3)</code> · <code>getauxval(3)</code> · <code>vdso(7)</code> · <code>core(5)</code> ·
+      <code>ptrace(2)</code> · <code>proc(5)</code> · <code>strace(1)</code>/<code>ltrace(1)</code>.</p>
+  </div>
+  <div class="qcard qt">
+    <h3>Tools</h3>
+    <p>binutils (<code>readelf</code>/<code>objdump</code>/<code>nm</code>/<code>objcopy</code>) · elfutils · <code>gdb</code>+pwndbg/GEF ·
+      Ghidra · rizin/radare2 · LIEF · pyelftools · <code>patchelf</code> · <code>pahole</code> · <code>llvm-dwarfdump</code> ·
+      <code>checksec</code> · <code>ltrace</code>/<code>strace</code>.</p>
+  </div>
+  <div class="qcard qc wide">
+    <h3>Source</h3>
+    <p><code>/usr/include/elf.h</code> · musl <code>ldso/dynlink.c</code> · glibc <code>elf/rtld.c</code> ·
+      Linux <code>fs/binfmt_elf.c</code> · Linux <code>kernel/module/main.c</code> · <code>arch/x86/entry/vdso/</code> ·
+      binutils <code>bfd/</code>.</p>
+  </div>
+</div>
+
+<div class="footer">
+  Converted from <code>ELF_ROADMAP.md</code> · Part of <a href="https://github.com/smalinux/notes-goblin">notes-goblin</a> 🧌
+</div>
+
+</div>
+</body>
+</html>
