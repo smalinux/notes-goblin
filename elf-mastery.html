@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mastering ELF with your own cat</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2333;
+    --border: #30363d;
+    --fg: #e6edf3;
+    --dim: #9aa7b3;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #ff7b72;
+    --orange: #ffa657;
+    --purple: #bc8cff;
+    --pink: #ff7bc6;
+    --yellow: #e3b341;
+    --cyan: #39c5cf;
+    --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px 80px; }
+  code, pre, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code {
+    background: #21283b;
+    color: #79c0ff;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: .88em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #c9d1d9;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  a { color: var(--accent); }
+
+  /* hero */
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 56px 24px 44px;
+    text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 10px;
+    font-size: 40px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 760px; margin: 0 auto; font-size: 17px; }
+  .hero .tag {
+    display: inline-block; margin-top: 18px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px;
+    color: var(--accent); font-size: 13px; letter-spacing: 1px;
+  }
+
+  h2.step {
+    display: flex; align-items: center; gap: 14px;
+    margin: 64px 0 18px; font-size: 26px; letter-spacing: -0.3px;
+  }
+  .badge {
+    flex: none; width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20px; color: #0d1117;
+  }
+  .b1 { background: var(--accent); } .b2 { background: var(--orange); }
+  .b3 { background: var(--green); } .b4 { background: var(--yellow); }
+  .b5 { background: var(--cyan); } .b6 { background: var(--pink); }
+  .b7 { background: var(--purple); } .b8 { background: var(--red); }
+  .bq { background: linear-gradient(135deg, #ff7bc6, #58a6ff); }
+  blockquote.q {
+    margin: 18px 0; padding: 14px 20px;
+    background: #1a2030; border-left: 4px solid var(--pink);
+    border-radius: 0 10px 10px 0; color: #cdd9e5; font-style: italic;
+  }
+  blockquote.q .who { display:block; margin-top: 8px; font-style: normal; color: var(--dim); font-size: 13px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 22px 0;
+  }
+  .keyidea {
+    background: linear-gradient(90deg, #13233c, #1d1533);
+    border: 1px solid #58a6ff44;
+    border-left: 4px solid var(--accent);
+  }
+  .crown {
+    background: linear-gradient(90deg, #2a1530, #131f38);
+    border: 1px solid #ff7bc644;
+    border-left: 4px solid var(--pink);
+  }
+  .warn { border-left: 4px solid var(--yellow); }
+
+  table.data {
+    border-collapse: collapse; width: 100%; margin: 18px 0;
+    font-size: 14.5px;
+  }
+  table.data th {
+    background: #1d2534; color: var(--accent); text-align: left;
+    padding: 10px 14px; border: 1px solid var(--border);
+  }
+  table.data td { padding: 9px 14px; border: 1px solid var(--border); }
+  table.data tr:nth-child(even) { background: #131922; }
+  .perm-r { color: var(--green); font-weight: 700; }
+  .perm-rx { color: var(--red); font-weight: 700; }
+  .perm-rw { color: var(--purple); font-weight: 700; }
+
+  /* hex grid */
+  .hexgrid { display: grid; grid-template-columns: 90px repeat(16, 1fr); gap: 4px; margin: 20px 0 10px; }
+  .hexgrid .off { color: var(--dim); font-size: 12px; display: flex; align-items: center; }
+  .hexgrid span {
+    text-align: center; padding: 7px 0; border-radius: 6px;
+    font-family: Consolas, Menlo, monospace; font-size: 13px; color: #0d1117; font-weight: 700;
+  }
+  .h-magic { background: var(--red); }
+  .h-class { background: var(--orange); }
+  .h-data  { background: var(--yellow); }
+  .h-ver   { background: #d2a8ff; }
+  .h-pad   { background: #21262d; color: #566070 !important; font-weight: 400 !important; }
+  .h-type  { background: var(--green); }
+  .h-mach  { background: var(--cyan); }
+  .h-ever  { background: #7ee787; }
+  .h-entry { background: var(--accent); }
+  .h-phoff { background: var(--pink); }
+  .h-shoff { background: var(--purple); }
+  .h-flags { background: #21262d; color: #566070 !important; font-weight: 400 !important; }
+  .h-sizes { background: #8b949e; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 13px; color: var(--dim); margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  .svgbox { margin: 26px 0; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .caption { color: var(--dim); font-size: 13.5px; margin-top: 8px; font-style: italic; }
+
+  ul, ol { padding-left: 26px; }
+  li { margin: 7px 0; }
+  strong { color: #fff; }
+  em { color: #cdd9e5; }
+  .footer {
+    margin-top: 70px; padding-top: 24px; border-top: 1px solid var(--border);
+    color: var(--dim); font-size: 14px;
+  }
+  .cmd { color: var(--green); }
+  .addr { color: var(--yellow); }
+  .str { color: var(--pink); }
+  .kw { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Mastering ELF with your own <span class="mono">cat</span></h1>
+  <p>Everything's collected. Here's the full walkthrough — every number below comes from <em>your</em> <code>cat</code> binary, and every command is one you can rerun yourself.</p>
+  <div class="tag">/src/elf2/cat &nbsp;·&nbsp; ELF64 &nbsp;·&nbsp; x86-64 &nbsp;·&nbsp; PIE</div>
+</div>
+
+<div class="wrap">
+
+<p style="margin-top:40px">Your program is 9 lines of C that imports <code>open</code>, <code>read</code>, <code>write</code>, <code>puts</code> from libc. That makes it the ideal specimen: small enough to account for every byte, real enough to contain the whole ELF machinery.</p>
+
+<div class="card keyidea">
+<strong>The one mental model to hold onto:</strong> an ELF file is <em>one blob of bytes with two tables of contents pointing into it</em>. The <strong>program headers</strong> are the runtime view (what the kernel and <code>ld-linux</code> read to run it). The <strong>section headers</strong> are the link-time view (what the linker and debuggers read). Neither "contains" the data — both just describe ranges of the same bytes. Everything below is exploring those two views.
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9aa7b3"/></marker>
+    <marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#58a6ff"/></marker>
+    <marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3fb950"/></marker>
+  </defs>
+  <!-- center blob -->
+  <rect x="340" y="40" width="220" height="260" rx="14" fill="#1c2333" stroke="#30363d"/>
+  <text x="450" y="68" fill="#e6edf3" font-size="16" font-weight="bold" text-anchor="middle" font-family="sans-serif">the file: one blob</text>
+  <rect x="360" y="84"  width="180" height="26" rx="5" fill="#ff7b72" opacity=".85"/><text x="450" y="102" font-size="12" text-anchor="middle" fill="#0d1117" font-family="monospace" font-weight="bold">ELF header (64 B)</text>
+  <rect x="360" y="114" width="180" height="26" rx="5" fill="#ff7bc6" opacity=".85"/><text x="450" y="132" font-size="12" text-anchor="middle" fill="#0d1117" font-family="monospace" font-weight="bold">program headers</text>
+  <rect x="360" y="144" width="180" height="34" rx="5" fill="#3fb950" opacity=".8"/><text x="450" y="165" font-size="12" text-anchor="middle" fill="#0d1117" font-family="monospace" font-weight="bold">dyn metadata</text>
+  <rect x="360" y="182" width="180" height="34" rx="5" fill="#ffa657" opacity=".85"/><text x="450" y="203" font-size="12" text-anchor="middle" fill="#0d1117" font-family="monospace" font-weight="bold">code (.text, PLT)</text>
+  <rect x="360" y="220" width="180" height="30" rx="5" fill="#39c5cf" opacity=".85"/><text x="450" y="239" font-size="12" text-anchor="middle" fill="#0d1117" font-family="monospace" font-weight="bold">data / GOT</text>
+  <rect x="360" y="254" width="180" height="26" rx="5" fill="#bc8cff" opacity=".85"/><text x="450" y="272" font-size="12" text-anchor="middle" fill="#0d1117" font-family="monospace" font-weight="bold">section headers</text>
+  <!-- left: runtime view -->
+  <rect x="30" y="90" width="230" height="150" rx="14" fill="#13233c" stroke="#58a6ff66"/>
+  <text x="145" y="120" fill="#58a6ff" font-size="16" font-weight="bold" text-anchor="middle" font-family="sans-serif">Runtime view</text>
+  <text x="145" y="145" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">program headers</text>
+  <text x="145" y="168" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">read by kernel + ld-linux</text>
+  <text x="145" y="191" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">coarse segments, mmap'd</text>
+  <text x="145" y="214" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">required to run</text>
+  <line x1="262" y1="165" x2="336" y2="165" stroke="#58a6ff" stroke-width="2" marker-end="url(#arB)"/>
+  <!-- right: link view -->
+  <rect x="640" y="90" width="230" height="150" rx="14" fill="#12291c" stroke="#3fb95066"/>
+  <text x="755" y="120" fill="#3fb950" font-size="16" font-weight="bold" text-anchor="middle" font-family="sans-serif">Link-time view</text>
+  <text x="755" y="145" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">section headers</text>
+  <text x="755" y="168" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">read by linker + debuggers</text>
+  <text x="755" y="191" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">fine-grained sections</text>
+  <text x="755" y="214" fill="#9aa7b3" font-size="13" text-anchor="middle" font-family="sans-serif">optional at runtime</text>
+  <line x1="638" y1="165" x2="564" y2="165" stroke="#3fb950" stroke-width="2" marker-end="url(#arG)"/>
+</svg>
+<div class="caption">Two tables of contents, one blob of bytes. Neither view "owns" the data.</div>
+</div>
+
+<h2 class="step"><span class="badge b1">1</span>The ELF header: 64 bytes at offset 0</h2>
+
+<pre><code><span class="cmd">xxd -l 64 cat</span>
+00000000: 7f45 4c46 0201 0100 0000 0000 0000 0000  .ELF............
+00000010: 0300 3e00 0100 0000 e010 0000 0000 0000  ..&gt;.............
+00000020: 4000 0000 0000 0000 4037 0000 0000 0000  @.......@7......
+00000030: 0000 0000 4000 3800 0d00 4000 1f00 1e00  ....@.8...@.....</code></pre>
+
+<div class="card">
+<div class="legend">
+  <span><i style="background:var(--red)"></i>magic</span>
+  <span><i style="background:var(--orange)"></i>class</span>
+  <span><i style="background:var(--yellow)"></i>endianness</span>
+  <span><i style="background:#d2a8ff"></i>EI version</span>
+  <span><i style="background:var(--green)"></i>e_type</span>
+  <span><i style="background:var(--cyan)"></i>e_machine</span>
+  <span><i style="background:#7ee787"></i>e_version</span>
+  <span><i style="background:var(--accent)"></i>e_entry</span>
+  <span><i style="background:var(--pink)"></i>e_phoff</span>
+  <span><i style="background:var(--purple)"></i>e_shoff</span>
+  <span><i style="background:#8b949e"></i>sizes &amp; counts</span>
+  <span><i style="background:#21262d;border:1px solid #30363d"></i>padding / flags</span>
+</div>
+<div class="hexgrid">
+  <div class="off mono">0x00</div>
+  <span class="h-magic">7f</span><span class="h-magic">45</span><span class="h-magic">4c</span><span class="h-magic">46</span>
+  <span class="h-class">02</span><span class="h-data">01</span><span class="h-ver">01</span>
+  <span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span><span class="h-pad">00</span>
+  <div class="off mono">0x10</div>
+  <span class="h-type">03</span><span class="h-type">00</span><span class="h-mach">3e</span><span class="h-mach">00</span>
+  <span class="h-ever">01</span><span class="h-ever">00</span><span class="h-ever">00</span><span class="h-ever">00</span>
+  <span class="h-entry">e0</span><span class="h-entry">10</span><span class="h-entry">00</span><span class="h-entry">00</span><span class="h-entry">00</span><span class="h-entry">00</span><span class="h-entry">00</span><span class="h-entry">00</span>
+  <div class="off mono">0x20</div>
+  <span class="h-phoff">40</span><span class="h-phoff">00</span><span class="h-phoff">00</span><span class="h-phoff">00</span><span class="h-phoff">00</span><span class="h-phoff">00</span><span class="h-phoff">00</span><span class="h-phoff">00</span>
+  <span class="h-shoff">40</span><span class="h-shoff">37</span><span class="h-shoff">00</span><span class="h-shoff">00</span><span class="h-shoff">00</span><span class="h-shoff">00</span><span class="h-shoff">00</span><span class="h-shoff">00</span>
+  <div class="off mono">0x30</div>
+  <span class="h-flags">00</span><span class="h-flags">00</span><span class="h-flags">00</span><span class="h-flags">00</span>
+  <span class="h-sizes">40</span><span class="h-sizes">00</span><span class="h-sizes">38</span><span class="h-sizes">00</span><span class="h-sizes">0d</span><span class="h-sizes">00</span><span class="h-sizes">40</span><span class="h-sizes">00</span><span class="h-sizes">1f</span><span class="h-sizes">00</span><span class="h-sizes">1e</span><span class="h-sizes">00</span>
+</div>
+<div class="caption">Every field of your header, byte by byte. Multi-byte values read backwards (little-endian): <code>e0 10</code> → 0x10e0.</div>
+</div>
+
+<p>Decode it by hand once and it's yours forever:</p>
+<ul>
+<li><code>7f 45 4c 46</code> — the magic, <code>\x7fELF</code>. This is what <code>file</code> checks.</li>
+<li><code>02 01 01</code> — 64-bit, little-endian, ELF version 1. Little-endian matters for reading everything else: bytes are stored least-significant first.</li>
+<li>Offset 0x10: <code>0300</code> = type <strong>ET_DYN</strong>. Surprise #1: your executable has the same type as a shared library. That's because it's a PIE (position-independent executable) — the kernel loads it at a random base address, exactly like a <code>.so</code>.</li>
+<li><code>3e00</code> = machine 0x3E, x86-64.</li>
+<li>Offset 0x18: <code>e010 0000...</code> = <strong>entry point 0x10e0</strong> (read backwards: little-endian). Note this is <em>not</em> <code>main</code> — more on that in Step 7.</li>
+<li>Offset 0x20: <code>40</code> = program headers start at offset 64 (immediately after this header). Offset 0x28: <code>4037</code> = 0x3740 = section headers start at offset 14144 — the very end of the file. That layout is typical: runtime table up front, link-time table at the back.</li>
+<li>The last line: 13 program headers of 56 bytes each, 31 section headers of 64 bytes each, and index 30 is the section that holds section names (<code>.shstrtab</code>).</li>
+</ul>
+<p>Cross-check with <code>readelf -h cat</code> — it says exactly what you just decoded.</p>
+
+<h2 class="step"><span class="badge b2">2</span>Program headers: what actually runs <code style="font-size:.6em">readelf -lW cat</code></h2>
+
+<p>Thirteen entries, but only a few kinds matter:</p>
+<p><strong>The four <code>LOAD</code> segments</strong> are the whole runtime story — they're the only thing that becomes memory:</p>
+
+<table class="data">
+<tr><th>File offset</th><th>Virt addr</th><th>Size</th><th>Perms</th><th>Contents</th></tr>
+<tr><td class="mono">0x0000</td><td class="mono">0x0000</td><td class="mono">0x728</td><td class="perm-r">R</td><td>ELF header + dynamic-linking metadata</td></tr>
+<tr><td class="mono">0x1000</td><td class="mono">0x1000</td><td class="mono">0x2b5</td><td class="perm-rx">R-X</td><td>all code (<code>.text</code>, PLT, <code>.init</code>)</td></tr>
+<tr><td class="mono">0x2000</td><td class="mono">0x2000</td><td class="mono">0xec</td><td class="perm-r">R</td><td>read-only data (<code>"HAHAH!"</code> lives here)</td></tr>
+<tr><td class="mono">0x2d98</td><td class="mono">0x3d98</td><td class="mono">0x278 file / <strong>0x280 mem</strong></td><td class="perm-rw">RW</td><td>writable data, GOT, <code>.bss</code></td></tr>
+</table>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 430" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9aa7b3"/></marker>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#1c2333"/><line x1="0" y1="0" x2="0" y2="8" stroke="#bc8cff" stroke-width="2.5"/>
+    </pattern>
+  </defs>
+  <text x="185" y="34" fill="#e6edf3" font-size="17" font-weight="bold" text-anchor="middle" font-family="sans-serif">FILE (offsets)</text>
+  <text x="715" y="34" fill="#e6edf3" font-size="17" font-weight="bold" text-anchor="middle" font-family="sans-serif">MEMORY (virtual addresses)</text>
+  <!-- file column -->
+  <rect x="90" y="50"  width="190" height="80"  rx="6" fill="#3fb950" opacity=".75"/>
+  <rect x="90" y="134" width="190" height="60"  rx="6" fill="#ff7b72" opacity=".8"/>
+  <rect x="90" y="198" width="190" height="46"  rx="6" fill="#39c5cf" opacity=".8"/>
+  <rect x="90" y="258" width="190" height="66"  rx="6" fill="#bc8cff" opacity=".8"/>
+  <rect x="90" y="336" width="190" height="40"  rx="6" fill="#21262d" stroke="#30363d"/>
+  <text x="185" y="95"  font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R   hdrs + metadata</text>
+  <text x="185" y="169" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R-X  code</text>
+  <text x="185" y="226" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R   rodata</text>
+  <text x="185" y="296" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">RW  data + GOT</text>
+  <text x="185" y="361" font-size="12" text-anchor="middle" fill="#8b949e" font-family="monospace">section headers @0x3740</text>
+  <text x="82" y="60"  font-size="12" text-anchor="end" fill="#9aa7b3" font-family="monospace">0x0000</text>
+  <text x="82" y="140" font-size="12" text-anchor="end" fill="#9aa7b3" font-family="monospace">0x1000</text>
+  <text x="82" y="204" font-size="12" text-anchor="end" fill="#9aa7b3" font-family="monospace">0x2000</text>
+  <text x="82" y="264" font-size="12" text-anchor="end" fill="#ffa657" font-family="monospace" font-weight="bold">0x2d98</text>
+  <!-- memory column -->
+  <rect x="620" y="50"  width="190" height="80" rx="6" fill="#3fb950" opacity=".75"/>
+  <rect x="620" y="134" width="190" height="60" rx="6" fill="#ff7b72" opacity=".8"/>
+  <rect x="620" y="198" width="190" height="46" rx="6" fill="#39c5cf" opacity=".8"/>
+  <rect x="620" y="282" width="190" height="66" rx="6" fill="#bc8cff" opacity=".8"/>
+  <rect x="620" y="348" width="190" height="26" rx="6" fill="url(#hatch)" stroke="#bc8cff"/>
+  <text x="715" y="95"  font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R</text>
+  <text x="715" y="169" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R-X</text>
+  <text x="715" y="226" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R</text>
+  <text x="715" y="320" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">RW</text>
+  <text x="715" y="366" font-size="12" text-anchor="middle" fill="#e6edf3" font-weight="bold" font-family="monospace">.bss = zeros, no file bytes</text>
+  <text x="818" y="60"  font-size="12" fill="#9aa7b3" font-family="monospace">base+0x0000</text>
+  <text x="818" y="140" font-size="12" fill="#9aa7b3" font-family="monospace">base+0x1000</text>
+  <text x="818" y="204" font-size="12" fill="#9aa7b3" font-family="monospace">base+0x2000</text>
+  <text x="818" y="288" font-size="12" fill="#ffa657" font-family="monospace" font-weight="bold">base+0x3d98</text>
+  <text x="818" y="366" font-size="12" fill="#bc8cff" font-family="monospace">+0x278…0x280</text>
+  <!-- arrows -->
+  <line x1="284" y1="90"  x2="616" y2="90"  stroke="#9aa7b3" stroke-width="1.6" marker-end="url(#ar2)"/>
+  <line x1="284" y1="164" x2="616" y2="164" stroke="#9aa7b3" stroke-width="1.6" marker-end="url(#ar2)"/>
+  <line x1="284" y1="221" x2="616" y2="221" stroke="#9aa7b3" stroke-width="1.6" marker-end="url(#ar2)"/>
+  <line x1="284" y1="291" x2="616" y2="315" stroke="#ffa657" stroke-width="2.2" marker-end="url(#ar2)"/>
+  <text x="450" y="80"  font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">mmap</text>
+  <text x="450" y="285" font-size="13" text-anchor="middle" fill="#ffa657" font-family="sans-serif" font-weight="bold">offset ≠ vaddr, but ≡ mod 0x1000</text>
+  <text x="450" y="303" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0x2d98 → 0x3d98 (both end in d98)</text>
+  <!-- gnu_stack note -->
+  <text x="450" y="412" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">4 LOAD segments become 4 mapped regions — sections are nowhere in this picture</text>
+</svg>
+<div class="caption">The loader's entire job: mmap four ranges of the file, then zero-fill the .bss tail.</div>
+</div>
+
+<p>Three insights hiding in this table:</p>
+<ol>
+<li><strong>Permissions are why segments exist.</strong> <code>mmap</code> works per page with per-page protections, so the file is grouped into page-aligned chunks by W/X needs. Code is never writable, data is never executable.</li>
+<li><strong>File offset ≠ virtual address, but they're congruent mod 0x1000.</strong> Look at the last row: offset 0x2d98 maps to address 0x3d98. The loader can still <code>mmap</code> it because both have the same position <em>within</em> a page (0xd98). This trick lets the file skip padding — your binary would be bigger if offsets had to equal addresses.</li>
+<li><strong>MemSiz &gt; FileSiz is <code>.bss</code>.</strong> The last segment occupies 0x278 bytes in the file but 0x280 in memory. Those extra 8 zero-filled bytes are your uninitialized globals (here, libc runtime flags like <code>completed.0</code>). Zeros aren't stored — they're materialized at load time. This is why a program with <code>char big[100000000];</code> still produces a tiny file.</li>
+</ol>
+
+<p>The non-LOAD entries are annotations pointing inside the LOADs: <code>INTERP</code> names <code>/lib64/ld-linux-x86-64.so.2</code> (the dynamic linker the kernel launches to do the real work), <code>DYNAMIC</code> tells that linker where its instructions are, <code>GNU_STACK RW</code> (note: no X) makes the stack non-executable, and <code>GNU_RELRO</code> marks a region — including the GOT — to be re-protected read-only after relocation, which is an exploit mitigation.</p>
+
+<h2 class="step"><span class="badge b3">3</span>Section headers: the linker's fine-grained map <code style="font-size:.6em">readelf -SW cat</code></h2>
+
+<p>31 sections slice the same bytes into semantic units: <code>.text</code> (your code, 0x1c5 bytes), <code>.rodata</code> (0xb bytes — almost entirely <code>"HAHAH!\0"</code>), <code>.dynsym</code>/<code>.dynstr</code> (imports), <code>.got</code> (pointer slots), <code>.bss</code> (type <code>NOBITS</code> — a section with no file bytes at all, matching the MemSiz&gt;FileSiz you saw above).</p>
+
+<p>The section-to-segment mapping at the bottom of <code>readelf -lW</code> output shows the two views reconciled: segment 03 (the R-X LOAD) = <code>.init .plt .plt.got .plt.sec .text .fini</code>, and so on.</p>
+
+<div class="card warn">
+<strong>The key practical fact: sections are optional at runtime.</strong> Try it:
+<pre style="margin-bottom:0"><code><span class="cmd">cp cat /tmp/cat-stripped &amp;&amp; strip /tmp/cat-stripped &amp;&amp; /tmp/cat-stripped cat.c</span></code></pre>
+</div>
+
+<p>It runs fine, and <code>readelf -S</code> shows <code>.symtab</code>/<code>.strtab</code> gone. The kernel and dynamic linker only ever read program headers and the <code>DYNAMIC</code> data. Malware often deletes the entire section header table to break naive analysis tools; <code>readelf -l</code> still works on such files.</p>
+
+<h2 class="step"><span class="badge bq">Q</span>Your question: if sections are "for linking", how can <code style="font-size:.75em">.text</code> run?</h2>
+
+<blockquote class="q">
+"Sections comprise all information needed for linking a target object file in order to build a working executable" — then how is it possible that <code>.text</code>, <code>.rodata</code> and others are sections? How do I know which parts are with me at execution time, and which parts are only linking time?
+<span class="who">— your question, quoting Intezer's ELF 101 article</span>
+</blockquote>
+
+<p>The paradox dissolves once you notice what that sentence is actually about: the section <em>view</em> — the header table — not the bytes. A section header doesn't <em>contain</em> code; it <em>describes</em> a byte range and gives it a name and a purpose for the linker. <code>.text</code>-the-bytes are absolutely needed at runtime — but they reach memory because a LOAD <strong>segment</strong> covers that range. <code>.text</code>-the-<em>header</em> is pure link/debug metadata. Same bytes, two descriptions; delete the description and the bytes still run — that's exactly what your <code>strip</code> experiment in Step 3 proved.</p>
+
+<p>Where the "sections are for linking" sentence really comes from: a relocatable object file. Run <code>gcc -c cat.c; readelf -l cat.o</code> — there are <em>no program headers at all</em>. Sections are the static linker's <strong>input units</strong>: it merges the <code>.text</code> of every <code>.o</code>, resolves relocations between them, then emits segments as the <strong>output units</strong> for the kernel. An executable keeps its section headers only as a courtesy to debuggers and tools.</p>
+
+<div class="card keyidea">
+<strong>The rule:</strong> a byte exists at execution time <em>if and only if</em> some <code>PT_LOAD</code> segment covers its file offset. Sections are just labels over those bytes — a label can point inside a LOAD (mapped) or outside it (link-time only). Three ways to check, from quick to ground truth:
+<ul style="margin-bottom:0">
+<li><strong>The <code>A</code> (SHF_ALLOC) flag</strong> in <code>readelf -SW cat</code> — <code>A</code> means "allocate memory for me". Sections 1–26 in your binary have it; the last four (<code>.comment</code>, <code>.symtab</code>, <code>.strtab</code>, <code>.shstrtab</code>) don't — and their Address column reads 0: no virtual address exists for them.</li>
+<li><strong>The section-to-segment mapping</strong> at the bottom of <code>readelf -lW cat</code> — any section that appears under no LOAD segment is not part of the running process.</li>
+<li><strong>The arithmetic:</strong> your last LOAD covers file offsets up to 0x2d98&nbsp;+&nbsp;0x278&nbsp;=&nbsp;<strong>0x3010</strong>, and the file is <strong>0x3f00</strong> (16,128) bytes. Everything from 0x3010 to the end — <code>.comment</code>, <code>.symtab</code>, <code>.strtab</code>, <code>.shstrtab</code>, and the entire section header table — is ~3.8&nbsp;KB, <strong>24% of your file that never becomes memory</strong>.</li>
+</ul>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 235" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="hatch2" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">
+      <rect width="9" height="9" fill="#161b22"/><line x1="0" y1="0" x2="0" y2="9" stroke="#495261" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <!-- brackets -->
+  <path d="M42 52 L42 42 L638 42 L638 52" fill="none" stroke="#3fb950" stroke-width="1.8"/>
+  <text x="340" y="30" font-size="13" text-anchor="middle" fill="#3fb950" font-family="sans-serif" font-weight="bold">covered by a PT_LOAD → exists at runtime</text>
+  <path d="M644 52 L644 42 L858 42 L858 52" fill="none" stroke="#ff7b72" stroke-width="1.8"/>
+  <text x="751" y="30" font-size="13" text-anchor="middle" fill="#ff7b72" font-family="sans-serif" font-weight="bold">no PT_LOAD → link/debug only</text>
+  <!-- bar -->
+  <rect x="40"  y="62" width="150" height="54" rx="5" fill="#3fb950" opacity=".8"/>
+  <rect x="190" y="62" width="40"  height="54" fill="#10141b"/>
+  <rect x="230" y="62" width="130" height="54" fill="#ff7b72" opacity=".85"/>
+  <rect x="360" y="62" width="40"  height="54" fill="#10141b"/>
+  <rect x="400" y="62" width="100" height="54" fill="#39c5cf" opacity=".85"/>
+  <rect x="500" y="62" width="30"  height="54" fill="#10141b"/>
+  <rect x="530" y="62" width="110" height="54" rx="5" fill="#bc8cff" opacity=".85"/>
+  <rect x="640" y="62" width="218" height="54" rx="5" fill="url(#hatch2)" stroke="#ff7b7288"/>
+  <text x="115" y="94" font-size="12" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R meta</text>
+  <text x="295" y="94" font-size="12" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R-X code</text>
+  <text x="450" y="94" font-size="12" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">R rodata</text>
+  <text x="585" y="94" font-size="12" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">RW data</text>
+  <text x="749" y="94" font-size="12" text-anchor="middle" fill="#8b949e" font-weight="bold" font-family="monospace">dead at runtime</text>
+  <!-- offsets -->
+  <text x="40"  y="136" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0x0000</text>
+  <text x="230" y="136" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0x1000</text>
+  <text x="400" y="136" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0x2000</text>
+  <text x="530" y="136" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0x2d98</text>
+  <text x="640" y="136" font-size="12" text-anchor="middle" fill="#ffa657" font-family="monospace" font-weight="bold">0x3010</text>
+  <text x="858" y="136" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0x3f00</text>
+  <!-- tail contents -->
+  <text x="749" y="165" font-size="12.5" text-anchor="middle" fill="#ff7b72" font-family="monospace">.comment .symtab .strtab .shstrtab</text>
+  <text x="749" y="184" font-size="12.5" text-anchor="middle" fill="#ff7b72" font-family="monospace">+ section header table</text>
+  <text x="749" y="203" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">3.8 KB — 24% of the file</text>
+  <text x="340" y="184" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">gaps = alignment padding &nbsp;·&nbsp; widths not to scale</text>
+</svg>
+<div class="caption">Your 16,128-byte file: every byte past offset 0x3010 is invisible to the running process.</div>
+</div>
+
+<p>"With me at execution time" actually has three answers, not two — the middle one is the subtlety most articles skip:</p>
+
+<table class="data">
+<tr><th>When it's consumed</th><th>Parts of your binary</th><th>In memory while running?</th></tr>
+<tr><td><strong>Link time only</strong><br><span style="color:var(--dim);font-size:13px">static linker <code>ld</code>, debuggers</span></td><td class="mono">.symtab .strtab .shstrtab .comment .debug_* + section headers</td><td><span style="color:var(--red);font-weight:700">No</span> — no <code>A</code> flag, Address 0, beyond the last LOAD</td></tr>
+<tr><td><strong>Load time</strong><br><span style="color:var(--dim);font-size:13px"><code>ld-linux</code>, milliseconds before <code>main</code></span></td><td class="mono">.interp .dynamic .dynsym .dynstr .gnu.hash .gnu.version* .rela.dyn .rela.plt</td><td><span style="color:var(--yellow);font-weight:700">Yes, mapped</span> (first R LOAD) — but only <em>read once</em> during startup; idle baggage afterwards</td></tr>
+<tr><td><strong>Run time</strong><br><span style="color:var(--dim);font-size:13px">the CPU, every moment</span></td><td class="mono">.text .plt* .rodata .data .bss .got .init .fini</td><td><span style="color:var(--green);font-weight:700">Yes</span> — the R-X / R / RW LOADs; this is your living program</td></tr>
+</table>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker>
+  </defs>
+  <line x1="30" y1="40" x2="880" y2="40" stroke="#e3b341" stroke-width="2.4" marker-end="url(#arT)"/>
+  <circle cx="165" cy="40" r="5" fill="#8b949e"/>
+  <circle cx="455" cy="40" r="5" fill="#ff7bc6"/>
+  <circle cx="745" cy="40" r="5" fill="#58a6ff"/>
+  <rect x="40"  y="62" width="250" height="108" rx="12" fill="#161b22" stroke="#8b949e"/>
+  <text x="165" y="88"  font-size="14" text-anchor="middle" fill="#c9d1d9" font-weight="bold" font-family="sans-serif">LINK TIME</text>
+  <text x="165" y="106" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">gcc/ld on your dev box</text>
+  <text x="165" y="128" font-size="12" text-anchor="middle" fill="#c9d1d9" font-family="monospace">.symtab · reloc'd .o sections</text>
+  <text x="165" y="152" font-size="12.5" text-anchor="middle" fill="#ff7b72" font-family="sans-serif" font-weight="bold">not with you — strippable</text>
+  <rect x="330" y="62" width="250" height="108" rx="12" fill="#2a1530" stroke="#ff7bc6"/>
+  <text x="455" y="88"  font-size="14" text-anchor="middle" fill="#ff7bc6" font-weight="bold" font-family="sans-serif">LOAD TIME</text>
+  <text x="455" y="106" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">ld-linux, before main runs</text>
+  <text x="455" y="128" font-size="12" text-anchor="middle" fill="#c9d1d9" font-family="monospace">.dynamic .dynsym .rela.*</text>
+  <text x="455" y="152" font-size="12.5" text-anchor="middle" fill="#e3b341" font-family="sans-serif" font-weight="bold">mapped, read once, then idle</text>
+  <rect x="620" y="62" width="250" height="108" rx="12" fill="#131f38" stroke="#58a6ff"/>
+  <text x="745" y="88"  font-size="14" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="sans-serif">RUN TIME</text>
+  <text x="745" y="106" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">the CPU, whole process life</text>
+  <text x="745" y="128" font-size="12" text-anchor="middle" fill="#c9d1d9" font-family="monospace">.text .rodata .data .bss .got</text>
+  <text x="745" y="152" font-size="12.5" text-anchor="middle" fill="#3fb950" font-family="sans-serif" font-weight="bold">with you every instruction</text>
+</svg>
+<div class="caption">One lifetime, three consumers: what "needed for linking" vs "with me at execution" really means.</div>
+</div>
+
+<p>And you can watch the ground truth live — ask the kernel what it actually mapped:</p>
+
+<pre><code><span class="cmd">gdb -batch -ex starti -ex 'info proc mappings' ./cat</span></code></pre>
+
+<p>The mapped ranges of <code>cat</code> match the four LOAD segments — nothing more. No region corresponds to <code>.symtab</code> or the section headers; the running process has simply never heard of them.</p>
+
+<h2 class="step"><span class="badge b4">4</span>String tables: how ELF stores every name</h2>
+
+<p>Names in ELF are never inline — they're byte offsets into a string table. Here's <code>.dynstr</code> raw (file offset 0x4e0):</p>
+
+<pre><code>0070 7574 7300 5f5f 7374 6163 6b5f ...   .puts.__stack_...</code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20"  y="35" width="30"  height="42" rx="6" fill="#21262d" stroke="#30363d"/>
+  <text x="35" y="62" font-size="13" text-anchor="middle" fill="#566070" font-family="monospace">\0</text>
+  <rect x="54"  y="35" width="95" height="42" rx="6" fill="#ff7bc6" opacity=".9"/>
+  <text x="101" y="62" font-size="14" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">puts\0</text>
+  <rect x="153" y="35" width="240" height="42" rx="6" fill="#ffa657" opacity=".9"/>
+  <text x="273" y="62" font-size="14" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">__stack_chk_fail\0</text>
+  <rect x="397" y="35" width="95" height="42" rx="6" fill="#3fb950" opacity=".9"/>
+  <text x="444" y="62" font-size="14" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">read\0</text>
+  <rect x="496" y="35" width="95" height="42" rx="6" fill="#39c5cf" opacity=".9"/>
+  <text x="543" y="62" font-size="14" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">open\0</text>
+  <rect x="595" y="35" width="150" height="42" rx="6" fill="#bc8cff" opacity=".9"/>
+  <text x="670" y="62" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">libc.so.6\0 …</text>
+  <rect x="749" y="35" width="130" height="42" rx="6" fill="#58a6ff" opacity=".9"/>
+  <text x="814" y="62" font-size="13" text-anchor="middle" fill="#0d1117" font-weight="bold" font-family="monospace">GLIBC_2.4\0 …</text>
+  <text x="35"  y="98" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">0</text>
+  <text x="58"  y="98" font-size="12" text-anchor="middle" fill="#ff7bc6" font-family="monospace" font-weight="bold">1</text>
+  <text x="157" y="98" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">6</text>
+  <text x="401" y="98" font-size="12" text-anchor="middle" fill="#3fb950" font-family="monospace" font-weight="bold">19</text>
+  <text x="500" y="98" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">24</text>
+  <text x="599" y="98" font-size="12" text-anchor="middle" fill="#bc8cff" font-family="monospace" font-weight="bold">72</text>
+  <text x="450" y="20" font-size="13" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">.dynstr — NUL-terminated strings back to back; everything else refers to them by offset</text>
+</svg>
+</div>
+
+<p>It's just NUL-terminated strings back to back, starting with a NUL. "puts" is at offset 1, "read" at 19, "libc.so.6" at 72. When any other structure needs a name, it stores that offset. This is why you saw readable symbol names when you opened <code>cat</code> in the editor — string tables are the only human-readable part of the file. There are three of them: <code>.dynstr</code> (runtime symbols), <code>.strtab</code> (debug symbols, strippable), <code>.shstrtab</code> (section names). Try <code>readelf -p .dynstr cat</code> to see it decoded.</p>
+
+<h2 class="step"><span class="badge b5">5</span><code style="font-size:.75em">.dynamic</code>: the dynamic linker's instruction sheet <code style="font-size:.6em">readelf -d cat</code></h2>
+
+<p>This is a key-value array <code>ld-linux</code> walks at startup. The entries in yours tell a complete story:</p>
+<ul>
+<li><code>NEEDED: libc.so.6</code> — load this library first. (One entry per dependency; <code>ldd cat</code> is essentially this plus recursion.)</li>
+<li><code>SYMTAB</code>/<code>STRTAB</code>/<code>GNU_HASH</code> — where my imports and their names are, plus a hash table so lookups aren't linear scans.</li>
+<li><code>RELA</code>/<code>JMPREL</code> — where the relocations are (Step 6).</li>
+<li><code>FLAGS: BIND_NOW</code>, <code>FLAGS_1: NOW PIE</code> — resolve <em>all</em> symbols at startup rather than lazily. Your compiler enabled full RELRO by default: eager binding means the GOT can then be made read-only. Worth knowing that both modes exist — older/differently-configured binaries bind lazily.</li>
+<li><code>INIT</code>, <code>INIT_ARRAY</code> — constructors to run before <code>main</code> (this is how <code>__attribute__((constructor))</code> and C++ static initializers work).</li>
+</ul>
+
+<h2 class="step"><span class="badge b6">6</span>Symbols, relocations, and the PLT/GOT: how <code style="font-size:.75em">puts("HAHAH!")</code> finds libc</h2>
+
+<div class="card crown">
+This is the crown jewel — trace it end to end in your binary.
+<br><br>
+<strong>The problem:</strong> your code calls <code>puts</code>, but nobody knows where libc will land in memory until runtime (ASLR). The solution is one indirection through a table of pointers (the GOT — Global Offset Table) that <code>ld-linux</code> fills in at startup.
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff7bc6"/></marker>
+    <marker id="arY" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker>
+    <marker id="arGr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3fb950"/></marker>
+  </defs>
+  <!-- main -->
+  <rect x="30" y="60" width="220" height="90" rx="12" fill="#1c2333" stroke="#58a6ff"/>
+  <text x="140" y="88" font-size="15" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">main  (.text)</text>
+  <text x="140" y="115" font-size="13" text-anchor="middle" fill="#e6edf3" font-family="monospace">1231: call 1090</text>
+  <text x="140" y="135" font-size="12" text-anchor="middle" fill="#9aa7b3" font-family="monospace">&lt;puts@plt&gt;</text>
+  <!-- plt -->
+  <rect x="340" y="60" width="240" height="90" rx="12" fill="#1c2333" stroke="#ffa657"/>
+  <text x="460" y="88" font-size="15" text-anchor="middle" fill="#ffa657" font-weight="bold" font-family="monospace">puts@plt  (.plt.sec)</text>
+  <text x="460" y="115" font-size="13" text-anchor="middle" fill="#e6edf3" font-family="monospace">1090: endbr64</text>
+  <text x="460" y="135" font-size="13" text-anchor="middle" fill="#e6edf3" font-family="monospace">1094: jmp *0x3fb0(GOT)</text>
+  <!-- got -->
+  <rect x="660" y="45" width="210" height="120" rx="12" fill="#1c2333" stroke="#bc8cff"/>
+  <text x="765" y="72" font-size="15" text-anchor="middle" fill="#bc8cff" font-weight="bold" font-family="monospace">GOT slot 0x3fb0</text>
+  <text x="765" y="100" font-size="13" text-anchor="middle" fill="#8b949e" font-family="monospace" text-decoration="line-through">on disk: 0x1030</text>
+  <text x="765" y="124" font-size="13" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">at runtime: &amp;puts</text>
+  <text x="765" y="148" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">read-only after RELRO</text>
+  <!-- libc -->
+  <rect x="620" y="290" width="250" height="80" rx="12" fill="#12291c" stroke="#3fb950"/>
+  <text x="745" y="320" font-size="15" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">libc.so.6</text>
+  <text x="745" y="345" font-size="13" text-anchor="middle" fill="#e6edf3" font-family="monospace">puts: ... real code ...</text>
+  <!-- ld-linux -->
+  <rect x="180" y="290" width="290" height="80" rx="12" fill="#2a1530" stroke="#ff7bc6"/>
+  <text x="325" y="318" font-size="15" text-anchor="middle" fill="#ff7bc6" font-weight="bold" font-family="monospace">ld-linux (at startup)</text>
+  <text x="325" y="343" font-size="12.5" text-anchor="middle" fill="#e6edf3" font-family="sans-serif">R_X86_64_JUMP_SLOT: look up puts,</text>
+  <text x="325" y="360" font-size="12.5" text-anchor="middle" fill="#e6edf3" font-family="sans-serif">write its address into 0x3fb0</text>
+  <!-- arrows -->
+  <line x1="252" y1="105" x2="336" y2="105" stroke="#e3b341" stroke-width="2.4" marker-end="url(#arY)"/>
+  <text x="294" y="95" font-size="12" text-anchor="middle" fill="#e3b341" font-family="sans-serif">call</text>
+  <line x1="582" y1="105" x2="656" y2="105" stroke="#e3b341" stroke-width="2.4" marker-end="url(#arY)"/>
+  <text x="619" y="95" font-size="12" text-anchor="middle" fill="#e3b341" font-family="sans-serif">jmp *</text>
+  <line x1="765" y1="167" x2="750" y2="286" stroke="#3fb950" stroke-width="2.4" marker-end="url(#arGr)"/>
+  <text x="800" y="230" font-size="12" fill="#3fb950" font-family="sans-serif">lands in libc</text>
+  <line x1="430" y1="286" x2="690" y2="150" stroke="#ff7bc6" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#arP)"/>
+  <text x="520" y="212" font-size="12.5" fill="#ff7bc6" font-family="sans-serif">writes real address (BIND_NOW)</text>
+  <text x="450" y="405" font-size="12.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">One indirection solves ASLR — and it's exactly what LD_PRELOAD hijacks and RELRO protects.</text>
+</svg>
+<div class="caption">The complete journey of <code>puts("HAHAH!")</code>, from your call site to libc.</div>
+</div>
+
+<p><strong>1. The import list.</strong> <code>readelf --dyn-syms cat</code> shows 11 entries in <code>.dynsym</code>, all <code>UND</code> (undefined) — value 0, "I need this from somewhere." Note <code>puts@GLIBC_2.2.5</code>: the version suffix comes from <code>.gnu.version</code>/<code>.gnu.version_r</code> and pins which historical ABI of <code>puts</code> you need.</p>
+
+<p><strong>2. The fix-up list.</strong> <code>readelf -r cat</code> shows the relocations — each one says "write the address of symbol X into slot Y":</p>
+
+<pre><code>.rela.plt:
+<span class="addr">000000003fb0</span>  <span class="kw">R_X86_64_JUMP_SLOT</span>  <span class="str">puts@GLIBC_2.2.5</span> + 0</code></pre>
+
+<p>"Put the runtime address of <code>puts</code> at address 0x3fb0" — a GOT slot. You'll also see <code>R_X86_64_RELATIVE</code> entries with no symbol at all: those just say "write base_address + addend here", and they exist purely because this is a PIE — even the binary's <em>own</em> internal pointers need adjusting once the random base is known.</p>
+
+<p><strong>3. The call site.</strong> From the disassembly of <code>main</code>:</p>
+
+<pre><code><span class="addr">1231:</span>  call   <span class="addr">1090</span> &lt;puts@plt&gt;</code></pre>
+
+<p>Your code never calls libc directly — it calls a local trampoline in <code>.plt.sec</code>:</p>
+
+<pre><code><span class="addr">0000000000001090</span> &lt;puts@plt&gt;:
+    <span class="addr">1090:</span>  endbr64
+    <span class="addr">1094:</span>  jmp    *0x2f16(%rip)        <span style="color:#8b949e"># 3fb0</span></code></pre>
+
+<p>One instruction: jump through whatever pointer is stored at 0x3fb0 — exactly the slot the relocation targets. <code>ld-linux</code> looks up <code>puts</code> in libc's <code>.dynsym</code>, writes the real address into 0x3fb0 at startup (because of <code>BIND_NOW</code>), and every call thereafter is a single indirect jump.</p>
+
+<p><strong>4. Proof from the raw bytes.</strong> Here's the GOT <em>on disk</em> (file offset 0x2f98 = vaddr 0x3f98):</p>
+
+<pre><code><span class="addr">00002fa8:</span> ........ <span class="str">3010 0000 0000 0000</span>    ← slot 0x3fb0 (puts) = 0x1030
+<span class="addr">00002fb8:</span> <span class="str">4010</span> ... <span class="str">5010</span> ...              ← write=0x1040, stack_chk=0x1050 ...</code></pre>
+
+<p>The slots don't contain libc addresses (impossible — file's not running yet); they contain 0x1030, 0x1040… — addresses of stubs back in <code>.plt</code> that would trigger lazy on-demand resolution. That's the fallback path; with BIND_NOW it's dead weight that gets overwritten at startup before <code>main</code> runs. Also note the first GOT entry, 0x3da8 — the address of <code>.dynamic</code> itself.</p>
+
+<div class="card keyidea">
+This GOT/PLT mechanism is <em>the</em> thing to internalize: it's how all dynamic linking works, it's what <code>LD_PRELOAD</code> hijacks (preloaded library wins the symbol lookup, its address lands in the GOT), and it's what RELRO protects.
+</div>
+
+<h2 class="step"><span class="badge b7">7</span>Entry point vs <code style="font-size:.75em">main</code>: what happens before your code</h2>
+
+<p>The header said entry = 0x10e0, but <code>main</code> is at 0x11c9. Entry is <code>_start</code> (see <code>objdump -d cat</code> around 0x10e0): a tiny stub that sets up registers per the ABI and calls <code>__libc_start_main(main, argc, argv, ...)</code> — which initializes libc, runs the <code>INIT_ARRAY</code> constructors, calls your <code>main</code>, and turns its return value into <code>exit()</code>. So the real startup chain is:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 900 190" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e3b341"/></marker>
+  </defs>
+  <rect x="15"  y="45" width="140" height="70" rx="12" fill="#1c2333" stroke="#58a6ff"/>
+  <text x="85" y="75" font-size="15" text-anchor="middle" fill="#58a6ff" font-weight="bold" font-family="monospace">kernel</text>
+  <text x="85" y="98" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">mmaps LOADs + INTERP</text>
+  <rect x="195" y="45" width="150" height="70" rx="12" fill="#2a1530" stroke="#ff7bc6"/>
+  <text x="270" y="75" font-size="15" text-anchor="middle" fill="#ff7bc6" font-weight="bold" font-family="monospace">ld-linux</text>
+  <text x="270" y="98" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">libc, relocs, RELRO</text>
+  <rect x="385" y="45" width="130" height="70" rx="12" fill="#1f2b17" stroke="#3fb950"/>
+  <text x="450" y="75" font-size="15" text-anchor="middle" fill="#3fb950" font-weight="bold" font-family="monospace">_start</text>
+  <text x="450" y="98" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="monospace">@ 0x10e0</text>
+  <rect x="555" y="45" width="200" height="70" rx="12" fill="#2b2410" stroke="#e3b341"/>
+  <text x="655" y="75" font-size="14" text-anchor="middle" fill="#e3b341" font-weight="bold" font-family="monospace">__libc_start_main</text>
+  <text x="655" y="98" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">init libc, ctors</text>
+  <rect x="795" y="45" width="95" height="70" rx="12" fill="#131f38" stroke="#39c5cf"/>
+  <text x="842" y="75" font-size="15" text-anchor="middle" fill="#39c5cf" font-weight="bold" font-family="monospace">main</text>
+  <text x="842" y="98" font-size="11.5" text-anchor="middle" fill="#9aa7b3" font-family="monospace">@ 0x11c9</text>
+  <line x1="157" y1="80" x2="191" y2="80" stroke="#e3b341" stroke-width="2.4" marker-end="url(#ar3)"/>
+  <line x1="347" y1="80" x2="381" y2="80" stroke="#e3b341" stroke-width="2.4" marker-end="url(#ar3)"/>
+  <line x1="517" y1="80" x2="551" y2="80" stroke="#e3b341" stroke-width="2.4" marker-end="url(#ar3)"/>
+  <line x1="757" y1="80" x2="791" y2="80" stroke="#e3b341" stroke-width="2.4" marker-end="url(#ar3)"/>
+  <text x="450" y="160" font-size="13" text-anchor="middle" fill="#9aa7b3" font-family="sans-serif">entry point (e_entry) is _start — your main is the fifth stop, not the first</text>
+</svg>
+</div>
+
+<p><strong>kernel</strong> loads your LOADs + <code>ld-linux</code> (from <code>INTERP</code>) → <strong>ld-linux</strong> loads <code>libc.so.6</code> (from <code>NEEDED</code>), applies all relocations, makes RELRO regions read-only → jumps to <strong><code>_start</code></strong> → <strong><code>__libc_start_main</code></strong> → <strong><code>main</code></strong>.</p>
+
+<p>One bonus in your disassembly of <code>main</code>: <code>mov %fs:0x28,%rax</code> / <code>mov %rax,-0x8(%rbp)</code> — the stack canary being installed (that's why <code>__stack_chk_fail</code> is in your import list), because your 1024-byte <code>buf</code> makes GCC nervous. And <code>open(argv[1], 0)</code> — that literal 0 is <code>O_RDONLY</code>.</p>
+
+<h2 class="step"><span class="badge b8">★</span>Exercises to cement it</h2>
+
+<ol>
+<li><strong>Break the magic:</strong> <code>printf '\x00' | dd of=/tmp/cat2 bs=1 seek=4 conv=notrunc</code> after copying <code>cat</code> — byte 4 is the class byte; the kernel will refuse with "Exec format error". Then try corrupting byte 0x18 (entry point) — it'll load but crash. You learn which fields the kernel actually validates.</li>
+<li><strong>Watch the linker work:</strong> <code>LD_DEBUG=reloc,symbols ./cat cat.c 2&gt;&amp;1 | grep puts</code> — see the exact symbol lookup and GOT write you traced above happen live.</li>
+<li><strong>Hijack the GOT:</strong> write a <code>puts</code> in a <code>.so</code>, <code>LD_PRELOAD</code> it, and confirm your version runs — you now understand <em>mechanically</em> why that works.</li>
+<li><strong>Read a section raw:</strong> <code>readelf -x .rodata cat</code> — find <code>HAHAH!</code> at vaddr 0x2004 and match it to the <code>lea 0xdd3(%rip),%rdi  # 2004</code> in main.</li>
+<li><strong>Compare views:</strong> run <code>readelf -h</code> on <code>/usr/lib/x86_64-linux-gnu/libc.so.6</code> and on a <code>.o</code> file (<code>gcc -c cat.c</code>) — same format, but the <code>.o</code> has type <code>REL</code>, no program headers at all, and unresolved relocations <em>in</em> <code>.text</code>. Seeing all three file types (REL → DYN-executable → DYN-library) completes the picture.</li>
+</ol>
+
+<div class="footer">
+The spec references when you want depth: <code>man 5 elf</code> covers every struct field, and the System V ABI x86-64 supplement covers the relocation types. But you've now touched every load-bearing structure in a real binary — header, segments, sections, string tables, dynamic array, symbols, relocations, GOT/PLT, and the startup path — which is the practical core of the format.
+</div>
+
+</div>
+</body>
+</html>

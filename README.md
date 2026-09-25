@@ -1,6 +1,6 @@
 # notes-goblin 🧌
 
-A small goblin that hoards my public notes.
+00000000: 6865 6c6c 6f20 776f 726c 6473 210a
 
 ## Assembly
 
@@ -25,6 +25,7 @@ A small goblin that hoards my public notes.
 
 - [ELF Mastery Roadmap](https://smalinux.github.io/notes-goblin/elf-roadmap.html) — reverse engineer + kernel developer track
 - [Mastering ELF — Which Spec Is Which?](https://smalinux.github.io/notes-goblin/elfspec.html) — guide to the ELF specifications
+- [Mastering ELF with your own cat](https://smalinux.github.io/notes-goblin/elf-mastery.html) — byte-by-byte walkthrough of a real binary: header, segments, sections, GOT/PLT, and the startup path
 - [ELF · The Complete Anatomy](https://smalinux.github.io/notes-goblin/elf-anatomy.svg) — every structure, section & segment, and the exact tool + command to read each byte
 - [The ELF File Format](https://smalinux.github.io/notes-goblin/elf-format.svg) — visual guide to elf(5): every structure, where it lives in the file, and how the kernel + dynamic linker use it
 
