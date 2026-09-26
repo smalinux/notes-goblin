@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assembly · Notes 01</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 70px; }
+  code, pre, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; color: #e6edf3; }
+  a { color: var(--accent); }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 8px; font-size: 38px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 720px; margin: 0 auto; font-size: 16px; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 22px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0d1117;
+  }
+  h2.sec .hint { color: var(--dim); font-weight: 400; font-size: 14px; margin-left: auto; }
+  .c1{background:var(--accent)} .c2{background:var(--orange)} .c3{background:var(--green)}
+  .c4{background:var(--purple)} .c5{background:var(--pink)} .c6{background:var(--cyan)}
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 16px 12px; margin: 14px 0;
+  }
+  .panel h3 { font-size: 15px; margin: 12px 0 8px; color: #dbe6f1; letter-spacing: .2px; }
+
+  table.ref { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 8px; }
+  table.ref th {
+    background: #1d2534; color: var(--accent); text-align: left; padding: 6px 10px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+  table.ref td { padding: 6px 10px; border: 1px solid var(--border); vertical-align: top; }
+  table.ref tr:nth-child(even) { background: #131922; }
+  .muted { color: var(--dim); }
+
+  /* my note = yellow callout */
+  .callout {
+    border-left: 3px solid var(--yellow); background: #191d13aa; border-radius: 0 8px 8px 0;
+    padding: 9px 14px; margin: 10px 0; font-size: 13.5px; color: #d8e0c9;
+  }
+  .callout.blue { border-color: var(--accent); background: #12233c88; color: #cfe0f5; }
+  .callout.pink { border-color: var(--pink); background: #2a153088; color: #f2d6ea; }
+  .callout.green { border-color: var(--green); background: #11261a88; color: #d3ecd9; }
+  .callout b { color: #fff; }
+  .callout .who { color: var(--yellow); font-weight: 700; font-size: 11px; letter-spacing: 1px; margin-right: 6px; }
+
+  /* Intel SDM reference line */
+  .manref {
+    display: inline-block; margin: 6px 0 2px; padding: 4px 12px; font-size: 12.5px;
+    border: 1px solid #bc8cff55; border-radius: 999px; color: var(--purple); background: #24153644;
+  }
+  .manref b { color: #d9c4ff; }
+
+  .stamp { color: var(--dim); font-size: 11.5px; font-style: italic; }
+
+  .svgbox { margin: 20px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Assembly · Notes 01</h1>
+  <p>My running x86-64 assembly notebook. Each note = my comment in a callout, a tiny example under it, and the Intel SDM page to read more.</p>
+  <div class="tag">x86-64 · OST2 ARCH1001 · INTEL SDM</div>
+</div>
+
+<div class="wrap">
+
+<!-- ======================= NOTES ======================= -->
+
+<h2 class="sec" id="n1"><span class="n c1">1</span> Square brackets <code>[ ]</code> = memory access <span class="hint">2026-09-26</span></h2>
+
+<div class="callout"><span class="who">MY NOTE</span> x86 uses square brackets <code>[ ]</code> to say: <b>go to memory</b>. Without brackets you work with the value itself. With brackets you use the value as an <b>address</b> and read/write what is stored there.</div>
+
+<div class="panel">
+<pre><code>mov rax, rbx          ; NO brackets  -> copy the value of rbx into rax
+mov rax, [rbx]        ; brackets     -> READ 8 bytes from the address stored in rbx
+mov [rbx], rax        ; brackets on the left -> WRITE rax to that address
+
+mov rax, [rbx+rcx*8+16]   ; full form: [base + index*scale + displacement]</code></pre>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+    </marker>
+  </defs>
+  <!-- register box -->
+  <rect x="40" y="45" width="220" height="60" rx="8" fill="#12233c" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="150" y="70" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">rbx (register)</text>
+  <text x="150" y="92" text-anchor="middle" fill="#e6edf3" font-size="13" font-family="Consolas,Menlo,monospace">0x7ffc1000</text>
+  <!-- arrow -->
+  <path d="M 265 75 L 425 75" stroke="#58a6ff" stroke-width="2" marker-end="url(#a1)"/>
+  <text x="345" y="63" text-anchor="middle" fill="#e3b341" font-size="13" font-weight="700">[rbx] follows the address</text>
+  <!-- memory box -->
+  <rect x="430" y="45" width="230" height="60" rx="8" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="545" y="70" text-anchor="middle" fill="#3fb950" font-size="14" font-weight="700">memory @ 0x7ffc1000</text>
+  <text x="545" y="92" text-anchor="middle" fill="#e6edf3" font-size="13" font-family="Consolas,Menlo,monospace">value: 0x2a</text>
+</svg>
+<div class="cap"><code>mov rax, rbx</code> gives 0x7ffc1000 &#183; <code>mov rax, [rbx]</code> gives 0x2a</div>
+</div>
+
+<div class="callout blue"><span class="who">MY NOTE</span> <b>The only exception is LEA</b> — it uses <code>[ ]</code> but does <b>not</b> reference memory. It only does the address math and keeps the result in the register.</div>
+
+<div class="panel">
+<pre><code>; rbx = 0x1000, memory at 0x1008 holds 0x2a
+
+mov rax, [rbx+8]   ; goes to memory  -> rax = 0x2a   (the value)
+lea rax, [rbx+8]   ; only math       -> rax = 0x1008 (the address)</code></pre>
+</div>
+
+<span class="manref">&#128214; Intel SDM Vol 1 &#167;3.7 <b>Operand Addressing</b> &#183; PDF <b>p.85</b> &#8226; Vol 2 <b>LEA</b> &#183; PDF <b>p.1251</b></span>
+
+<h2 class="sec" id="n2"><span class="n c2">2</span> Pseudo C <code>*</code> = assembly <code>[base + offset]</code> <span class="hint">2026-09-26</span></h2>
+
+<div class="callout"><span class="who">MY NOTE</span> In pseudo C, <code>*</code> means: <b>follow the pointer</b>. In assembly this becomes <code>[ ]</code>. The address inside can be a base register alone (<code>[eax]</code>), base + immediate (<code>[esi+34]</code>), or base + register (<code>[ecx+eax]</code>). The address is computed at <b>run time</b>.</div>
+
+<div class="panel">
+<pre><code>; pseudo C              ; assembly
+*eax = 1;               mov dword ptr [eax], 1   ; write constant (must give a size!)
+ecx  = *eax;            mov ecx, [eax]           ; read from address in eax
+*eax = ebx;             mov [eax], ebx           ; write ebx to that address
+*(esi+34) = eax;        mov [esi+34], eax        ; base + immediate offset
+eax  = *(esi+34);       mov eax, [esi+34]        ; read the same slot back
+edx  = *(ecx+eax);      mov edx, [ecx+eax]       ; base + register offset</code></pre>
+</div>
+
+<div class="callout green"><span class="who">MY NOTE</span> Two classic patterns: <code>[esi+34]</code> = <b>struct member</b> — esi holds the struct start, 34 is the fixed distance of one member. <code>[ecx+eax]</code> = <b>data buffer</b> — ecx is the buffer start, eax is an index only known at run time.</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="a2y" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e3b341"/>
+    </marker>
+  </defs>
+  <!-- esi register -->
+  <rect x="30" y="34" width="190" height="60" rx="8" fill="#12233c" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="125" y="59" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">esi (base)</text>
+  <text x="125" y="81" text-anchor="middle" fill="#e6edf3" font-size="13" font-family="Consolas,Menlo,monospace">0x5000</text>
+  <!-- arrow to struct start -->
+  <path d="M 225 64 L 385 40" stroke="#58a6ff" stroke-width="2" marker-end="url(#a2)"/>
+  <!-- struct rows -->
+  <text x="390" y="20" fill="#9aa7b3" font-size="12" font-style="italic">struct in memory</text>
+  <rect x="390" y="28" width="270" height="32" fill="#1c2333" stroke="#30363d"/>
+  <text x="402" y="49" fill="#ffa657" font-size="13" font-family="Consolas,Menlo,monospace">+0</text>
+  <text x="450" y="49" fill="#e6edf3" font-size="13">field a</text>
+  <rect x="390" y="60" width="270" height="32" fill="#1c2333" stroke="#30363d"/>
+  <text x="402" y="81" fill="#ffa657" font-size="13" font-family="Consolas,Menlo,monospace">+16</text>
+  <text x="450" y="81" fill="#e6edf3" font-size="13">field b</text>
+  <rect x="390" y="92" width="270" height="32" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="402" y="113" fill="#3fb950" font-size="13" font-weight="700" font-family="Consolas,Menlo,monospace">+34</text>
+  <text x="450" y="113" fill="#d3ecd9" font-size="13" font-weight="700">field c  &#8592; [esi+34]</text>
+  <rect x="390" y="124" width="270" height="32" fill="#1c2333" stroke="#30363d"/>
+  <text x="402" y="145" fill="#ffa657" font-size="13" font-family="Consolas,Menlo,monospace">+42</text>
+  <text x="450" y="145" fill="#e6edf3" font-size="13">field d</text>
+  <!-- offset arrow -->
+  <path d="M 372 44 L 372 100 L 384 106" fill="none" stroke="#e3b341" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#a2y)"/>
+  <text x="300" y="120" fill="#e3b341" font-size="12.5" font-weight="700">+34 bytes</text>
+</svg>
+<div class="cap">esi points to the struct start &#183; the offset +34 jumps to one member inside &#183; address = 0x5000 + 34</div>
+</div>
+
+<span class="manref">&#128214; Intel SDM Vol 1 &#167;3.7 <b>Operand Addressing</b> &#183; PDF <b>p.85</b> &#8226; Vol 2 <b>MOV</b> &#183; PDF <b>p.1317</b></span>
+
+<!-- APPEND NEW NOTES ABOVE THIS LINE -->
+
+<div class="footer">
+  Part of <a href="https://github.com/smalinux/notes-goblin">notes-goblin</a> &#129484; &#183; started 2026-09-26 &#183;
+  Intel SDM refs point to absolute PDF pages in <code>/src/as/intel_manual/intel-sdm-combined-vol1-4.pdf</code>
+</div>
+
+</div>
+</body>
+</html>
