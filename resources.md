@@ -290,6 +290,7 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Dynamic / tracing: ltrace, strace, gdb (1-min intro https://youtu.be/HcBordv7aWU?t=246 ; record & replay https://sourceware.org/gdb/current/onlinedocs/gdb.html/Process-Record-and-Replay.html · https://sourceware.org/gdb/current/onlinedocs/gdb/Process-Record-and-Replay.html ; manual PDF https://sourceware.org/gdb/current/onlinedocs/gdb.pdf)
 - Timeless / record-replay debugging: qira (QEMU Interactive Runtime Analyzer) — https://github.com/geohot/qira · https://qira.me/ · https://web.archive.org/web/20260217093709/https://qira.me/ ; rr — https://github.com/rr-debugger/rr · https://github.com/mozilla/rr
 - Walkthroughs: Adam Doupé (ASU) hacking challenges — https://www.youtube.com/watch?v=qGt-0OOAFcM&list=PLK06XT3hFPziMAZj8QuoqC8iVaEbrlZWh ⭐
+- Here Be Dragons: Reverse Engineering with Ghidra — Part 1 (Steven Patterson, Shogun Lab; tutorial series with CrackMe/CTF exercises) — https://www.shogunlab.com/blog/2019/12/22/here-be-dragons-ghidra-1.html
 - RE tutorial series (mytechnotalent) — https://github.com/mytechnotalent/Reverse-Engineering ⭐
 - Practice ladder: crackmes.one → reversing.kr → challenges.re; pwnable.kr → pwnable.tw → ROP Emporium → how2heap; Flare-On archives → live Flare-On each fall; Microcorruption
 - Practical Reverse Engineering (book) notes: MSRs (RDMSR/WRMSR, ring 0), SYSENTER → IA32_SYSENTER_EIP MSR (0x17), CR0/CR3
