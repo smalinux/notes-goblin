@@ -1,0 +1,20 @@
+{
+	"nodes":[
+		{"id":"n0intro","type":"text","x":-460,"y":-420,"width":300,"height":60,"color":"6","text":"Good start. Full list:"},
+		{"id":"n1found","type":"text","x":-460,"y":-320,"width":560,"height":300,"color":"1","text":"**Foundations (your 1–4, plus)**\n5. C language — most RE targets compiled C/C++. Read C, know how compilers translate it\n6. Memory layout — heap, stack, globals, virtual memory, paging, ASLR\n7. Calling conventions — SysV, stdcall, fastcall, how args/returns pass\n8. CPU architecture — registers, flags, x86-64 first, then ARM64\n9. Endianness, data types, structs in memory, alignment/padding"},
+		{"id":"n2tool","type":"text","x":180,"y":-320,"width":560,"height":300,"color":"2","text":"**Tooling**\n10. Disassemblers — Ghidra (free), IDA, Binary Ninja\n11. Debuggers — GDB (+ pwndbg/GEF), x64dbg on Windows\n12. `objdump`, `readelf`, `strings`, `nm`, `ltrace`, `strace`, `xxd`\n13. Radare2/rizin — optional but good for scripting\n14. Hex editors, patching binaries"},
+		{"id":"n3core","type":"text","x":820,"y":-320,"width":560,"height":300,"color":"3","text":"**Core skills**\n15. Decompiler output reading — map pseudo-C back to asm\n16. Recognize compiler patterns — loops, switch tables, inlined memcpy, optimizations\n17. Static vs dynamic analysis — when to use each\n18. Symbol stripping — RE without function names\n19. Linking & loading — PLT/GOT, relocations, dynamic linker, `LD_PRELOAD`"},
+		{"id":"n4inter","type":"text","x":820,"y":60,"width":560,"height":280,"color":"4","text":"**Intermediate**\n20. C++ RE — vtables, name mangling, STL patterns\n21. Anti-debugging & obfuscation — detect + bypass (packers, `ptrace` tricks)\n22. File formats beyond ELF — PE (Windows), Mach-O, firmware blobs\n23. Syscalls & OS internals — Linux syscall table, kernel/user boundary\n24. Crypto identification — spot AES/RSA/XOR constants in binaries"},
+		{"id":"n5adv","type":"text","x":180,"y":60,"width":560,"height":280,"color":"5","text":"**Advanced / specialization**\n25. Vulnerability basics — buffer overflow, format string, UAF (helps understand what you read)\n26. Scripting for RE — Python + Ghidra scripting / Capstone / pwntools\n27. Emulation — QEMU, Unicorn engine\n28. Symbolic execution — angr (optional, powerful)\n29. Malware analysis OR embedded/firmware OR game hacking — pick a track"},
+		{"id":"n6prac","type":"text","x":-460,"y":60,"width":560,"height":180,"color":"6","text":"**Practice**\n- crackmes.one, picoCTF, pwn.college, Nightmare (guyinatuxedo) — do these in parallel from day 1, not after theory"},
+		{"id":"n7close","type":"text","x":-460,"y":300,"width":560,"height":120,"text":"Order matters less than practice volume. Your 1–4 + C + GDB + Ghidra = enough to start crackmes today."}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"n1found","fromSide":"right","toNode":"n2tool","toSide":"left"},
+		{"id":"e2","fromNode":"n2tool","fromSide":"right","toNode":"n3core","toSide":"left"},
+		{"id":"e3","fromNode":"n3core","fromSide":"bottom","toNode":"n4inter","toSide":"top"},
+		{"id":"e4","fromNode":"n4inter","fromSide":"left","toNode":"n5adv","toSide":"right"},
+		{"id":"e5","fromNode":"n1found","fromSide":"bottom","toNode":"n6prac","toSide":"top"},
+		{"id":"e6","fromNode":"n6prac","fromSide":"bottom","toNode":"n7close","toSide":"top"}
+	]
+}

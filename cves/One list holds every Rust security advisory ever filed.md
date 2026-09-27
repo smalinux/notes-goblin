@@ -1,0 +1,1438 @@
+---
+created: 2026-09-18
+tags: [rust, security, cve, memory-safety, reference-data]
+aliases: [rust cves full list, all rust cves]
+---
+
+## Idea
+- The COMPLETE RustSec advisory database, every entry, no skips: **1247 advisories** + ALL **39 NVD CVEs** for vendor rust-lang (toolchain) = **597 unique CVE IDs**. Generated 2026-09-18 from the official rustsec/advisory-db git repo + the NVD API.
+- This is the authoritative DB for the Rust ecosystem: all crates.io crates + the toolchain itself (std, cargo, rustdoc).
+- Sister note with analysis + worst cases: [[Articles - Rust apps still ship hundreds of CVEs]].
+
+## Coverage — what "ALL" means here
+- IN this list: every advisory ever filed to RustSec (vulns, unsound APIs, malicious crates, unmaintained notices) + Rust toolchain advisories.
+- NOT possible to list anywhere: CVEs of closed/app-only Rust software shipped outside crates.io (e.g. Deno, Firecracker binaries). NVD does not tag CVEs by language. For those: GitHub Advisory DB / osv.dev per product.
+- Legend: `[UNMAINTAINED]` = no CVE, crate abandoned. `[UNSOUND]` = API can cause memory unsafety. `[MALICIOUS]` = intentional malware/typosquat. No tag = vulnerability. `(toolchain)` = std/cargo/rustdoc, not a crate.
+
+## Totals
+- RustSec advisories: **1247** | with CVE ID: **548** | NVD toolchain CVEs: **39** | unique CVEs total: **597**
+- Unsound: 207 | Unmaintained: 270 | Toolchain (std/cargo/rustdoc): 20
+- Per year: 2015: **1** · 2016: **6** · 2017: **9** · 2018: **26** · 2019: **43** · 2020: **171** · 2021: **163** · 2022: **105** · 2023: **126** · 2024: **139** · 2025: **172** · 2026: **286**
+- Most-hit packages: wasmtime (44), openssl-src (25), std (18), openssl (10), diesel (8), nostr (8), hyper (7), pyo3 (7), ammonia (6), rkyv (6)
+
+## The full list
+
+### 2015 — 1 advisories
+- **CVE-2015-20001** · `std` (toolchain) · 2015-05-27 · CVE-2015-20001 — Panic safety violation in BinaryHeap
+
+### 2017 — 9 advisories
+- **CVE-2017-20004** · `std` (toolchain) · 2017-04-29 · CVE-2017-20004 — MutexGuard\<Cell\<i32\>\> must not be Sync
+
+### 2018 — 26 advisories
+- **CVE-2018-1000622** · `rustdoc` (toolchain) · 2018-07-05 · CVE-2018-1000622 — Uncontrolled search path element vulnerability in rustdoc plugins
+- **CVE-2018-1000657** · `std` (toolchain) · 2018-08-20 · CVE-2018-1000657 — Buffer overflow vulnerability in VecDeque::reserve()
+- **CVE-2018-1000810** · `std` (toolchain) · 2018-09-21 · CVE-2018-1000810 — Buffer overflow vulnerability in str::repeat()
+- **CVE-2018-25008** · `std` (toolchain) · 2018-06-25 · CVE-2018-25008 — Insufficient synchronization in `Arc::get_mut`
+
+### 2019 — 43 advisories
+- **CVE-2019-1010299** · `std` (toolchain) · 2018-08-21 · CVE-2019-1010299 — vec_deque::Iter has unsound Debug implementation
+- **CVE-2019-12083** · `std` (toolchain) · 2019-05-13 · CVE-2019-12083 — Memory safety vulnerabilities arising from `Error::type_id`
+- **CVE-2019-16760** · `cargo` (toolchain) · 2019-09-30 · CVE-2019-16760 — Cargo prior to Rust 1.26.0 may download the wrong dependency
+
+### 2020 — 171 advisories
+- **CVE-2020-36317** · `std` (toolchain) · 2020-10-28 · CVE-2020-36317 — String::retain allows safely creating invalid strings when abusing panic
+- **CVE-2020-36318** · `std` (toolchain) · 2020-12-07 · CVE-2020-36318 — VecDeque::make_contiguous may duplicate the contained elements
+- **CVE-2020-36323** · `std` (toolchain) · 2020-12-23 · CVE-2020-36323 — API soundness issue in join() implementation of \[Borrow\<str\>\]
+
+### 2021 — 163 advisories
+- **CVE-2021-28875** · `std` (toolchain) · 2021-01-10 · CVE-2021-28875 — Logic bug in Read can cause buffer overflow in read_to_end()
+- **CVE-2021-28876** · `std` (toolchain) · 2021-02-04 · CVE-2021-28876 — Panic safety issue in Zip specialization
+- **CVE-2021-28877** · `std` (toolchain) · 2021-01-03 · CVE-2021-28877 — TrustedRandomAccess specialization composes incorrectly for nested iter::Zips
+- **CVE-2021-28878** · `std` (toolchain) · 2021-02-19 · CVE-2021-28878 — Zip may call __iterator_get_unchecked twice with the same index
+- **CVE-2021-28879** · `std` (toolchain) · 2021-02-18 · CVE-2021-28879 — Zip can cause buffer overflow when a consumed Zip iterator is used again
+- **CVE-2021-29922** · `std` (toolchain) · 2020-01-31 · CVE-2021-29922 — Improper Input Validation of octal literals in `std::net`
+- **CVE-2021-31162** · `std` (toolchain) · 2021-03-28 · CVE-2021-31162 — Double free in Vec::from_iter specialization when drop panics
+
+### 2022 — 105 advisories
+- **CVE-2022-21658** · `std` (toolchain) · 2022-01-16 · CVE-2022-21658 — Time-of-check time-of-use race condition can allow attacker to delete files they do not have access to delete
+
+### 2016 — 6 advisories
+- **RUSTSEC-2016-0001** · `openssl` · 2016-11-05 · CVE-2016-10931 — SSL/TLS MitM vulnerability due to insecure defaults
+- **RUSTSEC-2016-0002** · `hyper` · 2016-05-09 · CVE-2016-10932 — HTTPS MitM vulnerability due to lack of hostname verification
+- **RUSTSEC-2016-0003** · `portaudio` · 2016-08-01 · CVE-2016-10933 — HTTP download and execution allows MitM RCE
+- **RUSTSEC-2016-0004** · `libusb` · 2016-09-10 · — [UNMAINTAINED] — libusb is unmaintained; use rusb instead
+- **RUSTSEC-2016-0005** · `rust-crypto` · 2016-09-06 · — [UNMAINTAINED] — rust-crypto is unmaintained; switch to a modern alternative
+- **RUSTSEC-2016-0006** · `cassandra` · 2016-12-15 · — [UNMAINTAINED] — `cassandra` crate is unmaintained; use `cassandra-cpp` instead
+
+### 2017 — 9 advisories
+- **RUSTSEC-2017-0001** · `sodiumoxide` · 2017-01-26 · CVE-2017-1000168 — scalarmult() vulnerable to degenerate public keys
+- **RUSTSEC-2017-0002** · `hyper` · 2017-01-23 · CVE-2017-18587 — headers containing newline characters can split messages
+- **RUSTSEC-2017-0003** · `security-framework` · 2017-03-15 · CVE-2017-18588 — Hostname verification skipped when custom root certs used
+- **RUSTSEC-2017-0004** · `base64` · 2017-05-03 · CVE-2017-1000430 — Integer overflow leads to heap-based buffer overflow in encode_config_buf
+- **RUSTSEC-2017-0005** · `cookie` · 2017-05-06 · CVE-2017-18589 — Large cookie Max-Age values can cause a denial of service
+- **RUSTSEC-2017-0006** · `rmpv` · 2017-11-21 · — — Unchecked vector pre-allocation
+- **RUSTSEC-2017-0007** · `lz4-compress` · 2017-04-17 · — [UNMAINTAINED] — lz4-compress is unmaintained
+- **RUSTSEC-2017-0008** · `serial` · 2017-07-02 · — [UNMAINTAINED] — `serial` crate is unmaintained
+
+### 2018 — 26 advisories
+- **RUSTSEC-2018-0001** · `untrusted` · 2018-06-21 · CVE-2018-20989 — An integer underflow could lead to panic
+- **RUSTSEC-2018-0002** · `tar` · 2018-06-29 · CVE-2018-20990 — Links in archives can overwrite any existing file
+- **RUSTSEC-2018-0003** · `smallvec` · 2018-07-19 · CVE-2018-20991 — Possible double free during unwinding in SmallVec::insert_many
+- **RUSTSEC-2018-0004** · `claxon` · 2018-08-25 · CVE-2018-20992 — Malicious input could cause uninitialized memory to be exposed
+- **RUSTSEC-2018-0005** · `serde_yaml` · 2018-09-17 · — — Uncontrolled recursion leads to abort in deserialization
+- **RUSTSEC-2018-0006** · `yaml-rust` · 2018-09-17 · CVE-2018-20993 — Uncontrolled recursion leads to abort in deserialization
+- **RUSTSEC-2018-0007** · `trust-dns-proto` · 2018-10-09 · CVE-2018-20994 — Stack overflow when parsing malicious DNS packet
+- **RUSTSEC-2018-0008** · `slice-deque` · 2018-12-05 · CVE-2018-20995 — Bug in SliceDeque::move_head_unchecked allows read of corrupted memory
+- **RUSTSEC-2018-0009** · `crossbeam` · 2018-12-09 · CVE-2018-20996 — MsQueue and SegQueue suffer from double-free
+- **RUSTSEC-2018-0010** · `openssl` · 2018-06-01 · CVE-2018-20997 — Use after free in CMS Signing
+- **RUSTSEC-2018-0011** · `arrayfire` · 2018-12-18 · CVE-2018-20998 — Enum repr causing potential memory corruption
+- **RUSTSEC-2018-0012** · `orion` · 2018-12-20 · CVE-2018-20999 — Flaw in streaming state reset() functions can create incorrect results.
+- **RUSTSEC-2018-0013** · `safe-transmute` · 2018-11-27 · CVE-2018-21000 — Vec-to-vec transmutations could lead to heap overflow/corruption
+- **RUSTSEC-2018-0014** · `chan` · 2018-07-31 · — [UNMAINTAINED] — chan is end-of-life; use crossbeam-channel instead
+- **RUSTSEC-2018-0015** · `term` · 2018-11-19 · — [UNMAINTAINED] — term is looking for a new maintainer
+- **RUSTSEC-2018-0016** · `quickersort` · 2018-06-30 · — [UNMAINTAINED] — quickersort is deprecated and unmaintained
+- **RUSTSEC-2018-0017** · `tempdir` · 2018-02-13 · — [UNMAINTAINED] — `tempdir` crate has been deprecated; use `tempfile` instead
+- **RUSTSEC-2018-0018** · `smallvec` · 2018-09-25 · CVE-2018-25023 [UNSOUND] — smallvec creates uninitialized value of any type
+- **RUSTSEC-2018-0019** · `actix-web` · 2018-06-08 · CVE-2018-25024 CVE-2018-25025 CVE-2018-25026 — Multiple memory safety issues
+- **RUSTSEC-2018-0020** · `libpulse-binding` · 2018-12-22 · CVE-2018-25001 — Possible use-after-free with `proplist::Iterator`
+- **RUSTSEC-2018-0021** · `libpulse-binding` · 2018-06-15 · CVE-2018-25027 CVE-2018-25028 — Use-after-free with objects returned by `Stream`'s `get_format_info` and `get_context` methods
+- **RUSTSEC-2018-0022** · `temporary` · 2018-08-22 · — — Use of uninitialized memory in temporary
+
+### 2019 — 43 advisories
+- **RUSTSEC-2019-0001** · `ammonia` · 2019-04-27 · CVE-2019-15542 — Uncontrolled recursion leads to abort in HTML serialization
+- **RUSTSEC-2019-0002** · `slice-deque` · 2019-05-07 · CVE-2019-15543 — Bug in SliceDeque::move_head_unchecked corrupts its memory
+- **RUSTSEC-2019-0003** · `protobuf` · 2019-06-08 · CVE-2019-15544 — Out of Memory in stream::read_raw_bytes_into()
+- **RUSTSEC-2019-0004** · `libp2p-core` · 2019-05-15 · CVE-2019-15545 — Failure to properly verify ed25519 signatures makes any signature valid
+- **RUSTSEC-2019-0005** · `pancurses` · 2019-06-15 · CVE-2019-15546 — Format string vulnerabilities in `pancurses`
+- **RUSTSEC-2019-0006** · `ncurses` · 2019-06-15 · CVE-2019-15547 CVE-2019-15548 — Buffer overflow and format vulnerabilities in functions exposed without unsafe
+- **RUSTSEC-2019-0007** · `asn1_der` · 2019-06-13 · CVE-2019-15549 — Processing of maliciously crafted length fields causes memory allocation SIGABRTs
+- **RUSTSEC-2019-0008** · `simd-json` · 2019-06-24 · CVE-2019-15550 — Flaw in string parsing can lead to crashes due to invalid memory access.
+- **RUSTSEC-2019-0009** · `smallvec` · 2019-06-06 · CVE-2019-15551 — Double-free and use-after-free in SmallVec::grow()
+- **RUSTSEC-2019-0010** · `libflate` · 2019-07-04 · CVE-2019-15552 — MultiDecoder::read() drops uninitialized memory of arbitrary type on panic in client code
+- **RUSTSEC-2019-0011** · `memoffset` · 2019-07-16 · CVE-2019-15553 [UNSOUND] — Flaw in offset_of and span_of causes SIGILL, drops uninitialized memory of arbitrary type on panic in client code
+- **RUSTSEC-2019-0012** · `smallvec` · 2019-07-19 · CVE-2019-15554 — Memory corruption in SmallVec::grow()
+- **RUSTSEC-2019-0013** · `spin` · 2019-08-27 · CVE-2019-16137 — Wrong memory orderings in RwLock potentially violates mutual exclusion
+- **RUSTSEC-2019-0014** · `image` · 2019-08-21 · CVE-2019-16138 — Flaw in interface may drop uninitialized instance of arbitrary types
+- **RUSTSEC-2019-0015** · `compact_arena` · 2019-05-21 · CVE-2019-16139 — Flaw in generativity allows out-of-bounds access
+- **RUSTSEC-2019-0016** · `chttp` · 2019-09-01 · CVE-2019-16140 — Use-after-free in buffer conversion implementation
+- **RUSTSEC-2019-0017** · `once_cell` · 2019-09-01 · CVE-2019-16141 — Panic during initialization of Lazy<T> might trigger undefined behavior
+- **RUSTSEC-2019-0018** · `renderdoc` · 2019-09-02 · CVE-2019-16142 — Internally mutating methods take immutable ref self
+- **RUSTSEC-2019-0019** · `blake2` · 2019-08-25 · CVE-2019-16143 — HMAC-BLAKE2 algorithms compute incorrect results
+- **RUSTSEC-2019-0020** · `generator` · 2019-09-06 · CVE-2019-16144 — fix unsound APIs that could lead to UB
+- **RUSTSEC-2019-0021** · `linea` · 2019-09-14 · CVE-2019-16880 — `Matrix::zip_elements` causes double free
+- **RUSTSEC-2019-0022** · `portaudio-rs` · 2019-09-14 · CVE-2019-16881 — Stream callback function is not unwind safe
+- **RUSTSEC-2019-0023** · `string-interner` · 2019-08-24 · CVE-2019-16882 — Cloned interners may read already dropped strings
+- **RUSTSEC-2019-0024** · `rustsec-example-crate` · 2019-10-08 · — — Test advisory with associated example crate
+- **RUSTSEC-2019-0025** · `serde_cbor` · 2019-10-03 · CVE-2019-25001 — Flaw in CBOR deserializer allows stack overflow
+- **RUSTSEC-2019-0026** · `sodiumoxide` · 2019-10-11 · CVE-2019-25002 — generichash::Digest::eq always return true
+- **RUSTSEC-2019-0027** · `libsecp256k1` · 2019-10-14 · CVE-2019-25003 — Flaw in Scalar::check_overflow allows side-channel timing attack
+- **RUSTSEC-2019-0028** · `flatbuffers` · 2019-10-20 · CVE-2019-25004 — Unsound `impl Follow for bool`
+- **RUSTSEC-2019-0029** · `chacha20` · 2019-10-22 · CVE-2019-25005 — ChaCha20 counter overflow can expose repetitions in the keystream
+- **RUSTSEC-2019-0030** · `streebog` · 2019-10-06 · CVE-2019-25006 CVE-2019-25007 — Incorrect implementation of the Streebog hash functions
+- **RUSTSEC-2019-0031** · `spin` · 2019-11-21 · — [UNMAINTAINED] — spin is no longer actively maintained
+- **RUSTSEC-2019-0032** · `crust` · 2019-11-21 · — [UNMAINTAINED] — crust repo has been archived; use libp2p instead
+- **RUSTSEC-2019-0033** · `http` · 2019-11-16 · CVE-2019-25008 CVE-2020-25574 — Integer Overflow in HeaderMap::reserve() can cause Denial of Service
+- **RUSTSEC-2019-0034** · `http` · 2019-11-16 · CVE-2019-25009 — HeaderMap::Drain API is unsound
+- **RUSTSEC-2019-0035** · `rand_core` · 2019-04-19 · CVE-2020-25576 [UNSOUND] — Unaligned memory access
+- **RUSTSEC-2019-0036** · `failure` · 2019-11-13 · CVE-2019-25010 CVE-2020-25575 [UNSOUND] — Type confusion if __private_get_type_id__ is overridden
+- **RUSTSEC-2019-0037** · `pnet` · 2019-06-11 · CVE-2019-25054 — Compiler optimisation for next_with_timeout in pnet::transport::IcmpTransportChannelIterator flaws to SEGFAULT
+- **RUSTSEC-2019-0038** · `libpulse-binding` · 2019-03-10 · CVE-2019-25055 [UNSOUND] — Fix for UB in failure to catch panics crossing FFI boundaries
+- **RUSTSEC-2019-0039** · `typemap` · 2019-04-06 · — [UNMAINTAINED] — typemap is Unmaintained
+- **RUSTSEC-2019-0040** · `boxfnonce` · 2019-06-20 · — [UNMAINTAINED] — `boxfnonce` obsolete with release of Rust 1.35.0
+
+### 2020 — 171 advisories
+- **RUSTSEC-2020-0001** · `trust-dns-server` · 2020-01-06 · CVE-2020-35857 — Stack overflow when resolving additional records from MX or SRV null targets
+- **RUSTSEC-2020-0002** · `prost` · 2020-01-16 · CVE-2020-35858 — Parsing a specially crafted message can result in a stack overflow
+- **RUSTSEC-2020-0003** · `rust_sodium` · 2020-01-20 · — [UNMAINTAINED] — rust_sodium is unmaintained; switch to a modern alternative
+- **RUSTSEC-2020-0004** · `lucet-runtime-internals` · 2020-01-24 · CVE-2020-35859 — sigstack allocation bug can cause memory corruption or leak
+- **RUSTSEC-2020-0005** · `cbox` · 2020-03-19 · CVE-2020-35860 — CBox API allows to de-reference raw pointers without `unsafe` code
+- **RUSTSEC-2020-0006** · `bumpalo` · 2020-03-24 · CVE-2020-35861 — Flaw in `realloc` allows reading unknown memory
+- **RUSTSEC-2020-0007** · `bitvec` · 2020-03-27 · CVE-2020-35862 — use-after or double free of allocated memory
+- **RUSTSEC-2020-0008** · `hyper` · 2020-03-19 · CVE-2020-35863 — Flaw in hyper allows request smuggling by sending a body in GET requests
+- **RUSTSEC-2020-0009** · `flatbuffers` · 2020-04-11 · CVE-2020-35864 — `read_scalar` and `read_scalar_at` allow transmuting values without `unsafe` blocks
+- **RUSTSEC-2020-0010** · `tiberius` · 2020-02-28 · — [UNMAINTAINED] — tiberius is unmaintained
+- **RUSTSEC-2020-0011** · `plutonium` · 2020-04-23 · — [NOTICE] — Library exclusively intended to obfuscate code.
+- **RUSTSEC-2020-0012** · `os_str_bytes` · 2020-04-24 · CVE-2020-35865 — Relies on undefined behavior of `char::from_u32_unchecked`
+- **RUSTSEC-2020-0013** · `fake-static` · 2020-04-24 · — — fake-static allows converting any reference into a `'static` reference
+- **RUSTSEC-2020-0014** · `rusqlite` · 2020-04-23 · CVE-2020-35866 CVE-2020-35867 CVE-2020-35868 CVE-2020-35869 CVE-2020-35870 CVE-2020-35871 CVE-2020-35872 CVE-2020-35873 — Various memory safety issues
+- **RUSTSEC-2020-0015** · `openssl-src` · 2020-04-25 · CVE-2020-1967 — Crash causing Denial of Service attack
+- **RUSTSEC-2020-0016** · `net2` · 2020-05-01 · — [UNMAINTAINED] — `net2` crate has been deprecated; use `socket2` instead
+- **RUSTSEC-2020-0017** · `internment` · 2020-05-28 · CVE-2020-35874 — Use after free in ArcIntern::drop
+- **RUSTSEC-2020-0018** · `block-cipher-trait` · 2020-05-26 · — [UNMAINTAINED] — crate has been renamed to `block-cipher`
+- **RUSTSEC-2020-0019** · `tokio-rustls` · 2020-05-19 · CVE-2020-35875 — tokio-rustls reads may cause excessive memory usage
+- **RUSTSEC-2020-0020** · `stb_truetype` · 2020-04-18 · — [UNMAINTAINED] — `stb_truetype` crate has been deprecated; use `ttf-parser` instead
+- **RUSTSEC-2020-0021** · `rio` · 2020-05-11 · CVE-2020-35876 — rio allows a use-after-free buffer access when a future is leaked
+- **RUSTSEC-2020-0022** · `ozone` · 2020-07-04 · CVE-2020-35877 CVE-2020-35878 — Ozone contains several memory safety issues
+- **RUSTSEC-2020-0023** · `rulinalg` · 2020-02-11 · CVE-2020-35879 — Lifetime boundary for `raw_slice` and `raw_slice_mut` are incorrect
+- **RUSTSEC-2020-0024** · `tough` · 2020-07-09 · CVE-2020-15093 — Improper uniqueness verification of signature threshold
+- **RUSTSEC-2020-0025** · `bigint` · 2020-05-07 · CVE-2020-35880 [UNMAINTAINED] — bigint is unmaintained, use uint instead
+- **RUSTSEC-2020-0026** · `linked-hash-map` · 2020-06-23 · CVE-2020-25573 [UNSOUND] — linked-hash-map creates uninitialized NonNull pointer
+- **RUSTSEC-2020-0027** · `traitobject` · 2020-06-01 · CVE-2020-35881 [UNSOUND] — traitobject assumes the layout of fat pointers
+- **RUSTSEC-2020-0028** · `rocket` · 2020-05-27 · CVE-2020-35882 [UNSOUND] — `LocalRequest::clone` creates multiple mutable references to the same object
+- **RUSTSEC-2020-0029** · `rgb` · 2020-06-14 · CVE-2020-25016 [UNSOUND] — Allows viewing and modifying arbitrary structs as bytes
+- **RUSTSEC-2020-0030** · `mozwire` · 2020-08-18 · CVE-2020-35883 — Missing sanitization in mozwire allows local file overwrite of files ending in .conf
+- **RUSTSEC-2020-0031** · `tiny_http` · 2020-06-16 · CVE-2020-35884 — HTTP Request smuggling through malformed Transfer Encoding headers
+- **RUSTSEC-2020-0032** · `alpm-rs` · 2020-08-20 · CVE-2020-35885 [UNSOUND] — StrcCtx deallocates a memory region that it doesn't own
+- **RUSTSEC-2020-0033** · `alg_ds` · 2020-08-25 · CVE-2020-36432 — Matrix::new() drops uninitialized memory
+- **RUSTSEC-2020-0034** · `arr` · 2020-08-25 · CVE-2020-35886 CVE-2020-35887 CVE-2020-35888 — Multiple security issues including data race, buffer overflow, and uninitialized memory drop
+- **RUSTSEC-2020-0035** · `chunky` · 2020-08-25 · CVE-2020-36433 [UNSOUND] — Chunk API does not respect align requirement
+- **RUSTSEC-2020-0036** · `failure` · 2020-05-02 · CVE-2019-25010 CVE-2020-25575 [UNMAINTAINED] — failure is officially deprecated/unmaintained
+- **RUSTSEC-2020-0037** · `crayon` · 2020-08-31 · CVE-2020-35889 [UNSOUND] — Misbehaving `HandleLike` implementation can lead to memory safety violation
+- **RUSTSEC-2020-0038** · `ordnung` · 2020-09-03 · CVE-2020-35890 CVE-2020-35891 — Memory safety issues in `compact::Vec`
+- **RUSTSEC-2020-0039** · `simple-slab` · 2020-09-03 · CVE-2020-35892 CVE-2020-35893 — `index()` allows out-of-bound read and `remove()` has off-by-one error
+- **RUSTSEC-2020-0040** · `obstack` · 2020-09-03 · CVE-2020-35894 [UNSOUND] — Obstack generates unaligned references
+- **RUSTSEC-2020-0041** · `sized-chunks` · 2020-09-06 · CVE-2020-25791 CVE-2020-25792 CVE-2020-25793 CVE-2020-25794 CVE-2020-25795 CVE-2020-25796 — Multiple soundness issues in Chunk and InlineArray
+- **RUSTSEC-2020-0042** · `stack` · 2020-09-24 · CVE-2020-35895 — Missing check in ArrayVec leads to out-of-bounds write.
+- **RUSTSEC-2020-0043** · `ws` · 2020-09-25 · CVE-2020-35896 — Insufficient size checks in outgoing buffer in ws allows remote attacker to run the process out of memory
+- **RUSTSEC-2020-0044** · `atom` · 2020-09-21 · CVE-2020-35897 [UNSOUND] — Unsafe Send implementation in Atom allows data races
+- **RUSTSEC-2020-0045** · `actix-utils` · 2020-01-08 · CVE-2020-35898 [UNSOUND] — bespoke Cell implementation allows obtaining several mutable references to the same data
+- **RUSTSEC-2020-0046** · `actix-service` · 2020-01-08 · CVE-2020-35899 [UNSOUND] — bespoke Cell implementation allows obtaining several mutable references to the same data
+- **RUSTSEC-2020-0047** · `array-queue` · 2020-09-26 · CVE-2020-35900 — array_queue pop_back() may cause a use-after-free
+- **RUSTSEC-2020-0048** · `actix-http` · 2020-01-24 · CVE-2020-35901 — Use-after-free in BodyStream due to lack of pinning
+- **RUSTSEC-2020-0049** · `actix-codec` · 2020-01-30 · CVE-2020-35902 — Use-after-free in Framed due to lack of pinning
+- **RUSTSEC-2020-0050** · `dync` · 2020-09-27 · CVE-2020-35903 [UNSOUND] — VecCopy allows misaligned access to elements
+- **RUSTSEC-2020-0051** · `rustsec` · 2020-10-01 · — — Obsolete versions of the `rustsec` crate do not support the new V3 advisory format
+- **RUSTSEC-2020-0052** · `crossbeam-channel` · 2020-06-26 · CVE-2020-15254 CVE-2020-35904 — Undefined Behavior in bounded channel
+- **RUSTSEC-2020-0053** · `dirs` · 2020-10-16 · — [UNMAINTAINED] — dirs is unmaintained, use dirs-next instead
+- **RUSTSEC-2020-0054** · `directories` · 2020-10-16 · — [UNMAINTAINED] — directories is unmaintained, use directories-next instead
+- **RUSTSEC-2020-0055** · `libpulse-binding` · 2020-10-21 · — — Please see RUSTSEC-2018-0020
+- **RUSTSEC-2020-0056** · `stdweb` · 2020-05-04 · — [UNMAINTAINED] — stdweb is unmaintained
+- **RUSTSEC-2020-0057** · `block-cipher` · 2020-10-15 · — [UNMAINTAINED] — crate has been renamed to `cipher`
+- **RUSTSEC-2020-0058** · `stream-cipher` · 2020-10-15 · — [UNMAINTAINED] — crate has been renamed to `cipher`
+- **RUSTSEC-2020-0059** · `futures-util` · 2020-10-22 · CVE-2020-35905 — MutexGuard::map can cause a data race in safe code
+- **RUSTSEC-2020-0060** · `futures-task` · 2020-09-04 · CVE-2020-35906 — futures_task::waker may cause a use-after-free if used on a type that isn't 'static
+- **RUSTSEC-2020-0061** · `futures-task` · 2020-05-03 · CVE-2020-35907 — futures_task::noop_waker_ref can segfault due to dereferencing a NULL pointer
+- **RUSTSEC-2020-0062** · `futures-util` · 2020-01-24 · CVE-2020-35908 — Improper `Sync` implementation on `FuturesUnordered` in futures-utils can cause data corruption
+- **RUSTSEC-2020-0063** · `safe-nd` · 2020-11-02 · — [UNMAINTAINED] — crate has been renamed to `safe-nd`
+- **RUSTSEC-2020-0064** · `ffi_utils` · 2020-11-02 · — [UNMAINTAINED] — crate has been renamed to `sn_ffi_utils`
+- **RUSTSEC-2020-0065** · `fake_clock` · 2020-11-02 · — [UNMAINTAINED] — crate has been renamed to `sn_fake_clock`
+- **RUSTSEC-2020-0066** · `safe_bindgen` · 2020-11-02 · — [UNMAINTAINED] — crate has been renamed to `sn_bindgen`
+- **RUSTSEC-2020-0067** · `quic-p2p` · 2020-11-02 · — [UNMAINTAINED] — crate has been renamed to `qp2p`
+- **RUSTSEC-2020-0068** · `multihash` · 2020-11-08 · CVE-2020-35909 — Unexpected panic in multihash `from_slice` parsing code
+- **RUSTSEC-2020-0069** · `lettre` · 2020-11-11 · CVE-2020-28247 — Argument injection in sendmail transport
+- **RUSTSEC-2020-0070** · `lock_api` · 2020-11-08 · CVE-2020-35910 CVE-2020-35911 CVE-2020-35912 CVE-2020-35913 CVE-2020-35914 [UNSOUND] — Some lock_api lock guard objects can cause data races
+- **RUSTSEC-2020-0071** · `time` · 2020-11-18 · CVE-2020-26235 — Potential segfault in the time crate
+- **RUSTSEC-2020-0072** · `futures-intrusive` · 2020-10-31 · CVE-2020-35915 [UNSOUND] — GenericMutexGuard allows data races of non-Sync types across threads
+- **RUSTSEC-2020-0073** · `image` · 2020-11-12 · CVE-2020-35916 [UNSOUND] — Mutable reference with immutable provenance
+- **RUSTSEC-2020-0074** · `pyo3` · 2020-11-28 · CVE-2020-35917 — Reference counting error in `From<Py<T>>`
+- **RUSTSEC-2020-0075** · `branca` · 2020-11-29 · CVE-2020-35918 — Unexpected panic when decoding tokens
+- **RUSTSEC-2020-0076** · `routing` · 2020-11-02 · — [UNMAINTAINED] — crate has been renamed to `sn_routing`
+- **RUSTSEC-2020-0077** · `memmap` · 2020-12-02 · — [UNMAINTAINED] — memmap is unmaintained
+- **RUSTSEC-2020-0078** · `net2` · 2020-11-07 · CVE-2020-35919 CVE-2020-35920 [UNSOUND] — `net2` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2020-0079** · `socket2` · 2020-11-06 · CVE-2020-35919 CVE-2020-35920 [UNSOUND] — `socket2` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2020-0080** · `miow` · 2020-11-13 · CVE-2020-35921 [UNSOUND] — `miow` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2020-0081** · `mio` · 2020-11-02 · CVE-2020-35922 [UNSOUND] — `mio` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2020-0082** · `ordered-float` · 2020-12-06 · CVE-2020-35923 — ordered_float:NotNan may contain NaN after panic in assignment operators
+- **RUSTSEC-2020-0083** · `safe_app` · 2020-12-07 · — [UNMAINTAINED] — crate has been superseded by `sn_client`
+- **RUSTSEC-2020-0084** · `safe_authenticator` · 2020-12-07 · — [UNMAINTAINED] — crate has been superseded by `sn_client`
+- **RUSTSEC-2020-0085** · `safe_vault` · 2020-12-07 · — [UNMAINTAINED] — crate has been renamed to `sn_node`
+- **RUSTSEC-2020-0086** · `safe_core` · 2020-12-07 · — [UNMAINTAINED] — crate has been renamed to `sn_client`
+- **RUSTSEC-2020-0087** · `try-mutex` · 2020-11-17 · CVE-2020-35924 — TryMutex<T> allows sending non-Send type across threads
+- **RUSTSEC-2020-0088** · `magnetic` · 2020-11-29 · CVE-2020-35925 — MPMCConsumer/Producer allows sending non-Send type across threads
+- **RUSTSEC-2020-0089** · `nanorand` · 2020-12-09 · CVE-2020-35926 — nanorand 0.5.0 - RNGs failed to generate properly for non-64-bit numbers
+- **RUSTSEC-2020-0090** · `thex` · 2020-12-08 · CVE-2020-35927 — Thex<T> allows data races of non-Send types across threads
+- **RUSTSEC-2020-0091** · `arc-swap` · 2020-12-10 · CVE-2020-35711 — Dangling reference in `access::Map` with Constant
+- **RUSTSEC-2020-0092** · `concread` · 2020-11-13 · CVE-2020-35928 [UNSOUND] — Send/Sync bound needed on V in `impl Send/Sync for ARCache<K, V>`
+- **RUSTSEC-2020-0093** · `async-h1` · 2020-12-17 · CVE-2020-26281 CVE-2020-36202 — Async-h1 request smuggling possible with long unread bodies
+- **RUSTSEC-2020-0094** · `reffers` · 2020-12-01 · CVE-2020-36203 [UNSOUND] — Unsound: can make `ARefss` contain a !Send, !Sync object.
+- **RUSTSEC-2020-0095** · `difference` · 2020-12-20 · — [UNMAINTAINED] — difference is unmaintained
+- **RUSTSEC-2020-0096** · `im` · 2020-11-09 · CVE-2020-36204 [UNSOUND] — TreeFocus lacks bounds on its Send and Sync traits
+- **RUSTSEC-2020-0097** · `xcb` · 2020-12-10 · CVE-2020-36205 [UNSOUND] — Soundness issue with base::Error
+- **RUSTSEC-2020-0098** · `rusb` · 2020-12-18 · CVE-2020-36206 [UNSOUND] — UsbContext trait did not require implementers to be Send and Sync.
+- **RUSTSEC-2020-0099** · `aovec` · 2020-12-10 · CVE-2020-36207 — Aovec<T> lacks bound on its Send and Sync traits allowing data races
+- **RUSTSEC-2020-0100** · `sys-info` · 2020-05-31 · CVE-2020-36434 — Double free when calling `sys_info::disk_info` from multiple threads
+- **RUSTSEC-2020-0101** · `conquer-once` · 2020-12-22 · CVE-2020-36208 — conquer-once's OnceCell lacks Send bound for its Sync trait.
+- **RUSTSEC-2020-0102** · `late-static` · 2020-11-10 · CVE-2020-36209 — LateStatic has incorrect Sync bound
+- **RUSTSEC-2020-0103** · `autorand` · 2020-12-31 · CVE-2020-36210 — `impl Random` on arrays can lead to dropping uninitialized memory
+- **RUSTSEC-2020-0104** · `gfwx` · 2020-12-08 · CVE-2020-36211 — ImageChunkMut needs bounds on its Send and Sync traits
+- **RUSTSEC-2020-0105** · `abi_stable` · 2020-12-21 · CVE-2020-36212 CVE-2020-36213 — Update unsound DrainFilter and RString::retain
+- **RUSTSEC-2020-0106** · `multiqueue2` · 2020-12-19 · CVE-2020-36214 [UNSOUND] — Queues allow non-Send types to be sent to other threads, allowing data races
+- **RUSTSEC-2020-0107** · `hashconsing` · 2020-11-10 · CVE-2020-36215 — hashconsing's HConsed lacks Send/Sync bound for its Send/Sync trait.
+- **RUSTSEC-2020-0108** · `eventio` · 2020-12-20 · CVE-2020-36216 — Soundness issue: Input<R> can be misused to create data race to an object
+- **RUSTSEC-2020-0109** · `stderr` · 2020-12-22 · — [UNMAINTAINED] — stderr is unmaintained; use eprintln instead
+- **RUSTSEC-2020-0111** · `may_queue` · 2020-11-10 · CVE-2020-36217 — may_queue's Queue lacks Send/Sync bound for its Send/Sync trait.
+- **RUSTSEC-2020-0112** · `buttplug` · 2020-12-18 · CVE-2020-36218 — ButtplugFutureStateShared allows data race to (!Send/!Sync) objects
+- **RUSTSEC-2020-0113** · `atomic-option` · 2020-10-31 · CVE-2020-36219 — AtomicOption should have Send + Sync bound on its type argument.
+- **RUSTSEC-2020-0114** · `va-ts` · 2020-12-22 · CVE-2020-36220 — `Demuxer` can carry non-Send types across thread boundaries
+- **RUSTSEC-2020-0115** · `ruspiro-singleton` · 2020-11-16 · CVE-2020-36435 — Singleton lacks bounds on Send and Sync.
+- **RUSTSEC-2020-0116** · `unicycle` · 2020-11-15 · CVE-2020-36436 — PinSlab<T> and Unordered<T, S> need bounds on their Send/Sync traits
+- **RUSTSEC-2020-0117** · `conqueue` · 2020-11-24 · CVE-2020-36437 — QueueSender<T>/QueueReceiver<T>: Send/Sync impls need `T: Send`
+- **RUSTSEC-2020-0118** · `tiny_future` · 2020-12-08 · CVE-2020-36438 — Future<T> lacks bounds on Send and Sync.
+- **RUSTSEC-2020-0119** · `ticketed_lock` · 2020-11-17 · CVE-2020-36439 — ReadTicket and WriteTicket should only be sendable when T is Send
+- **RUSTSEC-2020-0120** · `libsbc` · 2020-11-10 · CVE-2020-36440 [UNSOUND] — `Decoder<R>` can carry `R: !Send` to other threads
+- **RUSTSEC-2020-0121** · `abox` · 2020-11-10 · CVE-2020-36441 — AtomicBox<T> implements Send/Sync for any `T: Sized`
+- **RUSTSEC-2020-0122** · `beef` · 2020-10-28 · CVE-2020-36442 — beef::Cow lacks a Sync bound on its Send trait allowing for data races
+- **RUSTSEC-2020-0123** · `libp2p-deflate` · 2020-01-24 · CVE-2020-36443 — Contents of uninitialized memory exposed in DeflateOutput's AsyncRead implementation
+- **RUSTSEC-2020-0124** · `async-coap` · 2020-12-08 · CVE-2020-36444 — ArcGuard's Send and Sync should have bounds on RC
+- **RUSTSEC-2020-0125** · `convec` · 2020-11-24 · CVE-2020-36445 — convec::ConVec<T> unconditionally implements Send/Sync
+- **RUSTSEC-2020-0126** · `signal-simple` · 2020-11-15 · CVE-2020-36446 — SyncChannel<T> can move 'T: !Send' to other threads
+- **RUSTSEC-2020-0127** · `v9` · 2020-12-18 · CVE-2020-36447 — SyncRef's clone() and debug() allow data races
+- **RUSTSEC-2020-0128** · `cache` · 2020-11-24 · CVE-2020-36448 — Cache<K>: Send/Sync impls needs trait bounds on `K`
+- **RUSTSEC-2020-0129** · `kekbit` · 2020-12-18 · CVE-2020-36449 — ShmWriter allows sending non-Send type across threads
+- **RUSTSEC-2020-0130** · `bunch` · 2020-11-12 · CVE-2020-36450 — Bunch<T> unconditionally implements Send/Sync
+- **RUSTSEC-2020-0131** · `rcu_cell` · 2020-11-14 · CVE-2020-36451 — Send/Sync bound needed on T  for Send/Sync impl of RcuCell<T>
+- **RUSTSEC-2020-0132** · `array-tools` · 2020-12-31 · CVE-2020-36452 — `FixedCapacityDequeLike::clone()` can cause dropping uninitialized memory
+- **RUSTSEC-2020-0133** · `scottqueue` · 2020-11-15 · CVE-2020-36453 — Queue<T> should have a Send bound on its Send/Sync traits
+- **RUSTSEC-2020-0134** · `parc` · 2020-11-14 · CVE-2020-36454 — `LockWeak<T>` allows to create data race to `T`.
+- **RUSTSEC-2020-0135** · `slock` · 2020-11-17 · CVE-2020-36455 — Slock<T> allows sending non-Send types across thread boundaries
+- **RUSTSEC-2020-0136** · `toolshed` · 2020-11-15 · CVE-2020-36456 — CopyCell lacks bounds on its Send trait allowing for data races
+- **RUSTSEC-2020-0137** · `lever` · 2020-11-10 · CVE-2020-36457 — AtomicBox<T> lacks bound on its Send and Sync traits allowing data races
+- **RUSTSEC-2020-0138** · `lexer` · 2020-11-10 · CVE-2020-36458 — ReaderResult should be bounded by Sync
+- **RUSTSEC-2020-0139** · `dces` · 2020-12-09 · CVE-2020-36459 — dces' World type can cause data races
+- **RUSTSEC-2020-0140** · `model` · 2020-11-10 · CVE-2020-36460 [UNSOUND] — `Shared` can cause a data race
+- **RUSTSEC-2020-0141** · `noise_search` · 2020-12-10 · CVE-2020-36461 — MvccRwLock allows data races & aliasing violations
+- **RUSTSEC-2020-0142** · `syncpool` · 2020-11-29 · CVE-2020-36462 — Send bound needed on T (for Send impl of `Bucket2`)
+- **RUSTSEC-2020-0143** · `multiqueue` · 2020-12-25 · CVE-2020-36463 — Queues allow non-Send types to be sent to other threads, allowing data races
+- **RUSTSEC-2020-0144** · `lzw` · 2020-02-10 · — [UNMAINTAINED] — lzw is unmaintained
+- **RUSTSEC-2020-0145** · `heapless` · 2020-11-02 · CVE-2020-36464 [UNSOUND] — Use-after-free when cloning a partially consumed `Vec` iterator
+- **RUSTSEC-2020-0146** · `generic-array` · 2020-04-09 · CVE-2020-36465 — arr! macro erases lifetimes
+- **RUSTSEC-2020-0147** · `rulinalg` · 2020-02-11 · — [UNMAINTAINED] — rulinalg is unmaintained, use nalgebra instead
+- **RUSTSEC-2020-0148** · `cgc` · 2020-12-10 · CVE-2020-36466 CVE-2020-36467 CVE-2020-36468 — Multiple soundness issues in `Ptr`
+- **RUSTSEC-2020-0149** · `appendix` · 2020-11-15 · CVE-2020-36469 — Data race and memory safety issue in `Index`
+- **RUSTSEC-2020-0150** · `disrustor` · 2020-12-17 · CVE-2020-36470 — RingBuffer can create multiple mutable references and cause data races
+- **RUSTSEC-2020-0151** · `generator` · 2020-11-16 · CVE-2020-36471 — Generators can cause data races if non-Send types are used in their generator functions
+- **RUSTSEC-2020-0152** · `max7301` · 2020-12-18 · CVE-2020-36472 — ImmediateIO and TransactionalIO can cause data races
+- **RUSTSEC-2020-0153** · `bite` · 2020-12-31 · CVE-2020-36511 [UNSOUND] — `read` on uninitialized buffer may cause UB (bite::read::BiteReadExpandedExt::read_framed_max)
+- **RUSTSEC-2020-0154** · `buffoon` · 2020-12-31 · CVE-2020-36512 [UNSOUND] — InputStream::read_exact : `Read` on uninitialized buffer causes UB
+- **RUSTSEC-2020-0155** · `acc_reader` · 2020-12-27 · CVE-2020-36513 CVE-2020-36514 [UNSOUND] — `Read` on uninitialized buffer in `fill_buf()` and `read_up_to()`
+- **RUSTSEC-2020-0156** · `libsecp256k1-rs` · 2020-01-22 · CVE-2019-20399 — Observable Discrepancy in libsecp256k1-rs
+- **RUSTSEC-2020-0157** · `vm-memory` · 2020-06-02 · CVE-2020-13759 — Improper Synchronization and Race Condition in vm-memory
+- **RUSTSEC-2020-0158** · `slice-deque` · 2020-02-10 · — [UNMAINTAINED] — slice-deque is unmaintained
+- **RUSTSEC-2020-0159** · `chrono` · 2020-11-10 · — — Potential segfault in `localtime_r` invocations
+- **RUSTSEC-2020-0160** · `shamir` · 2020-01-21 · — — Threshold value is ignored (all shares are n=3)
+- **RUSTSEC-2020-0161** · `array-macro` · 2020-05-07 · — [UNSOUND] — `array!` macro is unsound in presence of traits that implement methods it calls internally
+- **RUSTSEC-2020-0162** · `tokio-proto` · 2020-02-06 · — [UNMAINTAINED] — `tokio-proto` is deprecated/unmaintained
+- **RUSTSEC-2020-0163** · `term_size` · 2020-11-03 · — [UNMAINTAINED] — `term_size` is unmaintained; use `terminal_size` instead
+- **RUSTSEC-2020-0164** · `cell-project` · 2020-08-27 · — [UNSOUND] — `cell-project` used incorrect variance when projecting through `&Cell<T>`
+- **RUSTSEC-2020-0165** · `mozjpeg` · 2020-07-04 · — [UNSOUND] — mozjpeg DecompressScanlines::read_scanlines is Unsound
+- **RUSTSEC-2020-0166** · `personnummer` · 2020-09-04 · — [NOTICE] — personnummer Input validation error
+- **RUSTSEC-2020-0167** · `pnet_packet` · 2020-06-19 · — — `pnet_packet` buffer overrun in `set_payload` setters
+- **RUSTSEC-2020-0168** · `mach` · 2020-07-14 · — [UNMAINTAINED] — mach is unmaintained
+- **RUSTSEC-2020-0169** · `multi_mut` · 2020-02-07 · — [UNSOUND] — multi_mut is Unmaintained
+
+### 2021 — 163 advisories
+- **RUSTSEC-2021-0001** · `mdbook` · 2021-01-04 · CVE-2020-26297 — XSS in mdBook's search page
+- **RUSTSEC-2021-0002** · `interfaces2` · 2021-01-04 · — [UNMAINTAINED] — interfaces2 is unmaintained, use interfaces instead
+- **RUSTSEC-2021-0003** · `smallvec` · 2021-01-08 · CVE-2021-25900 — Buffer overflow in SmallVec::insert_many
+- **RUSTSEC-2021-0004** · `lazy-init` · 2021-01-17 · CVE-2021-25901 — Missing Send bound for Lazy
+- **RUSTSEC-2021-0005** · `glsl-layout` · 2021-01-10 · CVE-2021-25902 — Double drop upon panic in 'fn map_array()'
+- **RUSTSEC-2021-0006** · `cache` · 2021-01-01 · CVE-2021-25903 [UNSOUND] — Exposes internally used raw pointer
+- **RUSTSEC-2021-0007** · `av-data` · 2021-01-07 · CVE-2021-25904 — `Frame::copy_from_raw_parts` can lead to segfault without `unsafe`
+- **RUSTSEC-2021-0008** · `bra` · 2021-01-02 · CVE-2021-25905 — reading on uninitialized buffer can cause UB (`impl<R> BufRead for GreedyAccessReader<R>`)
+- **RUSTSEC-2021-0009** · `basic_dsp_matrix` · 2021-01-10 · CVE-2021-25906 — panic safety issue in `impl TransformContent<S, D> for [S; (2/3/4)]`
+- **RUSTSEC-2021-0010** · `containers` · 2021-01-12 · CVE-2021-25907 — panic safety: double drop may happen within `util::{mutate, mutate2}`
+- **RUSTSEC-2021-0011** · `fil-ocl` · 2021-01-04 · CVE-2021-25908 — EventList's From<EventList> conversions can double drop on panic.
+- **RUSTSEC-2021-0012** · `cdr` · 2021-01-02 · CVE-2021-26305 — Reading uninitialized memory can cause UB (`Deserializer::read_vec`)
+- **RUSTSEC-2021-0013** · `raw-cpuid` · 2021-01-20 · CVE-2021-26306 CVE-2021-26307 — Soundness issues in `raw-cpuid`
+- **RUSTSEC-2021-0014** · `marc` · 2021-01-26 · CVE-2021-26308 — Record::read : Custom `Read` on uninitialized buffer may cause UB
+- **RUSTSEC-2021-0015** · `calamine` · 2021-01-06 · CVE-2021-26951 — `Sectors::get` accesses unclaimed/uninitialized memory
+- **RUSTSEC-2021-0016** · `ms3d` · 2021-01-26 · CVE-2021-26952 — `IoReader::read()`: user-provided `Read` on uninitialized buffer may cause UB
+- **RUSTSEC-2021-0017** · `postscript` · 2021-01-30 · CVE-2021-26953 — `Read` on uninitialized buffer may cause UB (`impl Walue for Vec<u8>`)
+- **RUSTSEC-2021-0018** · `qwutils` · 2021-02-03 · CVE-2021-26954 — insert_slice_clone can double drop if Clone panics.
+- **RUSTSEC-2021-0019** · `xcb` · 2021-02-04 · CVE-2021-26955 CVE-2021-26956 CVE-2021-26957 CVE-2021-26958 — Multiple soundness issues
+- **RUSTSEC-2021-0020** · `hyper` · 2021-02-05 · CVE-2021-21299 — Multiple Transfer-Encoding headers misinterprets request payload
+- **RUSTSEC-2021-0021** · `nb-connect` · 2021-02-14 · CVE-2021-27376 [UNSOUND] — `nb-connect` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2021-0022** · `yottadb` · 2021-02-09 · CVE-2021-27377 — Use-after-free in `subscript_next` and `subscript_prev` wrappers
+- **RUSTSEC-2021-0023** · `rand_core` · 2021-02-12 · CVE-2021-27378 — Incorrect check on buffer length when seeding RNGs
+- **RUSTSEC-2021-0024** · `safe-api` · 2021-02-15 · — [UNMAINTAINED] — crate has been renamed to `sn_api`
+- **RUSTSEC-2021-0025** · `jsonrpc-quic` · 2021-02-15 · — [UNMAINTAINED] — crate has been renamed to `qjsonrpc`
+- **RUSTSEC-2021-0026** · `comrak` · 2021-02-21 · CVE-2021-27671 — XSS in `comrak`
+- **RUSTSEC-2021-0027** · `bam` · 2021-01-07 · CVE-2021-28027 — Loading a bgzip block can write out of bounds if size overflows.
+- **RUSTSEC-2021-0028** · `toodee` · 2021-02-19 · CVE-2021-28028 CVE-2021-28029 — Multiple memory safety issues in insert_row
+- **RUSTSEC-2021-0029** · `truetype` · 2021-02-17 · CVE-2021-28030 — Tape::take_bytes exposes uninitialized memory to a user-provided Read
+- **RUSTSEC-2021-0030** · `scratchpad` · 2021-02-18 · CVE-2021-28031 — move_elements can double-free objects on panic
+- **RUSTSEC-2021-0031** · `nano_arena` · 2021-01-31 · CVE-2021-28032 — split_at allows obtaining multiple mutable references to the same data
+- **RUSTSEC-2021-0032** · `byte_struct` · 2021-03-01 · CVE-2021-28033 — Deserializing an array can drop uninitialized memory on panic
+- **RUSTSEC-2021-0033** · `stack_dst` · 2021-02-22 · CVE-2021-28034 CVE-2021-28035 — push_cloned can drop uninitialized memory or double free on panic
+- **RUSTSEC-2021-0034** · `office` · 2021-02-04 · — [UNMAINTAINED] — office is unmaintained, use calamine instead
+- **RUSTSEC-2021-0035** · `quinn` · 2021-03-04 · CVE-2021-28036 [UNSOUND] — `quinn` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2021-0036** · `internment` · 2021-03-03 · CVE-2021-28037 — Intern<T>: Data race allowed on T
+- **RUSTSEC-2021-0037** · `diesel` · 2021-03-05 · CVE-2021-28305 — Fix a use-after-free bug in diesels Sqlite backend
+- **RUSTSEC-2021-0038** · `fltk` · 2021-03-06 · CVE-2021-28306 CVE-2021-28307 CVE-2021-28308 — Multiple memory safety issues
+- **RUSTSEC-2021-0039** · `endian_trait` · 2021-01-04 · CVE-2021-29929 — panic in user-provided `Endian` impl triggers double drop of T
+- **RUSTSEC-2021-0040** · `arenavec` · 2021-01-12 · CVE-2021-29930 CVE-2021-29931 — panic safety: double drop or uninitialized drop of T upon panic
+- **RUSTSEC-2021-0041** · `parse_duration` · 2021-03-18 · CVE-2021-29932 — Denial of service through parsing payloads with too big exponent
+- **RUSTSEC-2021-0042** · `insert_many` · 2021-01-26 · CVE-2021-29933 — insert_many can drop elements twice on panic
+- **RUSTSEC-2021-0043** · `uu_od` · 2021-02-17 · CVE-2021-29934 — PartialReader passes uninitialized memory to user-provided Read
+- **RUSTSEC-2021-0044** · `rocket` · 2021-02-09 · CVE-2021-29935 [UNSOUND] — Use after free possible in `uri::Formatter` on panic
+- **RUSTSEC-2021-0045** · `adtensor` · 2021-01-11 · CVE-2021-29936 — FromIterator implementation for Vector/Matrix can drop uninitialized memory
+- **RUSTSEC-2021-0046** · `telemetry` · 2021-02-17 · CVE-2021-29937 — misc::vec_with_size() can drop uninitialized memory if clone panics
+- **RUSTSEC-2021-0047** · `slice-deque` · 2021-02-19 · CVE-2021-29938 — SliceDeque::drain_filter can double drop an element if the predicate panics
+- **RUSTSEC-2021-0048** · `stackvector` · 2021-02-19 · CVE-2021-29939 — StackVec::extend can write out of bounds when size_hint is incorrect
+- **RUSTSEC-2021-0049** · `through` · 2021-02-18 · CVE-2021-29940 — `through` and `through_and` causes a double free if the map function panics
+- **RUSTSEC-2021-0050** · `reorder` · 2021-02-24 · CVE-2021-29941 CVE-2021-29942 — swap_index can write out of bounds and return uninitialized memory
+- **RUSTSEC-2021-0051** · `outer_cgi` · 2021-01-31 · CVE-2021-30454 — KeyValueReader passes uninitialized memory to Read instance
+- **RUSTSEC-2021-0052** · `id-map` · 2021-02-26 · CVE-2021-30455 CVE-2021-30456 CVE-2021-30457 — Multiple functions can cause double-frees
+- **RUSTSEC-2021-0053** · `algorithmica` · 2021-03-07 · CVE-2021-31996 — 'merge_sort::merge()' crashes with double-free for `T: Drop`
+- **RUSTSEC-2021-0054** · `rkyv` · 2021-04-28 · CVE-2021-31919 — Archives may contain uninitialized memory
+- **RUSTSEC-2021-0055** · `openssl-src` · 2021-05-01 · CVE-2021-3449 — NULL pointer deref in signature_algorithms processing
+- **RUSTSEC-2021-0056** · `openssl-src` · 2021-05-01 · CVE-2021-3450 — CA certificate check bypass with X509_V_FLAG_X509_STRICT
+- **RUSTSEC-2021-0057** · `openssl-src` · 2021-05-01 · CVE-2021-23840 — Integer overflow in CipherUpdate
+- **RUSTSEC-2021-0058** · `openssl-src` · 2021-05-01 · CVE-2021-23841 — Null pointer deref in `X509_issuer_and_serial_hash()`
+- **RUSTSEC-2021-0059** · `aesni` · 2021-04-29 · — [UNMAINTAINED] — `aesni` has been merged into the `aes` crate
+- **RUSTSEC-2021-0060** · `aes-soft` · 2021-04-29 · — [UNMAINTAINED] — `aes-soft` has been merged into the `aes` crate
+- **RUSTSEC-2021-0061** · `aes-ctr` · 2021-04-29 · — [UNMAINTAINED] — `aes-ctr` has been merged into the `aes` crate
+- **RUSTSEC-2021-0062** · `miscreant` · 2021-02-28 · — [UNMAINTAINED] — project abandoned; migrate to the `aes-siv` crate
+- **RUSTSEC-2021-0063** · `comrak` · 2021-05-04 · CVE-2021-38186 — XSS in `comrak`
+- **RUSTSEC-2021-0064** · `cpuid-bool` · 2021-05-06 · — [UNMAINTAINED] — `cpuid-bool` has been renamed to `cpufeatures`
+- **RUSTSEC-2021-0065** · `anymap` · 2021-05-07 · CVE-2021-38187 [UNMAINTAINED] — anymap is unmaintained.
+- **RUSTSEC-2021-0066** · `evm-core` · 2021-05-11 · — — Denial of service on EVM execution due to memory over-allocation
+- **RUSTSEC-2021-0067** · `cranelift-codegen` · 2021-05-21 · CVE-2021-32629 — Memory access due to code generation flaw in Cranelift module
+- **RUSTSEC-2021-0068** · `iced-x86` · 2021-05-19 · CVE-2021-38188 — Soundness issue in `iced-x86` versions <= 1.10.3
+- **RUSTSEC-2021-0069** · `lettre` · 2021-05-22 · CVE-2021-38189 — SMTP command injection in body
+- **RUSTSEC-2021-0070** · `nalgebra` · 2021-06-06 · CVE-2021-38190 — VecStorage Deserialize Allows Violation of Length Invariant
+- **RUSTSEC-2021-0071** · `grep-cli` · 2021-06-12 · CVE-2021-3013 — `grep-cli` may run arbitrary executables on Windows
+- **RUSTSEC-2021-0072** · `tokio` · 2021-07-07 · CVE-2021-38191 — Task dropped in wrong thread when aborting `LocalSet` task
+- **RUSTSEC-2021-0073** · `prost-types` · 2021-07-08 · CVE-2021-38192 — Conversion from `prost_types::Timestamp` to `SystemTime` can cause an overflow and panic
+- **RUSTSEC-2021-0074** · `ammonia` · 2021-07-08 · CVE-2021-38193 — Incorrect handling of embedded SVG and MathML leads to mutation XSS
+- **RUSTSEC-2021-0075** · `ark-r1cs-std` · 2021-07-08 · CVE-2021-38194 — Flaw in `FieldVar::mul_by_inverse` allows unsound R1CS constraint systems
+- **RUSTSEC-2021-0076** · `libsecp256k1` · 2021-07-13 · CVE-2021-38195 — libsecp256k1 allows overflowing signatures
+- **RUSTSEC-2021-0077** · `better-macro` · 2021-07-22 · CVE-2021-38196 — `better-macro` has deliberate RCE to prove a point
+- **RUSTSEC-2021-0078** · `hyper` · 2021-07-07 · CVE-2021-32715 — Lenient `hyper` header parsing of `Content-Length` could allow request smuggling
+- **RUSTSEC-2021-0079** · `hyper` · 2021-07-07 · CVE-2021-32714 — Integer overflow in `hyper`'s parsing of the `Transfer-Encoding` header leads to data loss
+- **RUSTSEC-2021-0080** · `tar` · 2021-07-19 · CVE-2021-38511 — Links in archive can create arbitrary directories
+- **RUSTSEC-2021-0081** · `actix-http` · 2021-06-16 · CVE-2021-38512 — Potential request smuggling capabilities due to lack of input validation
+- **RUSTSEC-2021-0082** · `vec-const` · 2021-08-14 · CVE-2021-45680 [UNSOUND] — vec-const attempts to construct a Vec from a pointer to a const slice
+- **RUSTSEC-2021-0083** · `derive-com-impl` · 2021-01-20 · CVE-2021-45681 — QueryInterface should call AddRef before returning pointer
+- **RUSTSEC-2021-0084** · `bronzedb-protocol` · 2021-01-03 · CVE-2021-45682 [UNSOUND] — `Read` on uninitialized buffer can cause UB (impl of `ReadKVExt`)
+- **RUSTSEC-2021-0085** · `binjs_io` · 2021-01-03 · CVE-2021-45683 [UNSOUND] — 'Read' on uninitialized memory may cause UB
+- **RUSTSEC-2021-0086** · `flumedb` · 2021-01-07 · CVE-2021-45684 [UNSOUND] — `Read` on uninitialized buffer may cause UB ( `read_entry()` )
+- **RUSTSEC-2021-0087** · `columnar` · 2021-01-07 · CVE-2021-45685 [UNSOUND] — columnar: `Read` on uninitialized buffer may cause UB (ColumnarReadExt::read_typed_vec())
+- **RUSTSEC-2021-0088** · `csv-sniffer` · 2021-01-05 · CVE-2021-45686 [UNSOUND] — `Read` on uninitialized memory may cause UB (fn preamble_skipcount())
+- **RUSTSEC-2021-0089** · `raw-cpuid` · 2021-01-20 · CVE-2021-45687 — Optional `Deserialize` implementations lacking validation
+- **RUSTSEC-2021-0090** · `ash` · 2021-01-07 · CVE-2021-45688 [UNSOUND] — Reading on uninitialized memory may cause UB ( `util::read_spv()` )
+- **RUSTSEC-2021-0091** · `gfx-auxil` · 2021-01-07 · CVE-2021-45689 [UNSOUND] — Reading on uninitialized buffer may cause UB ( `gfx_auxil::read_spirv()` )
+- **RUSTSEC-2021-0092** · `messagepack-rs` · 2021-01-26 · CVE-2021-45690 CVE-2021-45691 CVE-2021-45692 CVE-2021-45693 — Deserialization functions pass uninitialized memory to user-provided Read
+- **RUSTSEC-2021-0093** · `crossbeam-deque` · 2021-07-30 · CVE-2021-32810 — Data race in crossbeam-deque
+- **RUSTSEC-2021-0094** · `rdiff` · 2021-02-03 · CVE-2021-45694 [UNSOUND] — Window can read out of bounds if Read instance returns more bytes than buffer size
+- **RUSTSEC-2021-0095** · `mopa` · 2021-06-01 · CVE-2021-45695 [UNSOUND] — `mopa` is technically unsound
+- **RUSTSEC-2021-0096** · `spirv_headers` · 2021-08-16 · — [UNMAINTAINED] — spirv_headers is unmaintained, use spirv instead
+- **RUSTSEC-2021-0097** · `openssl-src` · 2021-08-24 · CVE-2021-3711 — SM2 Decryption Buffer Overflow
+- **RUSTSEC-2021-0098** · `openssl-src` · 2021-08-24 · CVE-2021-3712 — Read buffer overruns processing ASN.1 strings
+- **RUSTSEC-2021-0099** · `cosmos_sdk` · 2021-08-25 · — [UNMAINTAINED] — Crate has been renamed to `cosmrs`
+- **RUSTSEC-2021-0100** · `sha2` · 2021-09-08 · CVE-2021-45696 — Miscomputed results when using AVX2 backend
+- **RUSTSEC-2021-0101** · `pleaser` · 2021-05-27 · CVE-2021-31155 — Permissions bypass in pleaser
+- **RUSTSEC-2021-0102** · `pleaser` · 2021-05-27 · CVE-2021-31154 — Permissions bypass in pleaser
+- **RUSTSEC-2021-0103** · `molecule` · 2021-07-30 · CVE-2021-45697 — Partial read is incorrect in molecule
+- **RUSTSEC-2021-0104** · `pleaser` · 2021-05-27 · CVE-2021-31153 — File exposure in pleaser
+- **RUSTSEC-2021-0105** · `git-delta` · 2021-07-12 · CVE-2021-36376 — Relative Path Traversal in git-delta
+- **RUSTSEC-2021-0106** · `bat` · 2021-07-15 · CVE-2021-36753 — Uncontrolled Search Path Element in sharkdp/bat
+- **RUSTSEC-2021-0107** · `ckb` · 2021-07-25 · CVE-2021-45698 — Miner fails to get block template when a cell used as a cell dep has been destroyed.
+- **RUSTSEC-2021-0108** · `ckb` · 2021-07-25 · CVE-2021-45699 — Remote memory exhaustion in ckb
+- **RUSTSEC-2021-0109** · `ckb` · 2021-07-25 · CVE-2021-45700 — Process crashes when the cell used as DepGroup is not alive
+- **RUSTSEC-2021-0110** · `wasmtime` · 2021-09-17 · CVE-2021-39216 CVE-2021-39218 CVE-2021-39219 — Multiple Vulnerabilities in Wasmtime
+- **RUSTSEC-2021-0111** · `tremor-script` · 2021-09-16 · CVE-2021-45701 CVE-2021-45702 — Memory Safety Issue when using `patch` or `merge` on `state` and assign the result back to `state`
+- **RUSTSEC-2021-0112** · `tectonic_xdv` · 2021-02-17 · CVE-2021-45703 [UNSOUND] — `Read` on uninitialized buffer may cause UB ('tectonic_xdv' crate)
+- **RUSTSEC-2021-0113** · `metrics-util` · 2021-04-07 · CVE-2021-45704 — AtomicBucket<T> unconditionally implements Send/Sync
+- **RUSTSEC-2021-0114** · `nanorand` · 2021-09-23 · CVE-2021-45705 — Aliased mutable references from `tls_rand` & `TlsWyRand`
+- **RUSTSEC-2021-0115** · `zeroize_derive` · 2021-09-24 · CVE-2021-45706 — `#[zeroize(drop)]` doesn't implement `Drop` for `enum`s
+- **RUSTSEC-2021-0116** · `arrow` · 2021-09-14 · — — `BinaryArray` does not perform bound checks on reading values and offsets
+- **RUSTSEC-2021-0117** · `arrow` · 2021-09-14 · — — `DecimalArray` does not perform bound checks on accessing values and offsets
+- **RUSTSEC-2021-0118** · `arrow` · 2021-09-14 · — — `FixedSizeBinaryArray` does not perform bound checks on accessing values and offsets
+- **RUSTSEC-2021-0119** · `nix` · 2021-09-27 · CVE-2021-45707 — Out-of-bounds write in nix::unistd::getgrouplist
+- **RUSTSEC-2021-0120** · `abomonation` · 2021-10-17 · CVE-2021-45708 [UNSOUND] — abomonation transmutes &T to and from &[u8] without sufficient constraints
+- **RUSTSEC-2021-0121** · `crypto2` · 2021-10-08 · CVE-2021-45709 [UNSOUND] — Non-aligned u32 read in Chacha20 encryption and decryption
+- **RUSTSEC-2021-0122** · `flatbuffers` · 2021-10-31 · — — Generated code can read and write out of bounds in safe code
+- **RUSTSEC-2021-0123** · `fruity` · 2021-11-14 · CVE-2021-43620 — Converting `NSString` to a String Truncates at Null Bytes
+- **RUSTSEC-2021-0124** · `tokio` · 2021-11-16 · CVE-2021-45710 — Data race when sending and receiving after closing a `oneshot` channel
+- **RUSTSEC-2021-0125** · `simple_asn1` · 2021-11-14 · CVE-2021-45711 — Panic on incorrect date input to `simple_asn1`
+- **RUSTSEC-2021-0126** · `rust-embed` · 2021-11-29 · CVE-2021-45712 — RustEmbed generated `get` method allows for directory traversal when reading files from disk
+- **RUSTSEC-2021-0127** · `serde_cbor` · 2021-08-15 · — [UNMAINTAINED] — serde_cbor is unmaintained
+- **RUSTSEC-2021-0128** · `rusqlite` · 2021-12-07 · CVE-2021-45713 CVE-2021-45714 CVE-2021-45715 CVE-2021-45716 CVE-2021-45717 CVE-2021-45718 CVE-2021-45719 — Incorrect Lifetime Bounds on Closures in `rusqlite`
+- **RUSTSEC-2021-0129** · `openssl-src` · 2021-12-14 · CVE-2021-4044 — Invalid handling of `X509_verify_cert()` internal errors in libssl
+- **RUSTSEC-2021-0130** · `lru` · 2021-12-21 · CVE-2021-45720 — Use after free in lru crate
+- **RUSTSEC-2021-0131** · `brotli-sys` · 2021-12-20 · CVE-2020-8927 — Integer overflow in the bundled Brotli C library
+- **RUSTSEC-2021-0132** · `compu-brotli-sys` · 2021-12-20 · CVE-2020-36846 CVE-2020-8927 — Integer overflow in the bundled Brotli C library
+- **RUSTSEC-2021-0133** · `cargo-download` · 2021-12-25 · — [UNMAINTAINED] — cargo-download is unmaintained
+- **RUSTSEC-2021-0134** · `rental` · 2021-12-27 · — [UNMAINTAINED] — rental is unmaintained, author has moved on
+- **RUSTSEC-2021-0135** · `tower-http` · 2021-01-21 · — — Improper validation of Windows paths could lead to directory traversal attack
+- **RUSTSEC-2021-0136** · `sass-rs` · 2021-04-07 · — [UNMAINTAINED] — `sass-rs` has been deprecated
+- **RUSTSEC-2021-0137** · `sodiumoxide` · 2021-10-22 · — [UNMAINTAINED] — sodiumoxide is deprecated
+- **RUSTSEC-2021-0138** · `mz-avro` · 2021-10-14 · — [UNSOUND] — Incorrect use of `set_len` allows for un-initialized memory
+- **RUSTSEC-2021-0139** · `ansi_term` · 2021-08-18 · — [UNMAINTAINED] — ansi_term is Unmaintained
+- **RUSTSEC-2021-0140** · `rusttype` · 2021-04-01 · — [UNMAINTAINED] — rusttype is Unmaintained
+- **RUSTSEC-2021-0141** · `dotenv` · 2021-12-24 · — [UNMAINTAINED] — dotenv is Unmaintained
+- **RUSTSEC-2021-0142** · `dotenv_codegen` · 2021-12-24 · — [UNMAINTAINED] — dotenv is Unmaintained
+- **RUSTSEC-2021-0143** · `kamadak-exif` · 2021-01-04 · CVE-2021-21235 — kamadak-exif DoS with untrusted PNG data
+- **RUSTSEC-2021-0144** · `traitobject` · 2021-10-04 · — [UNMAINTAINED] — traitobject is Unmaintained
+- **RUSTSEC-2021-0145** · `atty` · 2021-07-04 · — [UNSOUND] — Potential unaligned read
+- **RUSTSEC-2021-0146** · `twoway` · 2021-05-20 · — [UNMAINTAINED] — Crate `twoway` deprecated by the author
+- **RUSTSEC-2021-0147** · `daemonize` · 2021-09-01 · — [UNMAINTAINED] — `daemonize` is Unmaintained
+- **RUSTSEC-2021-0148** · `nphysics3d` · 2021-01-29 · — [UNMAINTAINED] — nphysics3d is unmaintained
+- **RUSTSEC-2021-0149** · `nphysics2d` · 2021-01-29 · — [UNMAINTAINED] — nphysics2d is unmaintained
+- **RUSTSEC-2021-0150** · `ncollide3d` · 2021-01-29 · — [UNMAINTAINED] — ncollide3d is unmaintained
+- **RUSTSEC-2021-0151** · `ncollide2d` · 2021-01-29 · — [UNMAINTAINED] — ncollide2d is unmaintained
+- **RUSTSEC-2021-0152** · `out-reference` · 2021-01-20 · — [UNSOUND] — `out_reference::Out::from_raw` should be `unsafe`
+- **RUSTSEC-2021-0153** · `encoding` · 2021-12-05 · — [UNMAINTAINED] — `encoding` is unmaintained
+- **RUSTSEC-2021-0154** · `fuser` · 2021-09-10 · — [UNSOUND] — Uninitalized memory read & leak caused by fuser crate
+- **RUSTSEC-2021-0155** · `lucet-runtime` · 2021-11-30 · CVE-2021-43790 — Use After Free in lucet-runtime
+- **RUSTSEC-2021-0156** · `triton-vm` · 2021-06-11 · — — Triton VM Soundness Vulnerability due to Missing Constraint
+
+### 2022 — 105 advisories
+- **RUSTSEC-2022-0001** · `lmdb` · 2022-01-05 · — [UNMAINTAINED] — lmdb is unmaintained, use lmdb-rkv instead
+- **RUSTSEC-2022-0002** · `dashmap` · 2022-01-10 · — — Unsoundness in `dashmap` references
+- **RUSTSEC-2022-0003** · `ammonia` · 2022-01-19 · — — Space bug in `clean_text`
+- **RUSTSEC-2022-0004** · `rustc-serialize` · 2022-01-01 · — — Stack overflow in rustc_serialize when parsing deeply nested JSON
+- **RUSTSEC-2022-0005** · `ftd2xx-embedded-hal` · 2022-01-22 · — [UNMAINTAINED] — crate has been renamed to `ftdi-embedded-hal`
+- **RUSTSEC-2022-0006** · `thread_local` · 2022-01-23 · — — Data race in `Iter` and `IterMut`
+- **RUSTSEC-2022-0007** · `qcell` · 2022-01-24 · — [UNSOUND] — A malicious coder can get unsound access to TCell or TLCell memory
+- **RUSTSEC-2022-0008** · `windows` · 2022-01-02 · — [UNSOUND] — Delegate functions are missing `Send` bound
+- **RUSTSEC-2022-0009** · `libp2p-core` · 2022-02-07 · — — Failure to verify the public key of a `SignedEnvelope` against the `PeerId` in a `PeerRecord`
+- **RUSTSEC-2022-0010** · `enum-map` · 2022-02-17 · — [UNSOUND] — enum_map macro can cause UB when `Enum` trait is incorrectly implemented
+- **RUSTSEC-2022-0011** · `rust-crypto` · 2022-02-28 · — — Miscomputation when performing AES encryption in rust-crypto
+- **RUSTSEC-2022-0012** · `arrow2` · 2022-03-04 · — — Arrow2 allows double free in `safe` code
+- **RUSTSEC-2022-0013** · `regex` · 2022-03-08 · CVE-2022-24713 — Regexes with large repetitions on empty sub-expressions take a very long time to parse
+- **RUSTSEC-2022-0014** · `openssl-src` · 2022-03-15 · CVE-2022-0778 — Infinite loop in `BN_mod_sqrt()` reachable when parsing certificates
+- **RUSTSEC-2022-0015** · `pty` · 2022-03-22 · — [UNMAINTAINED] — pty is unmaintained
+- **RUSTSEC-2022-0016** · `wasmtime` · 2022-03-31 · CVE-2022-24791 — Use after free with `externref`s and epoch interruption in Wasmtime
+- **RUSTSEC-2022-0017** · `array-macro` · 2022-04-27 · — [UNSOUND] — `array!` macro is unsound when its length is impure constant
+- **RUSTSEC-2022-0018** · `totp-rs` · 2022-05-09 · CVE-2022-29185 — Timing attack
+- **RUSTSEC-2022-0019** · `crossbeam-channel` · 2022-05-10 · — [UNSOUND] — Channel creates zero value of any type
+- **RUSTSEC-2022-0020** · `crossbeam` · 2022-05-10 · — [UNSOUND] — `SegQueue` creates zero value of any type
+- **RUSTSEC-2022-0021** · `crossbeam-queue` · 2022-05-10 · — [UNSOUND] — `SegQueue` creates zero value of any type
+- **RUSTSEC-2022-0022** · `hyper` · 2022-05-10 · — [UNSOUND] — Parser creates invalid uninitialized value
+- **RUSTSEC-2022-0023** · `static_type_map` · 2022-05-11 · — [UNMAINTAINED] — `static_type_map` has been renamed to `erased_set`
+- **RUSTSEC-2022-0024** · `double-checked-cell` · 2022-05-11 · — [UNMAINTAINED] — double-checked-cell is unmaintained
+- **RUSTSEC-2022-0025** · `openssl-src` · 2022-05-03 · CVE-2022-1473 — Resource leakage when decoding certificates and keys
+- **RUSTSEC-2022-0026** · `openssl-src` · 2022-05-03 · CVE-2022-1434 — Incorrect MAC key used in the RC4-MD5 ciphersuite
+- **RUSTSEC-2022-0027** · `openssl-src` · 2022-05-03 · CVE-2022-1343 — `OCSP_basic_verify` may incorrectly verify the response signing certificate
+- **RUSTSEC-2022-0028** · `neon` · 2022-05-22 · — — Use after free in Neon external buffers
+- **RUSTSEC-2022-0029** · `crossbeam` · 2022-06-07 · — — `MsQueue` `push`/`pop` use the wrong orderings
+- **RUSTSEC-2022-0030** · `rulex` · 2022-05-21 · CVE-2022-31099 — Stack overflow during recursive expression parsing
+- **RUSTSEC-2022-0031** · `rulex` · 2022-05-21 · CVE-2022-31100 — Panic due to improper UTF-8 indexing
+- **RUSTSEC-2022-0032** · `openssl-src` · 2022-07-05 · CVE-2022-2097 — AES OCB fails to encrypt some bytes
+- **RUSTSEC-2022-0033** · `openssl-src` · 2022-07-05 · CVE-2022-2274 — Heap memory corruption with RSA private key operation
+- **RUSTSEC-2022-0034** · `pkcs11` · 2022-07-22 · — [UNSOUND] — Safety issues in `pkcs11`
+- **RUSTSEC-2022-0035** · `websocket` · 2022-08-01 · CVE-2022-35922 — Unbounded memory allocation based on untrusted length
+- **RUSTSEC-2022-0036** · `r2d2_odbc` · 2022-01-17 · — [UNMAINTAINED] — project abandoned
+- **RUSTSEC-2022-0037** · `async-graphql` · 2022-07-21 · — — Denial of service on deeply nested fragment requests
+- **RUSTSEC-2022-0038** · `juniper` · 2022-07-28 · CVE-2022-31173 — Denial of service on deeply nested fragment requests
+- **RUSTSEC-2022-0039** · `odbc` · 2022-01-17 · — [UNMAINTAINED] — project abandoned
+- **RUSTSEC-2022-0040** · `owning_ref` · 2022-01-26 · — — Multiple soundness issues in `owning_ref`
+- **RUSTSEC-2022-0041** · `crossbeam-utils` · 2022-02-05 · CVE-2022-23639 [UNSOUND] — Unsoundness of AtomicCell<*64> arithmetics on 32-bit targets that support Atomic*64
+- **RUSTSEC-2022-0042** · `rustdecimal` · 2022-05-10 · — — malicious crate `rustdecimal`
+- **RUSTSEC-2022-0043** · `tower-http` · 2022-01-21 · — — Improper validation of Windows paths could lead to directory traversal attack
+- **RUSTSEC-2022-0044** · `markdown` · 2022-01-17 · — [UNMAINTAINED] — `markdown` (1.0.0 and higher) is maintained
+- **RUSTSEC-2022-0045** · `oqs` · 2022-07-30 · — — Post-Quantum Key Encapsulation Mechanism SIKE broken
+- **RUSTSEC-2022-0046** · `rocksdb` · 2022-05-11 · — — Out-of-bounds read when opening multiple column families with TTL
+- **RUSTSEC-2022-0047** · `oqs` · 2022-02-25 · — — Post-Quantum Signature scheme Rainbow level I parametersets broken
+- **RUSTSEC-2022-0048** · `xml-rs` · 2022-01-26 · — [UNMAINTAINED] — xml-rs is Unmaintained
+- **RUSTSEC-2022-0049** · `iana-time-zone` · 2022-08-15 · — [UNSOUND] — Use after free in MacOS / iOS implementation
+- **RUSTSEC-2022-0050** · `interledger-packet` · 2022-08-04 · — [UNMAINTAINED] — Interledger is Unmaintained
+- **RUSTSEC-2022-0051** · `lz4-sys` · 2022-08-25 · — — Memory corruption in liblz4
+- **RUSTSEC-2022-0052** · `os_socketaddr` · 2022-08-26 · — [UNSOUND] — `os_socketaddr` invalidly assumes the memory layout of std::net::SocketAddr
+- **RUSTSEC-2022-0053** · `mapr` · 2022-08-24 · — [UNMAINTAINED] — mapr is Unmaintained
+- **RUSTSEC-2022-0054** · `wee_alloc` · 2022-05-11 · — [UNMAINTAINED] — wee_alloc is Unmaintained
+- **RUSTSEC-2022-0055** · `axum-core` · 2022-08-31 · CVE-2022-3212 — No default limit put on request bodies
+- **RUSTSEC-2022-0056** · `clipboard` · 2022-06-25 · — [UNMAINTAINED] — clipboard is Unmaintained
+- **RUSTSEC-2022-0057** · `badge` · 2022-08-31 · — [UNMAINTAINED] — badge is Unmaintained
+- **RUSTSEC-2022-0058** · `inconceivable` · 2022-09-28 · — [NOTICE] — Library exclusively intended to inject UB into safe Rust.
+- **RUSTSEC-2022-0059** · `openssl-src` · 2022-10-11 · CVE-2022-3358 — Using a Custom Cipher with `NID_undef` may lead to NULL encryption
+- **RUSTSEC-2022-0060** · `orbtk` · 2022-10-13 · — [UNMAINTAINED] — orbtk is Unmaintained
+- **RUSTSEC-2022-0061** · `parity-wasm` · 2022-10-01 · — [UNMAINTAINED] — Crate `parity-wasm` deprecated by the author
+- **RUSTSEC-2022-0062** · `matrix-sdk` · 2022-10-24 · — — matrix-sdk 0.6.0 logs access tokens
+- **RUSTSEC-2022-0063** · `linked_list_allocator` · 2022-09-07 · CVE-2022-36086 — Multiple vulnerabilities resulting in out-of-bounds writes
+- **RUSTSEC-2022-0064** · `openssl-src` · 2022-11-01 · CVE-2022-3602 — X.509 Email Address 4-byte Buffer Overflow
+- **RUSTSEC-2022-0065** · `openssl-src` · 2022-11-01 · CVE-2022-3786 — X.509 Email Address Variable Length Buffer Overflow
+- **RUSTSEC-2022-0066** · `conduit-hyper` · 2022-10-30 · CVE-2022-39294 — Denial of Service from unchecked request length
+- **RUSTSEC-2022-0067** · `lzf` · 2022-10-22 · — [UNSOUND] — Invalid use of `mem::uninitialized` causes `use-of-uninitialized-value`
+- **RUSTSEC-2022-0068** · `capnp` · 2022-11-30 · CVE-2022-46149 — out-of-bounds read possible when setting list-of-pointers
+- **RUSTSEC-2022-0069** · `hyper-staticfile` · 2022-11-30 · — — Improper validation of Windows paths could lead to directory traversal attack
+- **RUSTSEC-2022-0070** · `secp256k1` · 2022-11-30 · — [UNSOUND] — Unsound API in `secp256k1` allows use-after-free and invalid deallocation from safe code
+- **RUSTSEC-2022-0071** · `rusoto_credential` · 2022-04-24 · — [UNMAINTAINED] — Rusoto is unmaintained
+- **RUSTSEC-2022-0072** · `hyper-staticfile` · 2022-12-23 · — — Location header incorporates user input, allowing open redirect
+- **RUSTSEC-2022-0073** · `alloc-cortex-m` · 2022-12-21 · — [UNMAINTAINED] — crate has been renamed to `embedded-alloc`
+- **RUSTSEC-2022-0074** · `prettytable-rs` · 2022-12-02 · — [UNSOUND] — Force cast a &Vec<T> to &[T]
+- **RUSTSEC-2022-0075** · `wasmtime` · 2022-11-10 · CVE-2022-39393 — Bug in pooling instance allocator
+- **RUSTSEC-2022-0076** · `wasmtime` · 2022-11-10 · CVE-2022-39392 — Bug in Wasmtime implementation of pooling instance allocator
+- **RUSTSEC-2022-0077** · `claim` · 2022-12-04 · — [UNMAINTAINED] — `claim` is Unmaintained
+- **RUSTSEC-2022-0078** · `bumpalo` · 2022-01-14 · — [UNSOUND] — Use-after-free due to a lifetime error in `Vec::into_iter()`
+- **RUSTSEC-2022-0079** · `elf_rs` · 2022-10-31 · — — ELF header parsing library doesn't check for valid offset
+- **RUSTSEC-2022-0080** · `parity-util-mem` · 2022-11-30 · — [UNMAINTAINED] — parity-util-mem Unmaintained
+- **RUSTSEC-2022-0081** · `json` · 2022-02-01 · — [UNMAINTAINED] — json is unmaintained
+- **RUSTSEC-2022-0082** · `warp` · 2022-01-14 · — — Improper validation of Windows paths could lead to directory traversal attack
+- **RUSTSEC-2022-0083** · `evm` · 2022-10-25 · CVE-2022-39354 — evm incorrect state transition
+- **RUSTSEC-2022-0084** · `libp2p` · 2022-07-12 · CVE-2022-23486 — libp2p Lack of resource management DoS
+- **RUSTSEC-2022-0085** · `matrix-sdk-crypto` · 2022-09-29 · CVE-2022-39252 — matrix-sdk Impersonation of room keys
+- **RUSTSEC-2022-0086** · `slack-morphism` · 2022-07-22 · CVE-2022-31162 — Slack OAuth Secrets leak in debug logs
+- **RUSTSEC-2022-0087** · `slack-morphism` · 2022-10-10 · CVE-2022-39292 — Slack Webhooks secrets leak in debug logs
+- **RUSTSEC-2022-0088** · `tauri` · 2022-08-07 · CVE-2022-39215 — `tauri`'s `readDir` endpoint allows possible enumeration outside of filesystem scope
+- **RUSTSEC-2022-0089** · `aliyun-oss-client` · 2022-11-19 · CVE-2022-39397 — `aliyun-oss-client` secret exposure
+- **RUSTSEC-2022-0090** · `libsqlite3-sys` · 2022-08-03 · CVE-2022-35737 — `libsqlite3-sys` via C SQLite CVE-2022-35737
+- **RUSTSEC-2022-0091** · `tauri` · 2022-09-19 · CVE-2022-41874 — `tauri` filesystem scope partial bypass
+- **RUSTSEC-2022-0092** · `rmp-serde` · 2022-04-13 · — [UNSOUND] — `rmp-serde` `Raw` and `RawRef` unsound
+- **RUSTSEC-2022-0093** · `ed25519-dalek` · 2022-06-11 · CVE-2022-50237 — Double Public Key Signing Function Oracle Attack on `ed25519-dalek`
+- **RUSTSEC-2022-0094** · `mimalloc` · 2022-11-23 · — [UNSOUND] — Mimalloc Can Allocate Memory with Bad Alignment
+- **RUSTSEC-2022-0095** · `wasmtime` · 2022-06-27 · CVE-2022-31104 — Miscompilation of `i8x16.swizzle` and `select` with v128 inputs
+- **RUSTSEC-2022-0096** · `wasmtime` · 2022-02-17 · CVE-2022-23636 CVE-2022-31169 — Invalid drop of VMExternRef from partially-initialized instances in the pooling instance allocator
+- **RUSTSEC-2022-0097** · `wasmtime` · 2022-11-07 · CVE-2022-39394 — Out of bounds write in `wasmtime_trap_code` C API function
+- **RUSTSEC-2022-0098** · `wasmtime` · 2022-11-05 · CVE-2022-39393 — Data leakage between instances in the pooling allocator
+- **RUSTSEC-2022-0099** · `wasmtime` · 2022-03-28 · CVE-2022-24791 — Use after free with `externref`s and epoch interruption in Wasmtime
+- **RUSTSEC-2022-0100** · `wasmtime` · 2022-07-12 · CVE-2022-31146 — Use After Free with `externref`s in Wasmtime
+- **RUSTSEC-2022-0101** · `wasmtime` · 2022-07-05 · CVE-2022-23636 CVE-2022-31169 — Miscompilation of constant values in division on AArch64
+- **RUSTSEC-2022-0102** · `wasmtime` · 2022-11-05 · CVE-2022-39392 — Out of bounds read/write with zero-memory-pages configuration
+- **RUSTSEC-2022-0103** · `coreos-installer` · 2022-03-04 · CVE-2021-20319 — Incorrect signature verification on gzip-compressed install images
+- **RUSTSEC-2022-0104** · `structopt` · 2022-02-08 · — [UNMAINTAINED] — `structopt` is in maintenance mode
+
+### 2023 — 126 advisories
+- **RUSTSEC-2023-0001** · `tokio` · 2023-01-04 · CVE-2023-22466 — reject_remote_clients Configuration corruption
+- **RUSTSEC-2023-0002** · `git2` · 2023-01-12 · — — git2 Rust package suppresses ssh host key checking
+- **RUSTSEC-2023-0003** · `libgit2-sys` · 2023-01-20 · CVE-2023-22742 — git2 does not verify SSH keys by default
+- **RUSTSEC-2023-0004** · `bzip2` · 2023-01-09 · CVE-2023-22895 — bzip2 Denial of Service (DoS)
+- **RUSTSEC-2023-0005** · `tokio` · 2023-01-11 · — [UNSOUND] — `tokio::io::ReadHalf<T>::unsplit` is Unsound
+- **RUSTSEC-2023-0006** · `openssl-src` · 2023-02-07 · CVE-2023-0286 — X.400 address type confusion in X.509 `GeneralName`
+- **RUSTSEC-2023-0007** · `openssl-src` · 2023-02-07 · CVE-2022-4304 — Timing Oracle in RSA Decryption
+- **RUSTSEC-2023-0008** · `openssl-src` · 2023-02-07 · CVE-2022-4203 — X.509 Name Constraints Read Buffer Overflow
+- **RUSTSEC-2023-0009** · `openssl-src` · 2023-02-07 · CVE-2023-0215 — Use-after-free following `BIO_new_NDEF`
+- **RUSTSEC-2023-0010** · `openssl-src` · 2023-02-07 · CVE-2022-4450 — Double free after calling `PEM_read_bio_ex`
+- **RUSTSEC-2023-0011** · `openssl-src` · 2023-02-07 · CVE-2023-0216 — Invalid pointer dereference in `d2i_PKCS7` functions
+- **RUSTSEC-2023-0012** · `openssl-src` · 2023-02-07 · CVE-2023-0217 — `NULL` dereference validating DSA public key
+- **RUSTSEC-2023-0013** · `openssl-src` · 2023-02-07 · CVE-2023-0401 — `NULL` dereference during PKCS7 data verification
+- **RUSTSEC-2023-0014** · `cortex-m-rt` · 2023-02-13 · — [UNSOUND] — Miscompilation in cortex-m-rt 0.7.1 and 0.7.2
+- **RUSTSEC-2023-0015** · `ascii` · 2023-02-25 · — [UNSOUND] — Ascii allows out-of-bounds array indexing in safe code
+- **RUSTSEC-2023-0016** · `partial_sort` · 2023-02-20 · — [UNSOUND] — Possible out-of-bounds read in release mode
+- **RUSTSEC-2023-0017** · `maligned` · 2023-03-04 · — [UNSOUND] — `maligned::align_first` causes incorrect deallocation
+- **RUSTSEC-2023-0018** · `remove_dir_all` · 2023-02-24 · — — Race Condition Enabling Link Following and Time-of-check Time-of-use (TOCTOU)
+- **RUSTSEC-2023-0019** · `kuchiki` · 2023-01-21 · — [UNMAINTAINED] — `kuchiki` is unmaintained
+- **RUSTSEC-2023-0020** · `const-cstr` · 2023-03-12 · — [UNSOUND] — const-cstr is Unmaintained
+- **RUSTSEC-2023-0021** · `stb_image` · 2023-03-19 · — — NULL pointer dereference in `stb_image`
+- **RUSTSEC-2023-0022** · `openssl` · 2023-03-24 · — — `openssl` `X509NameBuilder::build` returned object is not thread safe
+- **RUSTSEC-2023-0023** · `openssl` · 2023-03-24 · — — `openssl` `SubjectAlternativeName` and `ExtendedKeyUsage::other` allow arbitrary file read
+- **RUSTSEC-2023-0024** · `openssl` · 2023-03-24 · — — `openssl` `X509Extension::new` and `X509Extension::new_nid` null pointer dereference
+- **RUSTSEC-2023-0025** · `git-hash` · 2023-03-14 · — [UNMAINTAINED] — Gitoxide has renamed its crates.
+- **RUSTSEC-2023-0026** · `git-path` · 2023-03-14 · — [UNMAINTAINED] — Gitoxide has renamed its crates.
+- **RUSTSEC-2023-0027** · `async-nats` · 2023-03-24 · — — TLS certificate common name validation bypass
+- **RUSTSEC-2023-0028** · `buf_redux` · 2023-01-24 · — [UNMAINTAINED] — buf_redux is Unmaintained
+- **RUSTSEC-2023-0029** · `nats` · 2023-03-24 · — — TLS certificate common name validation bypass
+- **RUSTSEC-2023-0030** · `versionize` · 2023-03-24 · CVE-2023-28448 — `Versionize::deserialize` implementation for `FamStructWrapper<T>` is lacking bound checks, potentially leading to out of bounds memory accesses
+- **RUSTSEC-2023-0031** · `spin` · 2023-03-31 · — [UNSOUND] — Initialisation failure in `Once::try_call_once` can lead to undefined behaviour for other initialisers
+- **RUSTSEC-2023-0032** · `ntru` · 2023-03-22 · — [UNSOUND] — Unsound FFI: Wrong API usage causes write past allocated area
+- **RUSTSEC-2023-0033** · `borsh` · 2023-04-12 · — [UNSOUND] — Parsing borsh messages with ZST which are not-copy/clone is unsound
+- **RUSTSEC-2023-0034** · `h2` · 2023-04-14 · CVE-2023-26964 — Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS)
+- **RUSTSEC-2023-0035** · `enumflags2` · 2023-04-17 · — [UNSOUND] — Adverserial use of `make_bitflags!` macro can cause undefined behavior
+- **RUSTSEC-2023-0036** · `tree_magic` · 2023-04-11 · — [UNMAINTAINED] — tree_magic is Unmaintained
+- **RUSTSEC-2023-0037** · `xsalsa20poly1305` · 2023-05-16 · — [UNMAINTAINED] — crate has been renamed to `crypto_secretbox`
+- **RUSTSEC-2023-0038** · `sequoia-openpgp` · 2023-05-16 · CVE-2023-53160 — Out-of-bounds array access leads to panic
+- **RUSTSEC-2023-0039** · `buffered-reader` · 2023-05-16 · CVE-2023-53161 — Out-of-bounds array access leads to panic
+- **RUSTSEC-2023-0040** · `users` · 2023-06-01 · — [UNMAINTAINED] — `users` crate is unmaintained
+- **RUSTSEC-2023-0041** · `trust-dns-server` · 2023-06-01 · — — Remote Attackers can cause Denial-of-Service (packet loops) with crafted DNS packets
+- **RUSTSEC-2023-0042** · `ouroboros` · 2023-06-11 · — [UNSOUND] — Ouroboros is Unsound
+- **RUSTSEC-2023-0043** · `ftp` · 2023-02-20 · — [UNMAINTAINED] — ftp is unmaintained, use suppaftp instead
+- **RUSTSEC-2023-0044** · `openssl` · 2023-06-20 · CVE-2023-53159 — `openssl` `X509VerifyParamRef::set_host` buffer over-read
+- **RUSTSEC-2023-0045** · `memoffset` · 2023-06-21 · — [UNSOUND] — memoffset allows reading uninitialized memory
+- **RUSTSEC-2023-0046** · `cyfs-base` · 2023-06-15 · — [UNSOUND] — Misaligned pointer dereference in `ChunkId::new`
+- **RUSTSEC-2023-0047** · `lmdb-rs` · 2023-06-26 · — [UNSOUND] — impl `FromMdbValue` for bool is unsound
+- **RUSTSEC-2023-0048** · `intaglio` · 2023-07-26 · — [UNSOUND] — Unsoundness in `intern` methods on `intaglio` symbol interners
+- **RUSTSEC-2023-0049** · `tui` · 2023-08-07 · — [UNMAINTAINED] — `tui` is unmaintained; use `ratatui` instead
+- **RUSTSEC-2023-0050** · `multipart` · 2023-04-11 · — [UNMAINTAINED] — multipart is Unmaintained
+- **RUSTSEC-2023-0051** · `dlopen_derive` · 2023-07-30 · — [UNMAINTAINED] — `dlopen_derive` is unmaintained
+- **RUSTSEC-2023-0052** · `webpki` · 2023-08-22 · — — webpki: CPU denial of service in certificate path building
+- **RUSTSEC-2023-0053** · `rustls-webpki` · 2023-08-22 · — — rustls-webpki: CPU denial of service in certificate path building
+- **RUSTSEC-2023-0054** · `mail-internals` · 2023-08-07 · — — Use-after-free in `vec_insert_bytes`
+- **RUSTSEC-2023-0055** · `lexical` · 2023-09-03 · — [UNSOUND] — Multiple soundness issues
+- **RUSTSEC-2023-0056** · `vm-memory` · 2023-09-01 · CVE-2023-41051 [UNSOUND] — Default functions in VolatileMemory trait lack bounds checks, potentially leading to out-of-bounds memory accesses
+- **RUSTSEC-2023-0057** · `inventory` · 2023-09-10 · — [UNSOUND] — Fails to prohibit standard library access prior to initialization of Rust standard library runtime
+- **RUSTSEC-2023-0058** · `inventory` · 2023-09-10 · — [UNSOUND] — Exposes reference to non-Sync data to an arbitrary thread
+- **RUSTSEC-2023-0059** · `users` · 2023-09-10 · — [UNSOUND] — Unaligned read of `*const *const c_char` pointer
+- **RUSTSEC-2023-0060** · `libwebp-sys2` · 2023-09-12 · CVE-2023-4863 CVE-2023-5129 — libwebp: OOB write in BuildHuffmanTable
+- **RUSTSEC-2023-0061** · `libwebp-sys` · 2023-09-12 · CVE-2023-4863 CVE-2023-5129 — libwebp: OOB write in BuildHuffmanTable
+- **RUSTSEC-2023-0062** · `bcder` · 2023-09-13 · CVE-2023-39914 — BER/CER/DER decoder panics on invalid input
+- **RUSTSEC-2023-0063** · `quinn-proto` · 2023-09-21 · CVE-2023-42805 — Denial of service in Quinn servers
+- **RUSTSEC-2023-0064** · `gix-transport` · 2023-09-23 · CVE-2023-53158 — gix-transport code execution vulnerability
+- **RUSTSEC-2023-0065** · `tungstenite` · 2023-09-25 · CVE-2023-43669 — Tungstenite allows remote attackers to cause a denial of service
+- **RUSTSEC-2023-0066** · `pleaser` · 2023-04-29 · CVE-2023-46277 — Vulnerable to privilege escalation using ioctls TIOCSTI and TIOCLINUX
+- **RUSTSEC-2023-0067** · `fehler` · 2023-10-12 · — [UNMAINTAINED] — `fehler` is unmaintained; use `culpa` instead
+- **RUSTSEC-2023-0068** · `cocoon` · 2023-10-15 · CVE-2024-21530 — Sequential calls of encryption API (`encrypt`, `wrap`, and `dump`) result in nonce reuse
+- **RUSTSEC-2023-0069** · `sudo-rs` · 2023-11-01 · CVE-2023-42456 — sudo-rs: Path Traversal vulnerability
+- **RUSTSEC-2023-0070** · `self_cell` · 2023-11-10 · — — Insufficient covariance check makes self_cell unsound
+- **RUSTSEC-2023-0071** · `rsa` · 2023-11-22 · CVE-2023-49092 — Marvin Attack: potential key recovery through timing sidechannels
+- **RUSTSEC-2023-0072** · `openssl` · 2023-11-23 · — [UNSOUND] — `openssl` `X509StoreRef::objects` is unsound
+- **RUSTSEC-2023-0073** · `candid` · 2023-12-08 · CVE-2023-6245 — Infinite decoding loop through specially crafted payload
+- **RUSTSEC-2023-0074** · `zerocopy` · 2023-12-14 · — — Some Ref methods are unsound with some type parameters
+- **RUSTSEC-2023-0075** · `unsafe-libyaml` · 2023-12-20 · — [UNSOUND] — Unaligned write of u64 on 32-bit and 16-bit platforms
+- **RUSTSEC-2023-0076** · `cpython` · 2023-11-14 · — [UNMAINTAINED] — `cpython` is unmaintained
+- **RUSTSEC-2023-0077** · `rosenpass` · 2023-11-04 · CVE-2023-53157 — Remotely exploitable DoS condition in Rosenpass <=0.2.0
+- **RUSTSEC-2023-0078** · `tracing` · 2023-10-19 · — [UNSOUND] — Potential stack use-after-free in `Instrumented::into_inner`
+- **RUSTSEC-2023-0079** · `pqc_kyber` · 2023-12-01 · — — KyberSlash: division timings depending on secrets
+- **RUSTSEC-2023-0080** · `transpose` · 2023-12-18 · CVE-2023-53156 — Buffer overflow due to integer overflow in `transpose`
+- **RUSTSEC-2023-0081** · `safemem` · 2023-02-14 · — [UNMAINTAINED] — safemem is unmaintained
+- **RUSTSEC-2023-0082** · `phonenumber` · 2023-09-19 · CVE-2023-42444 — phonenumber:  panic on parsing crafted RF3966 phonenumber inputs
+- **RUSTSEC-2023-0083** · `blurhash` · 2023-09-19 · CVE-2023-42447 — blurhash: panic on parsing crafted blurhash inputs
+- **RUSTSEC-2023-0084** · `hpack` · 2023-09-15 · — [UNMAINTAINED] — `hpack` is unmaintained
+- **RUSTSEC-2023-0085** · `hpack` · 2023-09-15 · — — HPACK decoder panics on invalid input
+- **RUSTSEC-2023-0086** · `lexical-core` · 2023-09-03 · — [UNSOUND] — Multiple soundness issues
+- **RUSTSEC-2023-0087** · `simd-json-derive` · 2023-10-14 · — [UNSOUND] — `MaybeUninit` misuse in `simd-json-derive`
+- **RUSTSEC-2023-0088** · `loopdev` · 2023-11-13 · — [UNMAINTAINED] — `loopdev` crate is unmaintained; use 'loopdev-3` instead.
+- **RUSTSEC-2023-0089** · `atomic-polyfill` · 2023-07-11 · — [UNMAINTAINED] — atomic-polyfill is unmaintained
+- **RUSTSEC-2023-0090** · `wasmtime` · 2023-03-02 · CVE-2023-26489 — Guest-controlled out-of-bounds read/write on x86\_64
+- **RUSTSEC-2023-0091** · `wasmtime` · 2023-09-05 · CVE-2023-41880 — Miscompilation of wasm `i64x2.shr_s` instruction with constant input on x86\_64
+- **RUSTSEC-2023-0092** · `wasmtime` · 2023-04-21 · CVE-2023-30624 — Undefined Behavior in Rust runtime functions
+- **RUSTSEC-2023-0093** · `wasmtime` · 2023-03-03 · CVE-2023-27477 — Miscompilation of `i8x16.select` with the same inputs on x86\_64
+- **RUSTSEC-2023-0094** · `martin-mbtiles` · 2023-10-30 · — [UNMAINTAINED] — `martin-mbtiles` has been renamed to `mbtiles`
+- **RUSTSEC-2023-0095** · `odoh-rs` · 2023-08-03 · CVE-2023-3766 — Invalid Slice Split Results in Server Panic
+- **RUSTSEC-2023-0096** · `aes-gcm` · 2023-11-22 · CVE-2023-42811 — Plaintext exposed in decrypt_in_place_detached even on tag verification failure
+- **RUSTSEC-2023-0097** · `lazystatic` · 2023-08-16 · — — `lazystatic` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0098** · `if-cfg` · 2023-08-16 · — — `if-cfg` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0099** · `envlogger` · 2023-08-16 · — — `envlogger` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0100** · `xrvrv` · 2023-08-16 · — — `xrvrv` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0101** · `oncecell` · 2023-08-16 · — — `oncecell` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0102** · `serd` · 2023-08-16 · — — `serd` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0103** · `postgress` · 2023-08-16 · — — `postgress` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0104** · `littest` · 2023-11-06 · — — `littest` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0105** · `windowsservice` · 2023-11-18 · — — `windowsservice` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0106** · `lfest-main` · 2023-11-15 · — — `lfest-main` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0107** · `lasso-rs` · 2023-11-15 · — — `lasso-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0108** · `tauri-win-rt-notification` · 2023-11-20 · — — `tauri-win-rt-notification` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0109** · `win-crypto` · 2023-11-15 · — — `win-crypto` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0110** · `postgresderive` · 2023-08-18 · — — `postgresderive` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0111** · `monero-api` · 2023-11-15 · — — `monero-api` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0112** · `monero-rpc-rs` · 2023-11-15 · — — `monero-rpc-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0113** · `win-base64-rs` · 2023-11-15 · — — `win-base64-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0114** · `tiny-server` · 2023-11-06 · — — `tiny-server` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0115** · `acceptxmr-rs` · 2023-11-15 · — — `acceptxmr-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0116** · `registry-win` · 2023-11-15 · — — `registry-win` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0117** · `tauri-winrt-notifications` · 2023-11-20 · — — `tauri-winrt-notifications` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0118** · `win_run_rs` · 2023-11-15 · — — `win_run_rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0119** · `openvpn-plugin-rs` · 2023-11-18 · — — `openvpn-plugin-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0120** · `windows-service-rs` · 2023-11-15 · — — `windows-service-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0121** · `libusb1-main` · 2023-11-15 · — — `libusb1-main` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0122** · `winx-rs` · 2023-11-15 · — — `winx-rs` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0123** · `hann-rs-service` · 2023-11-18 · — — `hann-rs-service` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0124** · `bit-flags` · 2023-12-22 · — — `bit-flags` was removed from crates.io for malicious code
+- **RUSTSEC-2023-0125** · `aws-sigv4` · 2023-04-19 · CVE-2023-30610 — Logs AWS credentials when TRACE-level logging is enabled
+- **RUSTSEC-2023-0126** · `im` · 2023-02-04 · — [UNSOUND] — Aliasing violation in `OrdSet` insertion
+
+### 2024 — 139 advisories
+- **RUSTSEC-2024-0001** · `ferris-says` · 2024-01-13 · — [UNSOUND] — Unsound use of str::from_utf8_unchecked on bytes which are not UTF-8
+- **RUSTSEC-2024-0002** · `vmm-sys-util` · 2024-01-02 · CVE-2023-50711 [UNSOUND] — `serde` deserialization for `FamStructWrapper` lacks bound checks that could potentially lead to out-of-bounds memory access
+- **RUSTSEC-2024-0003** · `h2` · 2024-01-17 · — — Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS)
+- **RUSTSEC-2024-0004** · `cosmwasm` · 2024-01-20 · — [UNMAINTAINED] — `cosmwasm` is unmaintained
+- **RUSTSEC-2024-0005** · `threadalone` · 2024-01-07 · — [UNSOUND] — Unsound sending of non-Send types across threads
+- **RUSTSEC-2024-0006** · `shlex` · 2024-01-21 · CVE-2024-58266 — Multiple issues involving quote API
+- **RUSTSEC-2024-0007** · `rust-i18n-support` · 2024-01-19 · — [UNSOUND] — Use-after-free when setting the locale
+- **RUSTSEC-2024-0008** · `trillium-client` · 2024-01-23 · CVE-2024-23644 — Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Request/Response Splitting')
+- **RUSTSEC-2024-0009** · `trillium-http` · 2024-01-23 · CVE-2024-23644 — Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Request/Response Splitting')
+- **RUSTSEC-2024-0010** · `svix` · 2024-02-06 · CVE-2024-21491 — Improper comparison of different-length signatures
+- **RUSTSEC-2024-0011** · `snow` · 2024-01-23 · CVE-2024-58265 — Unauthenticated Nonce Increment in snow
+- **RUSTSEC-2024-0012** · `serde-json-wasm` · 2024-01-24 · CVE-2024-58264 — Stack overflow during recursive JSON parsing
+- **RUSTSEC-2024-0013** · `libgit2-sys` · 2024-02-06 · — — Memory corruption, denial of service, and arbitrary code execution in libgit2
+- **RUSTSEC-2024-0014** · `generational-arena` · 2024-02-11 · — [UNMAINTAINED] — `generational-arena` is unmaintained
+- **RUSTSEC-2024-0015** · `filesystem` · 2024-01-25 · — [UNMAINTAINED] — filesystem-rs may be implicitly unmaintained
+- **RUSTSEC-2024-0016** · `libdav1d-sys` · 2024-02-19 · — — dav1d AV1 decoder integer overflow
+- **RUSTSEC-2024-0017** · `cassandra-cpp` · 2024-02-28 · CVE-2024-27284 [UNSOUND] — Non-idiomatic use of iterators leads to use after free
+- **RUSTSEC-2024-0018** · `crayon` · 2024-02-27 · — — ObjectPool creates uninitialized memory when freeing objects
+- **RUSTSEC-2024-0019** · `mio` · 2024-03-04 · CVE-2024-27308 — Tokens for named pipes may be delivered after deregistration
+- **RUSTSEC-2024-0020** · `whoami` · 2024-02-28 · — — Stack buffer overflow with whoami on several Unix platforms
+- **RUSTSEC-2024-0021** · `eyre` · 2024-03-05 · — — Parts of Report are dropped as the wrong type during downcast
+- **RUSTSEC-2024-0320** · `yaml-rust` · 2024-03-20 · — [UNMAINTAINED] — yaml-rust is unmaintained.
+- **RUSTSEC-2024-0331** · `puccinier` · 2024-03-31 · — [UNMAINTAINED] — Puccinier is unmainted.
+- **RUSTSEC-2024-0332** · `h2` · 2024-04-03 · — — Degradation of service in h2 servers with CONTINUATION Flood
+- **RUSTSEC-2024-0333** · `rsa-export` · 2024-04-06 · — [UNMAINTAINED] — `rsa-export` is unmaintained
+- **RUSTSEC-2024-0334** · `libp2p-tokio-socks5` · 2024-04-05 · — [UNMAINTAINED] — `libp2p-tokio-socks5` is unmaintained
+- **RUSTSEC-2024-0335** · `gix-transport` · 2024-04-13 · CVE-2024-32884 — gix-transport indirect code execution via malicious username
+- **RUSTSEC-2024-0336** · `rustls` · 2024-04-19 · CVE-2024-32650 — `rustls::ConnectionCommon::complete_io` could fall into an infinite loop based on network input
+- **RUSTSEC-2024-0337** · `zip_next` · 2024-04-20 · — [UNMAINTAINED] — The crate `zip_next` has been renamed to `zip`.
+- **RUSTSEC-2024-0338** · `cosmwasm-std` · 2024-04-24 · CVE-2024-58263 — Arithmetic overflows in cosmwasm-std
+- **RUSTSEC-2024-0339** · `tor-circmgr` · 2024-05-15 · CVE-2024-35312 CVE-2024-35313 — Tor path lengths too short when "Vanguards lite" configured
+- **RUSTSEC-2024-0340** · `tor-circmgr` · 2024-05-15 · CVE-2024-35312 CVE-2024-35313 — Tor path lengths too short when "full Vanguards" configured
+- **RUSTSEC-2024-0341** · `tls-listener` · 2024-03-15 · CVE-2024-28854 — Slow loris vulnerability with default configuration
+- **RUSTSEC-2024-0342** · `vodozemac` · 2024-05-02 · CVE-2024-34063 — Degraded secret zeroization capabilities
+- **RUSTSEC-2024-0343** · `nano-id` · 2024-06-03 · CVE-2024-36400 — Reduced entropy due to inadequate character set usage
+- **RUSTSEC-2024-0344** · `curve25519-dalek` · 2024-06-18 · CVE-2024-58262 — Timing variability in `curve25519-dalek`'s `Scalar29::sub`/`Scalar52::sub`
+- **RUSTSEC-2024-0345** · `sequoia-openpgp` · 2024-06-26 · CVE-2024-58261 — Low severity (DoS) vulnerability in sequoia-openpgp
+- **RUSTSEC-2024-0346** · `zerovec-derive` · 2024-07-01 · — — Incorrect usage of `#[repr(packed)]`
+- **RUSTSEC-2024-0347** · `zerovec` · 2024-07-01 · — — Incorrect usage of `#[repr(packed)]`
+- **RUSTSEC-2024-0348** · `gix-index` · 2024-05-22 · CVE-2024-35186 — Traversal outside working tree enables arbitrary code execution
+- **RUSTSEC-2024-0349** · `gix-worktree` · 2024-05-22 · CVE-2024-35186 — Traversal outside working tree enables arbitrary code execution
+- **RUSTSEC-2024-0350** · `gix-fs` · 2024-05-22 · CVE-2024-35186 — Traversal outside working tree enables arbitrary code execution
+- **RUSTSEC-2024-0351** · `gix-ref` · 2024-05-22 · CVE-2024-35197 — Refs and paths with reserved Windows device names access the devices
+- **RUSTSEC-2024-0352** · `gix-index` · 2024-05-22 · CVE-2024-35197 — Refs and paths with reserved Windows device names access the devices
+- **RUSTSEC-2024-0353** · `gix-worktree` · 2024-05-22 · CVE-2024-35197 — Refs and paths with reserved Windows device names access the devices
+- **RUSTSEC-2024-0354** · `vodozemac` · 2024-07-17 · CVE-2024-40640 — Usage of non-constant time base64 decoder could lead to leakage of secret key material
+- **RUSTSEC-2024-0355** · `gix-path` · 2024-07-18 · CVE-2024-40644 — gix-path can use a fake program files location
+- **RUSTSEC-2024-0356** · `matrix-sdk-crypto` · 2024-07-18 · CVE-2024-40648 — `UserIdentity::is_verified` not checking verification status of own user identity while performing the check
+- **RUSTSEC-2024-0357** · `openssl` · 2024-07-21 · — — `MemBio::get_buf` has undefined behavior with empty buffers
+- **RUSTSEC-2024-0358** · `object_store` · 2024-07-23 · CVE-2024-41178 — Apache Arrow Rust Object Store: AWS WebIdentityToken exposure in log files
+- **RUSTSEC-2024-0359** · `gix-attributes` · 2024-07-24 · — [UNSOUND] — The kstring integration in gix-attributes is unsound
+- **RUSTSEC-2024-0360** · `xmp_toolkit` · 2024-07-26 · — [UNSOUND] — `XmpFile::close` can trigger UB
+- **RUSTSEC-2024-0361** · `cosmwasm-vm` · 2024-08-08 · — — CWA-2024-004: Gas mispricing in cosmwasm-vm
+- **RUSTSEC-2024-0362** · `alloy-json-abi` · 2024-07-30 · — — Stack overflow when parsing specially crafted JSON ABI strings
+- **RUSTSEC-2024-0363** · `sqlx` · 2024-08-15 · — — Binary Protocol Misinterpretation caused by Truncating or Overflowing Casts
+- **RUSTSEC-2024-0364** · `gitoxide-core` · 2024-08-22 · CVE-2024-43785 — gitoxide-core does not neutralize special characters for terminals
+- **RUSTSEC-2024-0365** · `diesel` · 2024-08-23 · — — Binary Protocol Misinterpretation caused by Truncating or Overflowing Casts
+- **RUSTSEC-2024-0366** · `cosmwasm-vm` · 2024-08-27 · — — CWA-2023-004: Excessive number of function parameters in compiled Wasm
+- **RUSTSEC-2024-0367** · `gix-path` · 2024-08-31 · CVE-2024-45305 — gix-path uses local config across repos when it is the highest scope
+- **RUSTSEC-2024-0368** · `olm-sys` · 2024-09-02 · — — olm-sys: wrapped library unmaintained, potentially vulnerable
+- **RUSTSEC-2024-0369** · `phonenumber` · 2024-07-07 · CVE-2024-39697 — phonenumber:  panic on parsing crafted phonenumber inputs
+- **RUSTSEC-2024-0370** · `proc-macro-error` · 2024-09-01 · — [UNMAINTAINED] — proc-macro-error is unmaintained
+- **RUSTSEC-2024-0371** · `gix-path` · 2024-09-06 · CVE-2024-45405 — gix-path improperly resolves configuration path reported by Git
+- **RUSTSEC-2024-0372** · `ic-cdk` · 2024-09-05 · CVE-2024-7884 — Memory leak when calling a canister method via `ic_cdk::call`
+- **RUSTSEC-2024-0373** · `quinn-proto` · 2024-09-02 · CVE-2024-45311 — `Endpoint::retry()` calls can lead to panicking
+- **RUSTSEC-2024-0374** · `ouch` · 2024-09-22 · — — Segmentation fault due to use of uninitialized memory
+- **RUSTSEC-2024-0375** · `atty` · 2024-09-25 · — [UNMAINTAINED] — `atty` is unmaintained
+- **RUSTSEC-2024-0376** · `tonic` · 2024-10-01 · CVE-2024-47609 — Remotely exploitable Denial of Service in Tonic
+- **RUSTSEC-2024-0377** · `dbn` · 2024-10-07 · — — Heap Buffer overflow using c_chars_to_str function
+- **RUSTSEC-2024-0378** · `pyo3` · 2024-10-12 · CVE-2024-9979 — Risk of use-after-free in `borrowed` reads from Python weak references
+- **RUSTSEC-2024-0379** · `fast-float` · 2024-10-31 · — [UNSOUND] — Multiple soundness issues
+- **RUSTSEC-2024-0380** · `pqcrypto-dilithium` · 2024-10-24 · — [UNMAINTAINED] — Replaced by `pqcrypto-mldsa`
+- **RUSTSEC-2024-0381** · `pqcrypto-kyber` · 2024-10-24 · — [UNMAINTAINED] — Replaced by `pqcrypto-mlkem`
+- **RUSTSEC-2024-0382** · `hwloc` · 2024-09-04 · — [UNMAINTAINED] — hwloc is unmaintained
+- **RUSTSEC-2024-0383** · `bcc` · 2024-09-04 · — [UNMAINTAINED] — bcc is unmaintained
+- **RUSTSEC-2024-0384** · `instant` · 2024-09-01 · — [UNMAINTAINED] — `instant` is unmaintained
+- **RUSTSEC-2024-0385** · `cw0` · 2024-08-26 · — [UNMAINTAINED] — `cw0` is unmaintained
+- **RUSTSEC-2024-0386** · `strason` · 2024-09-04 · — [UNMAINTAINED] — strason is unmaintained
+- **RUSTSEC-2024-0387** · `opentelemetry_api` · 2024-07-03 · — [UNMAINTAINED] — `opentelemetry_api` has been merged into the `opentelemetry` crate
+- **RUSTSEC-2024-0388** · `derivative` · 2024-06-26 · — [UNMAINTAINED] — `derivative` is unmaintained; consider using an alternative
+- **RUSTSEC-2024-0389** · `openslide` · 2024-07-03 · — [UNMAINTAINED] — `openslide` is unmaintained
+- **RUSTSEC-2024-0390** · `minitrace` · 2024-08-14 · — [UNMAINTAINED] — minitrace is Unmaintained
+- **RUSTSEC-2024-0391** · `paillier-zk` · 2024-07-18 · — — Ambiguous challenge derivation
+- **RUSTSEC-2024-0392** · `cggmp21-keygen` · 2024-07-18 · — — Ambiguous challenge derivation
+- **RUSTSEC-2024-0393** · `cggmp21` · 2024-07-18 · — — Ambiguous challenge derivation
+- **RUSTSEC-2024-0394** · `mmap` · 2024-06-10 · — [UNMAINTAINED] — mmap unmaintained
+- **RUSTSEC-2024-0395** · `chrono-english` · 2024-06-24 · — [UNMAINTAINED] — The maintainer of chrono-english is unresponsive
+- **RUSTSEC-2024-0396** · `conrod_core` · 2024-01-26 · — [UNMAINTAINED] — `conrod_core` is unmaintained
+- **RUSTSEC-2024-0397** · `conrod` · 2024-01-26 · — [UNMAINTAINED] — `conrod` is unmaintained
+- **RUSTSEC-2024-0398** · `sharks` · 2024-11-16 · — — Bias of Polynomial Coefficients in Secret Sharing
+- **RUSTSEC-2024-0399** · `rustls` · 2024-11-22 · CVE-2024-11738 — rustls network-reachable panic in `Acceptor::accept`
+- **RUSTSEC-2024-0400** · `ruzstd` · 2024-11-28 · — — `ruzstd` uninit and out-of-bounds memory reads
+- **RUSTSEC-2024-0401** · `zlib-rs` · 2024-11-14 · — — Denial of service because of stack overflow with malicious decompression input
+- **RUSTSEC-2024-0402** · `hashbrown` · 2024-10-11 · — — Borsh serialization of HashMap is non-canonical
+- **RUSTSEC-2024-0403** · `js-sandbox` · 2024-07-18 · — — op_panic in the base runtime can force a panic in the runtime's containing thread
+- **RUSTSEC-2024-0404** · `anstream` · 2024-09-08 · — [UNSOUND] — Unsoundness in anstream
+- **RUSTSEC-2024-0405** · `rustyscript` · 2024-07-18 · — — op_panic in the base runtime can force a panic in the runtime's containing thread
+- **RUSTSEC-2024-0406** · `ic-stable-structures` · 2024-05-17 · CVE-2024-4435 — BTreeMap memory leak when deallocating nodes with overflows
+- **RUSTSEC-2024-0407** · `linkme` · 2024-03-05 · — [UNSOUND] — Fails to ensure slice elements match the slice's declared type
+- **RUSTSEC-2024-0408** · `pprof` · 2024-12-04 · — [UNSOUND] — Unsound usages of `std::slice::from_raw_parts`
+- **RUSTSEC-2024-0409** · `pyo3` · 2024-12-04 · — — Build corruption when using `PYO3_CONFIG_FILE` environment variable
+- **RUSTSEC-2024-0410** · `gdkwayland` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0411** · `gdkwayland-sys` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0412** · `gdk` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0413** · `atk` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0414** · `gdkx11-sys` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0415** · `gtk` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0416** · `atk-sys` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0417** · `gdkx11` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0418** · `gdk-sys` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0419** · `gtk3-macros` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0420** · `gtk-sys` · 2024-03-04 · — [UNMAINTAINED] — gtk-rs GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0421** · `idna` · 2024-12-09 · CVE-2024-12224 — `idna` accepts Punycode labels that do not produce any non-ASCII when decoded
+- **RUSTSEC-2024-0422** · `gtk-layer-shell` · 2024-12-09 · — [UNMAINTAINED] — gtk-layer-shell GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0423** · `gtk-layer-shell-sys` · 2024-12-09 · — [UNMAINTAINED] — gtk-layer-shell-sys GTK3 bindings - no longer maintained
+- **RUSTSEC-2024-0424** · `libafl` · 2024-12-19 · — [UNSOUND] — Unsound usages of `core::slice::from_raw_parts_mut`
+- **RUSTSEC-2024-0425** · `get-size` · 2024-09-15 · — [UNMAINTAINED] — get-size is unmaintained
+- **RUSTSEC-2024-0426** · `spl-token-swap` · 2024-12-19 · — [UNSOUND] — Unsound usages of `u8` type casting
+- **RUSTSEC-2024-0427** · `get-size-derive` · 2024-09-15 · — [UNMAINTAINED] — get-size-derive is unmaintained
+- **RUSTSEC-2024-0428** · `kvm-ioctls` · 2024-12-05 · — [UNSOUND] — Undefined behaviour in `kvm_ioctls::ioctls::vm::VmFd::create_device`
+- **RUSTSEC-2024-0429** · `glib` · 2024-03-30 · — [UNSOUND] — Unsoundness in `Iterator` and `DoubleEndedIterator` impls for `glib::VariantStrIter`
+- **RUSTSEC-2024-0430** · `magic-crypt` · 2024-12-28 · — — Use of insecure cryptographic algorithms
+- **RUSTSEC-2024-0431** · `xous` · 2024-12-23 · — [UNSOUND] — Unsound usages of `core::slice::from_raw_parts`
+- **RUSTSEC-2024-0432** · `rage` · 2024-12-18 · — — Malicious plugin names, recipients, or identities can cause arbitrary binary execution
+- **RUSTSEC-2024-0433** · `age` · 2024-12-18 · — — Malicious plugin names, recipients, or identities can cause arbitrary binary execution
+- **RUSTSEC-2024-0434** · `matrix-sdk-crypto` · 2024-01-07 · CVE-2024-52813 [NOTICE] — Missing facility to signal rotation of a verified cryptographic identity
+- **RUSTSEC-2024-0435** · `fyrox-core` · 2024-12-19 · — [UNSOUND] — Unsound usages of `Vec::from_raw_parts`
+- **RUSTSEC-2024-0436** · `paste` · 2024-10-07 · — [UNMAINTAINED] — paste - no longer maintained
+- **RUSTSEC-2024-0437** · `protobuf` · 2024-12-12 · CVE-2025-53605 — Crash due to uncontrolled recursion in protobuf crate
+- **RUSTSEC-2024-0438** · `wasmtime` · 2024-11-02 · CVE-2024-51745 — Wasmtime doesn't fully sandbox all the Windows device filenames
+- **RUSTSEC-2024-0439** · `wasmtime` · 2024-10-03 · CVE-2024-47813 — Race condition could lead to WebAssembly control-flow integrity and type safety violations
+- **RUSTSEC-2024-0440** · `wasmtime` · 2024-10-02 · CVE-2024-47763 — Runtime crash when combining tail calls with stack traces
+- **RUSTSEC-2024-0441** · `wasmtime` · 2024-04-02 · CVE-2024-30266 — Panic when using a dropped extenref-typed element segment
+- **RUSTSEC-2024-0442** · `wasmtime-jit-debug` · 2024-07-06 · — [UNSOUND] — Dump Undefined Memory by `JitDumpFile`
+- **RUSTSEC-2024-0443** · `webp` · 2024-09-06 · — [UNSOUND] — webp crate may expose memory contents when encoding an image
+- **RUSTSEC-2024-0444** · `boa_engine` · 2024-08-14 · CVE-2024-43367 — Uncaught exception when transitioning the state of `AsyncGenerator` objects from within a property getter of `then`
+- **RUSTSEC-2024-0445** · `cap-primitives` · 2024-11-05 · CVE-2024-51756 — cap-primitives doesn't fully sandbox all the Windows device filenames
+- **RUSTSEC-2024-0446** · `starship` · 2024-07-26 · CVE-2024-41815 — Shell expansion in custom commands
+- **RUSTSEC-2024-0447** · `pgp` · 2024-12-05 · CVE-2024-53856 — Panics on Malformed Untrusted Input
+
+### 2025 — 172 advisories
+- **RUSTSEC-2025-0001** · `gix-worktree-state` · 2025-01-18 · CVE-2025-22620 — gix-worktree-state nonexclusive checkout sets executable files world-writable
+- **RUSTSEC-2025-0002** · `fast-float2` · 2025-01-13 · — — Segmentation fault due to lack of bound check
+- **RUSTSEC-2025-0003** · `fast-float` · 2025-01-13 · — — Segmentation fault due to lack of bound check
+- **RUSTSEC-2025-0004** · `openssl` · 2025-02-02 · CVE-2025-24898 — ssl::select_next_proto use after free
+- **RUSTSEC-2025-0005** · `grcov` · 2025-01-13 · — — Out of bounds write triggered by crafted coverage data
+- **RUSTSEC-2025-0006** · `hickory-proto` · 2025-02-07 · — — Hickory DNS failure to verify self-signed RRSIG for DNSKEYs
+- **RUSTSEC-2025-0007** · `ring` · 2025-02-20 · — [UNMAINTAINED] — *ring* is unmaintained
+- **RUSTSEC-2025-0008** · `openh264-sys2` · 2025-02-24 · — — Openh264 Decoding Functions Heap Overflow Vulnerability
+- **RUSTSEC-2025-0009** · `ring` · 2025-03-06 · CVE-2025-4432 — Some AES functions may panic when overflow checking is enabled.
+- **RUSTSEC-2025-0010** · `ring` · 2025-03-05 · — [UNMAINTAINED] — Versions of *ring* prior to 0.17 are unmaintained.
+- **RUSTSEC-2025-0011** · `openpgp-card-sequoia` · 2025-03-04 · — [UNMAINTAINED] — `openpgp-card-sequoia` is unmaintained.
+- **RUSTSEC-2025-0012** · `backoff` · 2025-03-04 · — [UNMAINTAINED] — `backoff` is unmaintained.
+- **RUSTSEC-2025-0013** · `resolve` · 2025-02-21 · — [UNMAINTAINED] — resolve is unmaintained
+- **RUSTSEC-2025-0014** · `humantime` · 2025-03-08 · — [UNMAINTAINED] — humantime is unmaintained
+- **RUSTSEC-2025-0015** · `web-push` · 2025-02-16 · CVE-2025-53604 — Denial of Service via malicious Web Push endpoint
+- **RUSTSEC-2025-0016** · `pared` · 2025-03-13 · — — Use after free in `Parc` and `Prc` due to missing lifetime constraints
+- **RUSTSEC-2025-0017** · `trust-dns-proto` · 2025-03-23 · — [UNMAINTAINED] — The `trust-dns` project has been rebranded to `hickory-dns`
+- **RUSTSEC-2025-0018** · `xmas-elf` · 2025-03-26 · — — Potential out-of-bounds read with a malformed ELF file and the HashTable API.
+- **RUSTSEC-2025-0019** · `array-init-cursor` · 2025-03-27 · — [UNSOUND] — `array-init-cursor` in version 0.2.0 and below is unsound when used with types that implement `Drop`
+- **RUSTSEC-2025-0020** · `pyo3` · 2025-04-01 · — — Risk of buffer overflow in `PyString::from_object`
+- **RUSTSEC-2025-0021** · `gix-features` · 2025-04-03 · CVE-2025-31130 — SHA-1 collision attacks are not detected
+- **RUSTSEC-2025-0022** · `openssl` · 2025-04-04 · — — Use-After-Free in `Md::fetch` and `Cipher::fetch`
+- **RUSTSEC-2025-0023** · `tokio` · 2025-04-07 · — [UNSOUND] — Broadcast channel calls clone in parallel, but does not require `Sync`
+- **RUSTSEC-2025-0024** · `crossbeam-channel` · 2025-04-08 · CVE-2025-4574 — crossbeam-channel: double free on Drop
+- **RUSTSEC-2025-0025** · `rustc-serialize` · 2025-04-28 · — [UNMAINTAINED] — rustc-serialize is unmaintained
+- **RUSTSEC-2025-0026** · `registry` · 2025-01-13 · — [UNMAINTAINED] — registry is unmaintained
+- **RUSTSEC-2025-0027** · `mp3-metadata` · 2025-04-28 · — [UNSOUND] — Panic in mp3-metadata due to the lack of bounds checking
+- **RUSTSEC-2025-0028** · `cve-rs` · 2025-02-10 · — [UNSOUND] — cve-rs introduces memory vulnerabilities in safe Rust
+- **RUSTSEC-2025-0029** · `totally-safe` · 2025-02-10 · — [UNSOUND] — totally-safe introduces memory vulnerabilities in safe Rust
+- **RUSTSEC-2025-0030** · `totally-safe-transmute` · 2025-02-10 · — [UNSOUND] — totally-safe-transmute allows transmuting any type to any other type in safe Rust
+- **RUSTSEC-2025-0031** · `tanton_engine` · 2025-04-24 · — — Unsound public API in unmaintained crate
+- **RUSTSEC-2025-0032** · `redox_uefi_std` · 2025-03-27 · — [UNSOUND] — Safe API can cause heap-buffer-overflow
+- **RUSTSEC-2025-0033** · `scanner` · 2025-03-27 · — [UNSOUND] — Public API without sufficient bounds checking
+- **RUSTSEC-2025-0034** · `fast_id_map` · 2025-05-06 · — [UNSOUND] — soundness issue and unmaintained
+- **RUSTSEC-2025-0035** · `macroquad` · 2025-04-23 · — [UNSOUND] — Multiple soundness issues in `macroquad`
+- **RUSTSEC-2025-0036** · `surf` · 2025-05-17 · — [UNMAINTAINED] — surf is unmaintained
+- **RUSTSEC-2025-0037** · `pingora-core` · 2025-05-22 · CVE-2025-4366 — Pingora Request Smuggling and Cache Poisoning
+- **RUSTSEC-2025-0038** · `arrow2` · 2025-04-24 · — — Out of bounds access in public safe API
+- **RUSTSEC-2025-0039** · `anon-vec` · 2025-05-06 · — [UNSOUND] — Lack of sufficient checks in public API
+- **RUSTSEC-2025-0040** · `users` · 2025-01-15 · CVE-2025-5791 — `root` appended to group listings
+- **RUSTSEC-2025-0041** · `matrix-sdk-crypto` · 2025-06-11 · CVE-2025-48937 — matrix-sdk-crypto vulnerable to encrypted event sender spoofing by homeserver administrator
+- **RUSTSEC-2025-0042** · `static-alloc` · 2025-07-11 · — [UNSOUND] — Uninitialized read after allocating MemBump
+- **RUSTSEC-2025-0043** · `matrix-sdk-sqlite` · 2025-07-11 · CVE-2025-53549 — matrix-sdk-sqlite: SQL injection vulnerability in `SqliteEventCacheStore::find_event_with_relations`
+- **RUSTSEC-2025-0044** · `slice-ring-buffer` · 2025-06-16 · — — Four unique double-free vulnerabilities triggered via safe APIs
+- **RUSTSEC-2025-0045** · `static_cell` · 2025-07-17 · — [UNSOUND] — ConstStaticCell could have been used to pass non-Send values to another thread
+- **RUSTSEC-2025-0046** · `wasmtime` · 2025-07-18 · CVE-2025-53901 — Host panic with `fd_renumber` WASIp1 function
+- **RUSTSEC-2025-0047** · `slab` · 2025-08-12 · CVE-2025-55159 — Out-of-bounds access in `get_disjoint_mut` due to incorrect bounds check
+- **RUSTSEC-2025-0048** · `tsify-next` · 2025-07-29 · — [UNMAINTAINED] — tsify-next is unmaintained, use tsify instead
+- **RUSTSEC-2025-0049** · `scratchpad` · 2025-08-14 · — — User-defined implementations of the safe trait scratchpad::Tracking can cause heap buffer overflows
+- **RUSTSEC-2025-0050** · `id-map` · 2025-08-14 · — — IdMap::from_iter may lead to uninitialized memory being freed on drop
+- **RUSTSEC-2025-0051** · `xcb` · 2025-08-05 · — [UNSOUND] — `xcb::Connection::connect_to_fd*` functions violate I/O safety
+- **RUSTSEC-2025-0052** · `async-std` · 2025-08-24 · — [UNMAINTAINED] — async-std has been discontinued
+- **RUSTSEC-2025-0053** · `arenavec` · 2025-08-14 · — — Multiple memory corruption vulnerabilities in safe APIs
+- **RUSTSEC-2025-0054** · `array-queue` · 2025-08-14 · — — ArrayQueue::push_front is not panic-safe
+- **RUSTSEC-2025-0055** · `tracing-subscriber` · 2025-08-29 · CVE-2025-58160 — Logging user input may result in poisoning logs with ANSI escape sequences
+- **RUSTSEC-2025-0056** · `adler` · 2025-09-05 · — [UNMAINTAINED] — adler crate is unmaintained, use adler2 instead
+- **RUSTSEC-2025-0057** · `fxhash` · 2025-09-05 · — [UNMAINTAINED] — fxhash - no longer maintained
+- **RUSTSEC-2025-0058** · `custom_derive` · 2025-09-07 · — [UNMAINTAINED] — custom_derive crate is unmaintained
+- **RUSTSEC-2025-0059** · `servo-fontconfig` · 2025-09-08 · — [UNMAINTAINED] — servo-fontconfig crate is unmaintained
+- **RUSTSEC-2025-0060** · `crypto-hash` · 2025-09-08 · — [UNMAINTAINED] — crypto-hash crate is unmaintained
+- **RUSTSEC-2025-0061** · `iron` · 2025-09-08 · — [UNMAINTAINED] — iron crate is unmaintained
+- **RUSTSEC-2025-0062** · `toodee` · 2025-05-22 · — — Heap Buffer Overflow in the DrainCol Destructor
+- **RUSTSEC-2025-0063** · `fast-able` · 2025-04-25 · — — Possible unsound public API
+- **RUSTSEC-2025-0064** · `wren_rust` · 2025-05-06 · — [UNSOUND] — soundness issue and unmaintained
+- **RUSTSEC-2025-0065** · `matrix-sdk-base` · 2025-09-11 · CVE-2025-59047 — matrix-sdk-base: Panic in the `RoomMember::normalized_power_level()` method
+- **RUSTSEC-2025-0066** · `google-apis-common` · 2025-09-09 · — [UNMAINTAINED] — The `google-apis-rs` project is now unmaintained
+- **RUSTSEC-2025-0067** · `libyml` · 2025-09-11 · — [UNSOUND] — `libyml::string::yaml_string_extend` is unsound and unmaintained
+- **RUSTSEC-2025-0068** · `serde_yml` · 2025-09-11 · — [UNSOUND] — serde_yml crate is unsound and unmaintained
+- **RUSTSEC-2025-0069** · `daemonize` · 2025-09-14 · — [UNMAINTAINED] — `daemonize` is Unmaintained
+- **RUSTSEC-2025-0070** · `pingora-core` · 2025-09-17 · CVE-2025-8671 — Pingora MadeYouReset HTTP/2 vulnerability
+- **RUSTSEC-2025-0071** · `ammonia` · 2025-09-21 · — — Incorrect handling of embedded SVG and MathML leads to mutation XSS after removal
+- **RUSTSEC-2025-0072** · `wrflib` · 2025-10-02 · — [UNSOUND] — soundness issue and unmaintained
+- **RUSTSEC-2025-0073** · `alloy-dyn-abi` · 2025-10-15 · CVE-2025-62370 — DoS vulnerability on `alloy_dyn_abi::TypedData` hashing
+- **RUSTSEC-2025-0074** · `unic-segment` · 2025-10-18 · — [UNMAINTAINED] — `unic-segment` is unmaintained
+- **RUSTSEC-2025-0075** · `unic-char-range` · 2025-10-18 · — [UNMAINTAINED] — `unic-char-range` is unmaintained
+- **RUSTSEC-2025-0076** · `unic-ucd-name` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-name` is unmaintained
+- **RUSTSEC-2025-0077** · `unic-ucd` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd` is unmaintained
+- **RUSTSEC-2025-0078** · `unic-ucd-normal` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-normal` is unmaintained
+- **RUSTSEC-2025-0079** · `unic-ucd-hangul` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-hangul` is unmaintained
+- **RUSTSEC-2025-0080** · `unic-common` · 2025-10-18 · — [UNMAINTAINED] — `unic-common` is unmaintained
+- **RUSTSEC-2025-0081** · `unic-char-property` · 2025-10-18 · — [UNMAINTAINED] — `unic-char-property` is unmaintained
+- **RUSTSEC-2025-0082** · `unic-normal` · 2025-10-18 · — [UNMAINTAINED] — `unic-normal` is unmaintained
+- **RUSTSEC-2025-0083** · `unic-ucd-bidi` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-bidi` is unmaintained
+- **RUSTSEC-2025-0084** · `unic-emoji` · 2025-10-18 · — [UNMAINTAINED] — `unic-emoji` is unmaintained
+- **RUSTSEC-2025-0085** · `unic-idna` · 2025-10-18 · — [UNMAINTAINED] — `unic-idna` is unmaintained
+- **RUSTSEC-2025-0086** · `unic-char` · 2025-10-18 · — [UNMAINTAINED] — `unic-char` is unmaintained
+- **RUSTSEC-2025-0087** · `unic-cli` · 2025-10-18 · — [UNMAINTAINED] — `unic-cli` is unmaintained
+- **RUSTSEC-2025-0088** · `unic-idna-punycode` · 2025-10-18 · — [UNMAINTAINED] — `unic-idna-punycode` is unmaintained
+- **RUSTSEC-2025-0089** · `unic-ucd-name_aliases` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-name_aliases` is unmaintained
+- **RUSTSEC-2025-0090** · `unic-emoji-char` · 2025-10-18 · — [UNMAINTAINED] — `unic-emoji-char` is unmaintained
+- **RUSTSEC-2025-0091** · `unic-utils` · 2025-10-18 · — [UNMAINTAINED] — `unic-utils` is unmaintained
+- **RUSTSEC-2025-0092** · `unic-ucd-case` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-case` is unmaintained
+- **RUSTSEC-2025-0093** · `unic-char-basics` · 2025-10-18 · — [UNMAINTAINED] — `unic-char-basics` is unmaintained
+- **RUSTSEC-2025-0094** · `unic-ucd-category` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-category` is unmaintained
+- **RUSTSEC-2025-0095** · `unic` · 2025-10-18 · — [UNMAINTAINED] — `unic` is unmaintained
+- **RUSTSEC-2025-0096** · `unic-bidi` · 2025-10-18 · — [UNMAINTAINED] — `unic-bidi` is unmaintained
+- **RUSTSEC-2025-0097** · `unic-idna-mapping` · 2025-10-18 · — [UNMAINTAINED] — `unic-idna-mapping` is unmaintained
+- **RUSTSEC-2025-0098** · `unic-ucd-version` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-version` is unmaintained
+- **RUSTSEC-2025-0099** · `unic-ucd-block` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-block` is unmaintained
+- **RUSTSEC-2025-0100** · `unic-ucd-ident` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-ident` is unmaintained
+- **RUSTSEC-2025-0101** · `unic-ucd-common` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-common` is unmaintained
+- **RUSTSEC-2025-0102** · `unic-ucd-age` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-age` is unmaintained
+- **RUSTSEC-2025-0103** · `unic-ucd-core` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-core` is unmaintained
+- **RUSTSEC-2025-0104** · `unic-ucd-segment` · 2025-10-18 · — [UNMAINTAINED] — `unic-ucd-segment` is unmaintained
+- **RUSTSEC-2025-0105** · `direct_ring_buffer` · 2025-10-21 · — [UNSOUND] — Uninitialized memory exposure in create_ring_buffer
+- **RUSTSEC-2025-0106** · `orx-pinned-vec` · 2025-10-21 · — [UNSOUND] — Undefined behavior in index_of_ptr with empty slices
+- **RUSTSEC-2025-0107** · `borrowck_sacrifices` · 2025-10-21 · — [UNSOUND] — Uninitialized memory exposure in any_as_u8_slice
+- **RUSTSEC-2025-0108** · `ncurses` · 2025-10-21 · — [UNSOUND] — Uninitialized memory exposure in string reading functions
+- **RUSTSEC-2025-0109** · `binary_vec_io` · 2025-10-21 · — [UNSOUND] — Out-of-bounds memory access in binary_read_to_ref and binary_write_from_ref
+- **RUSTSEC-2025-0110** · `astral-tokio-tar` · 2025-10-21 · CVE-2025-62518 — astral-tokio-tar Vulnerable to PAX Header Desynchronization
+- **RUSTSEC-2025-0111** · `tokio-tar` · 2025-10-21 · CVE-2025-62518 — `tokio-tar` parses PAX extended headers incorrectly, allows file smuggling
+- **RUSTSEC-2025-0112** · `wasmtime` · 2025-07-18 · CVE-2025-62711 — Possible host crash with host-to-wasm component intrinsics
+- **RUSTSEC-2025-0113** · `shaman` · 2025-05-06 · — [UNSOUND] — soundness issue and unmaintained
+- **RUSTSEC-2025-0114** · `tandem_http_client` · 2025-11-10 · — [UNMAINTAINED] — tandem_http_client is unmaintained
+- **RUSTSEC-2025-0115** · `tandem_http_server` · 2025-11-10 · — [UNMAINTAINED] — tandem_http_server is unmaintained
+- **RUSTSEC-2025-0116** · `tandem_garble_interop` · 2025-11-10 · — [UNMAINTAINED] — tandem_garble_interop is unmaintained
+- **RUSTSEC-2025-0117** · `tandem` · 2025-11-10 · — [UNMAINTAINED] — tandem is unmaintained
+- **RUSTSEC-2025-0118** · `wasmtime` · 2025-11-11 · CVE-2025-64345 — Unsound API access to a WebAssembly shared linear memory
+- **RUSTSEC-2025-0119** · `number_prefix` · 2025-11-17 · — [UNMAINTAINED] — number_prefix crate is unmaintained
+- **RUSTSEC-2025-0120** · `json5` · 2025-11-16 · — [UNMAINTAINED] — json5 crate is unmaintained
+- **RUSTSEC-2025-0121** · `gcc` · 2025-11-17 · — [UNMAINTAINED] — gcc crate is unmaintained
+- **RUSTSEC-2025-0122** · `cargo-asm` · 2025-11-17 · — [UNMAINTAINED] — cargo-asm crate is unmaintained
+- **RUSTSEC-2025-0123** · `opentelemetry-jaeger` · 2025-11-17 · — [UNMAINTAINED] — opentelemetry-jaeger crate is unmaintained
+- **RUSTSEC-2025-0124** · `rand_os` · 2025-11-17 · — [UNMAINTAINED] — rand_os crate is unmaintained
+- **RUSTSEC-2025-0125** · `thread-amount` · 2025-11-22 · CVE-2025-65947 — Resource Exhaustion (Memory and Handle Leaks) on Windows and macOS
+- **RUSTSEC-2025-0126** · `nftnl` · 2025-10-18 · — — Heap-buffer-overflow in nftnl::Batch::with_page_size (nftnl-rs)
+- **RUSTSEC-2025-0127** · `cggmp21` · 2025-11-24 · CVE-2025-66017 — CGGMP21 presignatures can be used in the way that significantly reduces security
+- **RUSTSEC-2025-0128** · `cggmp24` · 2025-11-24 · CVE-2025-66017 — CGGMP21 presignatures can be used in the way that significantly reduces security
+- **RUSTSEC-2025-0129** · `cggmp21` · 2025-11-24 · CVE-2025-66016 — Missing check in ZK proof in CGGMP21 Threshold Signing Protocol
+- **RUSTSEC-2025-0130** · `cggmp24` · 2025-11-24 · CVE-2025-66016 — Missing check in ZK proof in CGGMP21 Threshold Signing Protocol
+- **RUSTSEC-2025-0131** · `rtvm-interpreter` · 2025-10-31 · — [UNSOUND] — Lack of sufficient checks in public API
+- **RUSTSEC-2025-0132** · `maxminddb` · 2025-11-28 · — — `Reader::open_mmap` unsoundly marks unsafe memmap operation as safe
+- **RUSTSEC-2025-0133** · `libcrux-intrinsics` · 2025-12-04 · — — Incorrect calculation on aarch64
+- **RUSTSEC-2025-0134** · `rustls-pemfile` · 2025-11-28 · — [UNMAINTAINED] — rustls-pemfile is unmaintained
+- **RUSTSEC-2025-0135** · `matrix-sdk-base` · 2025-12-08 · CVE-2025-66622 — matrix-sdk-base: Denial of service due to custom `m.room.join_rules` events
+- **RUSTSEC-2025-0136** · `sequoia-openpgp` · 2025-11-07 · CVE-2025-67897 — Underflow in aes_key_unwrap function
+- **RUSTSEC-2025-0137** · `ruint` · 2025-12-22 · — — Unsoundness of safe `reciprocal_mg10`
+- **RUSTSEC-2025-0138** · `deno` · 2025-06-03 · CVE-2025-48935 — --allow-read / --allow-write permission bypass in `node:sqlite`
+- **RUSTSEC-2025-0139** · `theshit` · 2025-12-30 · CVE-2025-69257 — theshit vulnerable to unsafe loading of user-owned Python rules when running as root
+- **RUSTSEC-2025-0140** · `gix-date` · 2025-12-29 · CVE-2026-0810 — Non-utf8 String can be created with `TimeBuf::as_str`
+- **RUSTSEC-2025-0141** · `bincode` · 2025-12-16 · — [UNMAINTAINED] — Bincode is unmaintained
+- **RUSTSEC-2025-0142** · `mnl` · 2025-10-18 · — — Segmentation fault and invalid memory read in `mnl::cb_run`
+- **RUSTSEC-2025-0143** · `capnp` · 2025-12-24 · — — Unsound APIs of public `constant::Reader` and `StructSchema`
+- **RUSTSEC-2025-0144** · `ml-dsa` · 2025-12-12 · CVE-2026-22705 — Timing side-channel in ML-DSA decomposition
+- **RUSTSEC-2025-0145** · `uniswap-utils` · 2025-12-03 · — — `uniswap-utils` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0146** · `sha-rust` · 2025-12-05 · — — `sha-rust` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0147** · `evm-units` · 2025-12-03 · — — `evm-units` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0148** · `finch-rust` · 2025-12-05 · — — `finch-rust` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0149** · `below` · 2025-03-12 · CVE-2025-27591 — World Writable Directory in /var/log/below Allows Local Privilege Escalation
+- **RUSTSEC-2025-0150** · `finch-rst` · 2025-12-09 · — — `finch-rst` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0151** · `sha-rst` · 2025-12-09 · — — `sha-rst` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0152** · `finch_cli_rust` · 2025-12-09 · — — `finch_cli_rust` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0153** · `hexchat` · 2025-11-17 · — [UNSOUND] — hexchat crate is unsound and unmaintained
+- **RUSTSEC-2025-0154** · `replit_ruspty` · 2025-11-04 · — — `replit_ruspty` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0155** · `rands` · 2025-02-10 · — — `rands` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0156** · `tree-sitter-pkl` · 2025-03-10 · — — `tree-sitter-pkl` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0157** · `statsrelay-protobuf` · 2025-08-26 · — — `statsrelay-protobuf` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0158** · `jfrog_quotes` · 2025-01-30 · — — `jfrog_quotes` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0159** · `sophosfirewall-python` · 2025-02-15 · — — `sophosfirewall-python` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0160** · `custom-req-on-workers` · 2025-01-30 · — — `custom-req-on-workers` was removed from crates.io for malicious code
+- **RUSTSEC-2025-0161** · `libsecp256k1` · 2025-01-14 · — [UNMAINTAINED] — libsecp256k1 is unmaintained
+- **RUSTSEC-2025-0162** · `vku` · 2025-04-23 · — [UNSOUND] — `VMABuffer::set_data` may allow out-of-bounds writes from safe code
+- **RUSTSEC-2025-0163** · `trailer` · 2025-05-04 · CVE-2025-47737 — Unsound issue in Trailer
+- **RUSTSEC-2025-0164** · `i_triangle` · 2025-04-24 · — [UNSOUND] — `DTriangle` accessors may read out of bounds in affected versions
+- **RUSTSEC-2025-0165** · `i_tree` · 2025-07-04 · — [UNSOUND] — i_tree allowed out-of-bounds access through safe public node accessors
+- **RUSTSEC-2025-0166** · `stackvector` · 2025-10-23 · — [UNSOUND] — Multiple soundness issues in `stackvector`
+- **RUSTSEC-2025-0167** · `bitmaps` · 2025-12-25 · — [UNSOUND] — `Bitmap::try_from(&[u8])` can create invalid values
+- **RUSTSEC-2025-0168** · `zip` · 2025-03-16 · CVE-2025-29787 — Incorrect path canonicalization during Archive Extraction Leading to Arbitrary File Write
+- **RUSTSEC-2025-0169** · `stainless_ffmpeg` · 2025-04-24 · — [UNSOUND] — `FormatContext` stream accessors can cause undefined behavior from safe code
+- **RUSTSEC-2025-0170** · `hugepage-rs` · 2025-04-24 · — [UNSOUND] — `hugepage_rs::dealloc` may allow invalid memory deallocation from safe code
+- **RUSTSEC-2025-0171** · `mod3d-base` · 2025-05-06 · — [UNSOUND] — soundness issue
+- **RUSTSEC-2025-0172** · `zip-extract` · 2025-07-16 · — [UNMAINTAINED] — `zip-extract` is unmaintained; use the `zip >= 2.4.0` crate instead
+
+### 2026 — 286 advisories
+- **RUSTSEC-2026-0001** · `rkyv` · 2026-01-05 · — — Potential Undefined Behaviors in `Arc<T>`/`Rc<T>` impls of `from_value` on OOM
+- **RUSTSEC-2026-0002** · `lru` · 2026-01-07 · — [UNSOUND] — `IterMut` violates Stacked Borrows by invalidating internal pointer
+- **RUSTSEC-2026-0003** · `cmov` · 2026-01-14 · CVE-2026-23519 — Non-constant-time code generation on ARM32 targets
+- **RUSTSEC-2026-0004** · `triton-vm` · 2026-01-21 · — — Triton VM Soundness Vulnerability due to Improper Sampling of Randomness
+- **RUSTSEC-2026-0005** · `oneshot` · 2026-01-25 · — [UNSOUND] — Potential use-after-free in `oneshot` when used asynchronously
+- **RUSTSEC-2026-0006** · `wasmtime` · 2026-01-26 · CVE-2026-24116 — Wasmtime segfault or unused out-of-sandbox load with `f64.copysign` operator on x86-64
+- **RUSTSEC-2026-0007** · `bytes` · 2026-02-03 · CVE-2026-25541 — Integer overflow in `BytesMut::reserve`
+- **RUSTSEC-2026-0008** · `git2` · 2026-02-02 · — [UNSOUND] — Potential undefined behavior when dereferencing Buf struct
+- **RUSTSEC-2026-0009** · `time` · 2026-02-05 · CVE-2026-25727 — Denial of Service via Stack Exhaustion
+- **RUSTSEC-2026-0010** · `polymarket-clients-sdk` · 2026-02-06 · — — `polymarket-clients-sdk` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0011** · `polymarket-client-sdks` · 2026-02-13 · — — `polymarket-client-sdks` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0012** · `keccak` · 2026-02-12 · — [UNSOUND] — Unsoundness in opt-in ARMv8 assembly backend for `keccak`
+- **RUSTSEC-2026-0013** · `pyo3` · 2026-02-18 · — — Type confusion when accessing data from sublasses of subclasses of native types with `abi3` feature targeting Python 3.12 and up
+- **RUSTSEC-2026-0014** · `rpc-check` · 2026-02-19 · — — `rpc-check` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0015** · `polymarkets-client-sdk` · 2026-02-19 · — — `polymarkets-client-sdk` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0016** · `polymarkets-rs-clob-client` · 2026-02-20 · — — `polymarkets-rs-clob-client` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0017** · `clob-sdk` · 2026-02-20 · — — `clob-sdk` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0018** · `rpc-check` · 2026-02-24 · — — `rpc-check` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0019** · `tracing-check` · 2026-02-24 · — — `tracing-check` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0020** · `wasmtime` · 2026-02-24 · CVE-2026-27204 — Guest-controlled resource exhaustion in WASI implementations
+- **RUSTSEC-2026-0021** · `wasmtime` · 2026-02-24 · CVE-2026-27572 — Panic adding excessive fields to a `wasi:http/types.fields` instance
+- **RUSTSEC-2026-0022** · `wasmtime` · 2026-02-24 · CVE-2026-27195 — Panic when dropping a `[Typed]Func::call_async` future
+- **RUSTSEC-2026-0023** · `libcrux-ecdh` · 2026-01-26 · CVE-2026-76234 — X25519 secret validation did not check buffer length or clamping
+- **RUSTSEC-2026-0024** · `libcrux-psq` · 2026-01-26 · CVE-2026-76234 — Incorrect X25519 clamping check rejects all secrets on import
+- **RUSTSEC-2026-0025** · `libcrux-psq` · 2026-02-08 · CVE-2026-76234 — Panic in `libcrux-psq` on decryption of malformed AES-GCM ciphertext
+- **RUSTSEC-2026-0026** · `libcrux-ed25519` · 2026-02-05 · CVE-2026-76234 — Unnecessary clamping of seed reduces seed entropy to 251 bits
+- **RUSTSEC-2026-0027** · `tracings` · 2026-02-26 · — — `tracings` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0028** · `tracing_checks` · 2026-02-26 · — — `tracing_checks` was removed from crates.io for transitively including malicious code
+- **RUSTSEC-2026-0029** · `hivex` · 2026-02-26 · — [UNSOUND] — Double-free and use-after-free for Hive
+- **RUSTSEC-2026-0030** · `time_calibrator` · 2026-03-03 · — — `time_calibrator` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0031** · `time_calibrators` · 2026-03-03 · — — `time_calibrators` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0032** · `dnp3times` · 2026-03-04 · — — `dnp3times` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0033** · `pingora-core` · 2026-03-04 · CVE-2026-2833 — HTTP Request Smuggling via Premature Upgrade
+- **RUSTSEC-2026-0034** · `pingora-core` · 2026-03-04 · CVE-2026-2835 — HTTP Request Smuggling via HTTP/1.0 and Transfer-Encoding Misparsing
+- **RUSTSEC-2026-0035** · `pingora-cache` · 2026-03-04 · CVE-2026-2836 — Cache poisoning via insecure-by-default cache key
+- **RUSTSEC-2026-0036** · `time-sync` · 2026-03-04 · — — `time-sync` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0037** · `quinn-proto` · 2026-03-09 · CVE-2026-31812 — Denial of service in Quinn endpoints
+- **RUSTSEC-2026-0038** · `rssn` · 2026-03-08 · CVE-2026-30960 — RustSec Advisory
+- **RUSTSEC-2026-0039** · `chrono_anchor` · 2026-03-10 · — — `chrono_anchor` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0040** · `tracing-ethers` · 2026-03-14 · — — `tracing-ethers` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0041** · `lz4_flex` · 2026-03-17 · CVE-2026-32829 — Decompressing invalid data can leak information from uninitialized memory or reused output buffer
+- **RUSTSEC-2026-0042** · `aws-lc-fips-sys` · 2026-03-19 · CVE-2026-4428 — CRL Distribution Point Scope Check Logic Error in AWS-LC
+- **RUSTSEC-2026-0043** · `aws-lc-fips-sys` · 2026-03-02 · CVE-2026-3337 — Timing Side-Channel in AES-CCM Tag Verification in AWS-LC
+- **RUSTSEC-2026-0044** · `aws-lc-sys` · 2026-03-19 · — — AWS-LC X.509 Name Constraints Bypass via Wildcard/Unicode CN
+- **RUSTSEC-2026-0045** · `aws-lc-sys` · 2026-03-02 · CVE-2026-3337 — Timing Side-Channel in AES-CCM Tag Verification in AWS-LC
+- **RUSTSEC-2026-0046** · `aws-lc-sys` · 2026-03-02 · CVE-2026-3336 — PKCS7_verify Certificate Chain Validation Bypass in AWS-LC
+- **RUSTSEC-2026-0047** · `aws-lc-sys` · 2026-03-02 · CVE-2026-3338 — PKCS7_verify Signature Validation Bypass in AWS-LC
+- **RUSTSEC-2026-0048** · `aws-lc-sys` · 2026-03-19 · CVE-2026-4428 — CRL Distribution Point Scope Check Logic Error in AWS-LC
+- **RUSTSEC-2026-0049** · `rustls-webpki` · 2026-03-20 · — — CRLs not considered authoritative by Distribution Point due to faulty matching logic
+- **RUSTSEC-2026-0050** · `tokio-uds` · 2026-03-20 · — [UNMAINTAINED] — `tokio-uds` is unmaintained
+- **RUSTSEC-2026-0051** · `tokio-threadpool` · 2026-03-20 · — [UNMAINTAINED] — `tokio-threadpool` is unmaintained
+- **RUSTSEC-2026-0052** · `tokio-sync` · 2026-03-20 · — [UNMAINTAINED] — `tokio-sync` is unmaintained
+- **RUSTSEC-2026-0053** · `tokio-tls` · 2026-03-20 · — [UNMAINTAINED] — `tokio-tls` is unmaintained
+- **RUSTSEC-2026-0054** · `tokio-current-thread` · 2026-03-20 · — [UNMAINTAINED] — `tokio-current-thread` is unmaintained
+- **RUSTSEC-2026-0055** · `tokio-process` · 2026-03-20 · — [UNMAINTAINED] — `tokio-process` is unmaintained
+- **RUSTSEC-2026-0056** · `tokio-codec` · 2026-03-20 · — [UNMAINTAINED] — `tokio-codec` is unmaintained
+- **RUSTSEC-2026-0057** · `tokio-reactor` · 2026-03-20 · — [UNMAINTAINED] — `tokio-reactor` is unmaintained
+- **RUSTSEC-2026-0058** · `tokio-io` · 2026-03-20 · — [UNMAINTAINED] — `tokio-io` is unmaintained
+- **RUSTSEC-2026-0059** · `tokio-tcp` · 2026-03-20 · — [UNMAINTAINED] — `tokio-tcp` is unmaintained
+- **RUSTSEC-2026-0060** · `tokio-timer` · 2026-03-20 · — [UNMAINTAINED] — `tokio-timer` is unmaintained
+- **RUSTSEC-2026-0061** · `tokio-fs` · 2026-03-20 · — [UNMAINTAINED] — `tokio-fs` is unmaintained
+- **RUSTSEC-2026-0062** · `tokio-compat` · 2026-03-20 · — [UNMAINTAINED] — `tokio-compat` is unmaintained
+- **RUSTSEC-2026-0063** · `tokio-executor` · 2026-03-20 · — [UNMAINTAINED] — `tokio-executor` is unmaintained
+- **RUSTSEC-2026-0064** · `tokio-udp` · 2026-03-20 · — [UNMAINTAINED] — `tokio-udp` is unmaintained
+- **RUSTSEC-2026-0065** · `tokio-signal` · 2026-03-20 · — [UNMAINTAINED] — `tokio-signal` is unmaintained
+- **RUSTSEC-2026-0066** · `astral-tokio-tar` · 2026-03-17 · CVE-2026-32766 — Insufficient validation of PAX extensions during extraction
+- **RUSTSEC-2026-0067** · `tar` · 2026-03-19 · CVE-2026-33056 — `unpack_in` can chmod arbitrary directories by following symlinks
+- **RUSTSEC-2026-0068** · `tar` · 2026-03-19 · CVE-2026-33055 — tar-rs incorrectly ignores PAX size headers if header size is nonzero
+- **RUSTSEC-2026-0069** · `hpke-rs` · 2026-02-11 · — — Incorrect Length Encoding on KDF Export
+- **RUSTSEC-2026-0070** · `hpke-rs` · 2026-02-11 · — — Panic When Opening or Sealing on Export-Only Context
+- **RUSTSEC-2026-0071** · `hpke-rs` · 2026-02-05 · — — Nonce Reuse in HPKE Context
+- **RUSTSEC-2026-0072** · `hpke-rs-rust-crypto` · 2026-02-04 · — — Missing Check for All-Zero X25519 Shared Secret
+- **RUSTSEC-2026-0073** · `libcrux-poly1305` · 2026-03-04 · — — Panic in Standalone MAC Operations
+- **RUSTSEC-2026-0074** · `libcrux-sha3` · 2026-03-04 · — — Incorrect Output of Incremental Portable SHAKE API
+- **RUSTSEC-2026-0075** · `libcrux-ed25519` · 2026-03-04 · — — All-Zero Key Generation on Catastrophic RNG Failure
+- **RUSTSEC-2026-0076** · `libcrux-ml-dsa` · 2026-03-04 · — — Panic in Signature Hint Decoding During Verification
+- **RUSTSEC-2026-0077** · `libcrux-ml-dsa` · 2026-03-04 · — — Incorrect Check of Signer Response Norm During Verification
+- **RUSTSEC-2026-0078** · `intaglio` · 2026-03-30 · — — Symbol confusion after hasher panic in `intaglio` interners
+- **RUSTSEC-2026-0079** · `dyn-future` · 2026-01-21 · — [UNSOUND] — `DynFuture` drop can construct a dangling reference
+- **RUSTSEC-2026-0080** · `scaly` · 2026-01-19 · — [UNSOUND] — Multiple soundness issues in `scaly` safe APIs
+- **RUSTSEC-2026-0081** · `logtrace` · 2026-04-05 · — — `logtrace` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0082** · `zantetsu-ffi` · 2026-04-07 · — [UNMAINTAINED] — zantetsu-ffi is unmaintained
+- **RUSTSEC-2026-0083** · `zantetsu-trainer` · 2026-04-07 · — [UNMAINTAINED] — zantetsu-trainer is unmaintained
+- **RUSTSEC-2026-0084** · `logprinter` · 2026-04-09 · — — `logprinter` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0085** · `wasmtime` · 2026-04-09 · CVE-2026-34943 — Panic when lifting `flags` component value
+- **RUSTSEC-2026-0086** · `wasmtime` · 2026-04-09 · CVE-2026-34945 — Host data leakage with 64-bit tables and Winch
+- **RUSTSEC-2026-0087** · `wasmtime` · 2026-04-09 · CVE-2026-34944 — Wasmtime segfault or unused out-of-sandbox load with `f64x2.splat` operator on Cranelift x86-64
+- **RUSTSEC-2026-0088** · `wasmtime` · 2026-04-09 · CVE-2026-34988 — Data leakage between pooling allocator instances
+- **RUSTSEC-2026-0089** · `wasmtime` · 2026-04-09 · CVE-2026-34946 — Host panic when Winch compiler executes `table.fill`
+- **RUSTSEC-2026-0090** · `wasmtime` · 2026-04-09 · CVE-2026-34983 — Use-after-free bug after cloning `wasmtime::Linker`
+- **RUSTSEC-2026-0091** · `wasmtime` · 2026-04-09 · CVE-2026-35195 — Out-of-bounds write or crash when transcoding component model strings
+- **RUSTSEC-2026-0092** · `wasmtime` · 2026-04-09 · CVE-2026-34942 — Panic when transcoding misaligned component model UTF-16 strings
+- **RUSTSEC-2026-0093** · `wasmtime` · 2026-04-09 · CVE-2026-34941 — Heap OOB read in component model UTF-16 to latin1+utf16 string transcoding
+- **RUSTSEC-2026-0094** · `wasmtime` · 2026-04-09 · CVE-2026-35186 — Improperly masked return value from `table.grow` with Winch compiler backend
+- **RUSTSEC-2026-0095** · `wasmtime` · 2026-04-09 · CVE-2026-34987 — Wasmtime with Winch compiler backend may allow a sandbox-escaping memory access
+- **RUSTSEC-2026-0096** · `wasmtime` · 2026-04-09 · CVE-2026-34971 — Miscompiled guest heap access enables sandbox escape on aarch64 Cranelift
+- **RUSTSEC-2026-0097** · `rand` · 2026-04-09 · — [UNSOUND] — Rand is unsound with a custom logger using `rand::rng()`
+- **RUSTSEC-2026-0098** · `rustls-webpki` · 2026-04-14 · — — Name constraints for URI names were incorrectly accepted
+- **RUSTSEC-2026-0099** · `rustls-webpki` · 2026-04-14 · — — Name constraints were accepted for certificates asserting a wildcard name
+- **RUSTSEC-2026-0100** · `pretty-changelog-logger` · 2026-04-13 · — — `pretty-changelog-logger` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0101** · `safe-agent-rs` · 2026-04-13 · — — `safe-agent-rs` was removed from crates.io for being affiliated with malicious code
+- **RUSTSEC-2026-0102** · `microsoftsystem64` · 2026-04-13 · — — `microsoftsystem64` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0103** · `thin-vec` · 2026-04-14 · CVE-2026-6654 — Use-After-Free and Double Free in IntoIter::drop When Element Drop Panics
+- **RUSTSEC-2026-0104** · `rustls-webpki` · 2026-04-22 · — — Reachable panic in certificate revocation list parsing
+- **RUSTSEC-2026-0105** · `core2` · 2026-04-14 · — [UNMAINTAINED] — core2 is unmaintained, all versions yanked
+- **RUSTSEC-2026-0106** · `hickory-recursor` · 2026-04-22 · — — Record cache accepts AUTHORITY section NS from sibling zone via parent-pool zone-context elevation
+- **RUSTSEC-2026-0107** · `mysten-metrics` · 2026-04-22 · — — `mysten-metrics` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0108** · `sui-execution-cut` · 2026-04-23 · — — `sui-execution-cut` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0109** · `sequoia-git` · 2026-04-21 · — — Broken hard revocation handling
+- **RUSTSEC-2026-0110** · `bare-metal` · 2026-04-23 · — [UNMAINTAINED] — bare-metal is deprecated
+- **RUSTSEC-2026-0111** · `diesel` · 2026-04-24 · — [UNSOUND] — Possible UTF-8 corruption in Diesels SQLite backend
+- **RUSTSEC-2026-0112** · `astral-tokio-tar` · 2026-04-27 · — — PAX Header Desynchronization in astral-tokio-tar
+- **RUSTSEC-2026-0113** · `astral-tokio-tar` · 2026-04-27 · — — `unpack_in` can chmod arbitrary directories by following symlinks
+- **RUSTSEC-2026-0114** · `wasmtime` · 2026-04-30 · CVE-2026-44216 — Panic when allocating a table exceeding the size of the host's address space
+- **RUSTSEC-2026-0115** · `imageproc` · 2026-05-01 · — [UNSOUND] — Fragile bounds check when sampling from image
+- **RUSTSEC-2026-0116** · `imageproc` · 2026-05-01 · — [UNSOUND] — Improper check of an invariant resulting in incorrect bounds checks
+- **RUSTSEC-2026-0117** · `imageproc` · 2026-05-01 · — [UNSOUND] — Fragile bounds check when sampling from image
+- **RUSTSEC-2026-0118** · `hickory-proto` · 2026-05-01 · — — NSEC3 closest-encloser proof validation enters unbounded loop on cross-zone responses
+- **RUSTSEC-2026-0119** · `hickory-proto` · 2026-05-01 · — — CPU exhaustion during message encoding due to O(n²) name compression
+- **RUSTSEC-2026-0120** · `hickory-net` · 2026-05-01 · — — NSEC3 closest-encloser proof validation enters unbounded loop on cross-zone responses
+- **RUSTSEC-2026-0121** · `steamworks` · 2026-05-05 · — — Denial of service in Steamworks game clients/servers using P2P authentication
+- **RUSTSEC-2026-0122** · `rkyv` · 2026-04-23 · — [UNSOUND] — Potential use-after-free due to lack of panic safety in `InlineVec::clear` and `SerVec::clear`
+- **RUSTSEC-2026-0123** · `rustdx` · 2026-05-02 · — [UNSOUND] — Out-of-bounds read in `bytes_helper` public safe functions
+- **RUSTSEC-2026-0124** · `libcrux-chacha20poly1305` · 2026-03-29 · — — Potential Panic on Overlong Ciphertext Buffer
+- **RUSTSEC-2026-0125** · `libcrux-ml-dsa` · 2026-05-05 · — — Signature Verification on AVX2 Platforms Mishandles Edge Case
+- **RUSTSEC-2026-0126** · `libcrux-ml-dsa` · 2026-04-27 · — [NOTICE] — AVX2 Implementation Did Not Fully Reduce Intermediate Values
+- **RUSTSEC-2026-0127** · `accessor` · 2026-05-02 · — [UNSOUND] — Integer overflow in `array::ReadWrite::new()` leading to potential memory corruption
+- **RUSTSEC-2026-0128** · `emap` · 2026-05-02 · — [UNSOUND] — Double-free and use-after-free in `Keys::next()`
+- **RUSTSEC-2026-0129** · `dahl-salso` · 2026-05-02 · — [UNSOUND] — Buffer overflow in `Clusterings::from_i32_column_major_order()`
+- **RUSTSEC-2026-0130** · `caja` · 2026-05-02 · — [UNSOUND] — Out-of-bounds read/write in `Index` and `IndexMut` implementations
+- **RUSTSEC-2026-0131** · `bitchomp` · 2026-05-02 · — [UNSOUND] — Double-free in `Chomp::inner()`
+- **RUSTSEC-2026-0132** · `ssdeep` · 2026-05-02 · — [UNSOUND] — Potential out-of-bounds write via public `Context` fields
+- **RUSTSEC-2026-0133** · `auto_vec` · 2026-05-02 · — [UNSOUND] — Invalid pointer arithmetic in `iter()` and `iter_mut()`
+- **RUSTSEC-2026-0134** · `diesel` · 2026-04-24 · — [UNSOUND] — Unsound access to padding bytes while serializing date/time values using the Mysql backend
+- **RUSTSEC-2026-0135** · `diesel` · 2026-04-24 · — [UNSOUND] — Unsound transmute while debug/display printing batch Insert statements in Diesel's SQLite backend
+- **RUSTSEC-2026-0136** · `diesel` · 2026-04-24 · — — Command injection in Diesel's implementation of `COPY FROM`/`COPY TO`
+- **RUSTSEC-2026-0137** · `diesel` · 2026-04-24 · — — Possible unaligned data access for implementations of `SqliteAggregate`
+- **RUSTSEC-2026-0138** · `diesel-async` · 2026-04-30 · — [UNSOUND] — Unsound access to padding bytes while serializing date/time values using the Mysql backend
+- **RUSTSEC-2026-0139** · `metacall` · 2026-05-02 · — [UNSOUND] — Null-pointer dereference and double-free via safe APIs
+- **RUSTSEC-2026-0140** · `dynoxide-rs` · 2026-05-12 · CVE-2026-42559 — DNS rebinding and cross-origin CSRF in dynoxide's MCP HTTP transport
+- **RUSTSEC-2026-0141** · `lettre` · 2026-05-14 · CVE-2026-46428 — TLS hostname verification disabled when using Boring TLS backend
+- **RUSTSEC-2026-0142** · `mutringbuf` · 2026-05-14 · — [UNSOUND] — Double-free in `vmem` storage reachable from safe Rust (predecessor of `oneringbuf`)
+- **RUSTSEC-2026-0143** · `oneringbuf` · 2026-05-14 · — [UNSOUND] — Double-free in `vmem` storage reachable from safe Rust
+- **RUSTSEC-2026-0144** · `anchor-lang` · 2026-05-07 · CVE-2026-45137 — `Program<System>` accepts arbitrary executable programs
+- **RUSTSEC-2026-0145** · `astral-tokio-tar` · 2026-05-18 · — — PAX Header Desynchronization in astral-tokio-tar
+- **RUSTSEC-2026-0146** · `anchor-lang` · 2026-05-08 · — — `InterfaceAccount` allows account substitution between unexpected types
+- **RUSTSEC-2026-0147** · `boxlite` · 2026-05-16 · CVE-2026-46695 — Read-only volume remount bypass via guest CAP_SYS_ADMIN
+- **RUSTSEC-2026-0148** · `boxlite` · 2026-05-16 · CVE-2026-46703 — OCI layer symlink escape → arbitrary host write
+- **RUSTSEC-2026-0149** · `wasmtime-wasi` · 2026-05-21 · CVE-2026-47261 — WASI path_open(TRUNCATE) bypasses `FilePerms::WRITE` host restriction
+- **RUSTSEC-2026-0150** · `audiopus_sys` · 2026-05-21 · — [UNMAINTAINED] — audiopus_sys is unmaintained
+- **RUSTSEC-2026-0151** · `jxl-grid` · 2026-05-29 · CVE-2026-52834 — Out-of-bounds writes due to integer overflow in jxl-grid on 32-bit platforms
+- **RUSTSEC-2026-0152** · `oneringbuf` · 2026-05-27 · — — Use-after-free
+- **RUSTSEC-2026-0153** · `russh-cryptovec` · 2026-05-15 · CVE-2026-46673 — Unchecked `CryptoVec` allocation and growth handling
+- **RUSTSEC-2026-0154** · `russh` · 2026-05-15 · CVE-2026-46673 — Unbounded 32-bit allocation
+- **RUSTSEC-2026-0155** · `exploration` · 2026-06-02 · — — `exploration` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0156** · `metacall` · 2026-06-01 · — — Bad-free in `MetaCallException::new`
+- **RUSTSEC-2026-0157** · `metacall` · 2026-06-01 · — [UNSOUND] — Several memory corruption issues via safe APIs
+- **RUSTSEC-2026-0158** · `matrix-sdk-ui` · 2026-06-03 · CVE-2026-45057 — Incomplete message edit validation in matrix-sdk-ui
+- **RUSTSEC-2026-0159** · `matrix-sdk-crypto` · 2026-06-03 · CVE-2026-45056 — Sender-binding gaps in to-device messages
+- **RUSTSEC-2026-0160** · `pqcrypto-sphincsplus` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-sphincsplus` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0161** · `pqcrypto-mlkem` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-mlkem` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0162** · `pqcrypto-traits` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-traits` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0163** · `pqcrypto-internals` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-internals` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0164** · `pqcrypto` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0165** · `pqcrypto-falcon` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-falcon` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0166** · `pqcrypto-mldsa` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-mldsa` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0167** · `pqcrypto-classicmceliece` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-classicmceliece` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0168** · `pqcrypto-hqc` · 2026-06-04 · — [UNMAINTAINED] — `pqcrypto-hqc` is unmaintained: upstream PQClean project being archived
+- **RUSTSEC-2026-0169** · `surf` · 2026-06-04 · — [UNMAINTAINED] — surf is unmaintained
+- **RUSTSEC-2026-0170** · `tide` · 2026-06-04 · — [UNMAINTAINED] — tide is unmaintained
+- **RUSTSEC-2026-0171** · `logflux` · 2026-06-03 · — — `logflux` was removed from crates.io for malicious code
+- **RUSTSEC-2026-0172** · `diesel` · 2026-06-05 · — [UNSOUND] — Possible use after free when deserializing a SQLite database via `SqliteConnection::deserialize_readonly_database`
+- **RUSTSEC-2026-0173** · `proc-macro-error2` · 2026-06-07 · — [UNMAINTAINED] — proc-macro-error2 is unmaintained
+- **RUSTSEC-2026-0174** · `http-types` · 2026-03-11 · — [NOTICE] — `Authorization::value` and `WwwAuthenticate::value` can violate ASCII invariants
+- **RUSTSEC-2026-0175** · `onering` · 2026-06-10 · — — `onering` 1.4.1 was removed from crates.io for malicious code
+- **RUSTSEC-2026-0176** · `pyo3` · 2026-06-11 · — — Out-of-bounds read in `nth` / `nth_back` for `PyList` and `PyTuple` iterators
+- **RUSTSEC-2026-0177** · `pyo3` · 2026-06-11 · — — Missing `Sync` bound on `PyCFunction::new_closure` closures
+- **RUSTSEC-2026-0178** · `tokio-postgres` · 2026-06-12 · — — Panic on a `DataRow` with fewer fields than columns allows denial of service
+- **RUSTSEC-2026-0179** · `postgres-protocol` · 2026-06-12 · — — Unbounded SCRAM iteration count allows a malicious server to cause CPU-exhaustion denial of service
+- **RUSTSEC-2026-0180** · `postgres-protocol` · 2026-06-12 · — — Panic decoding a malformed `hstore` value allows denial of service
+- **RUSTSEC-2026-0181** · `vibeio-http` · 2026-06-06 · — — DoS vulnerability in HTTP/1.x chunked encoding parser triggered by maliciously crafted chunk lengths
+- **RUSTSEC-2026-0182** · `wasmtime-wasi` · 2026-06-15 · CVE-2026-54786 — Leak in WASIp1 `fd_renumber` implementation
+- **RUSTSEC-2026-0183** · `git2` · 2026-05-12 · — [UNSOUND] — Potential undefined behavior when calling Remote::list()
+- **RUSTSEC-2026-0184** · `git2` · 2026-05-13 · — [UNSOUND] — Potential undefined behavior with Signature from a buffer-created BlameHunk
+- **RUSTSEC-2026-0185** · `quinn-proto` · 2026-06-22 · CVE-2026-25800 — Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly
+- **RUSTSEC-2026-0186** · `memmap2` · 2026-06-20 · — [UNSOUND] — Unchecked pointer offset in crate `memmap2`
+- **RUSTSEC-2026-0187** · `lopdf` · 2026-06-21 · — — Stack overflow in lopdf via deeply nested PDF objects
+- **RUSTSEC-2026-0188** · `wasmtime-wasi` · 2026-06-24 · CVE-2026-58494 — WASI hard links and renames bypass wasmtime-wasi's FilePerms for destination
+- **RUSTSEC-2026-0189** · `rmcp` · 2026-04-29 · CVE-2026-42559 — DNS rebinding vulnerability in rmcp Streamable HTTP server transport
+- **RUSTSEC-2026-0190** · `anyhow` · 2026-06-25 · — [UNSOUND] — Unsoundness in `Error::downcast_mut()`
+- **RUSTSEC-2026-0191** · `solana_rbpf` · 2026-05-28 · — [UNSOUND] — `EbpfVm::invoke_function` performs out-of-bounds pointer arithmetic
+- **RUSTSEC-2026-0192** · `ttf-parser` · 2026-06-28 · — [UNMAINTAINED] — `ttf-parser` is unmaintained
+- **RUSTSEC-2026-0193** · `ammonia` · 2026-06-30 · CVE-2026-63430 — mXSS in ammonia via MathML `annotation-xml` encoding strip
+- **RUSTSEC-2026-0194** · `quick-xml` · 2026-06-29 · — — Quadratic run time when checking a start tag for duplicate attribute names
+- **RUSTSEC-2026-0195** · `quick-xml` · 2026-06-29 · — — Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service
+- **RUSTSEC-2026-0196** · `cgmath` · 2026-07-01 · — [UNMAINTAINED] — `cgmath` is unmaintained
+- **RUSTSEC-2026-0197** · `cgmath` · 2026-03-11 · — [UNSOUND] — `Matrix{2,3,4}::swap_columns` can trigger undefined behavior for identical indices
+- **RUSTSEC-2026-0198** · `error-stack` · 2026-07-03 · — [UNSOUND] — `Report::frames_mut` allows aliased mutable references
+- **RUSTSEC-2026-0199** · `bcrypt` · 2026-06-20 · — — Panic in `bcrypt::verify` on non-ASCII hash input
+- **RUSTSEC-2026-0200** · `fulgur` · 2026-07-05 · CVE-2026-68523 — Unbounded page slicing from attacker-controlled CSS height causes denial of service
+- **RUSTSEC-2026-0201** · `fulgur` · 2026-07-05 · CVE-2026-68537 — Non-painting replaced elements amplify to thousands of blank PDF pages (denial of service)
+- **RUSTSEC-2026-0202** · `cxx` · 2026-07-05 · — [UNSOUND] — `let_cxx_string!` uses uninitialized value due to exception safety violations
+- **RUSTSEC-2026-0203** · `tree-sitter-perl-next` · 2026-07-06 · — [UNMAINTAINED] — `tree-sitter-perl-next` is unmaintained
+- **RUSTSEC-2026-0204** · `crossbeam-epoch` · 2026-07-06 · — — Invalid pointer dereference in `fmt::Pointer` impl for `Atomic` and `Shared` when the underlying pointer is invalid
+- **RUSTSEC-2026-0205** · `scc` · 2026-07-06 · — [UNSOUND] — `Array::insert` violates exception safety if compare function panics, leading to potential Double-Free
+- **RUSTSEC-2026-0206** · `rustybuzz` · 2026-07-11 · — [UNMAINTAINED] — `rustybuzz` is unmaintained
+- **RUSTSEC-2026-0207** · `libcrux-sha3` · 2026-04-22 · — — Incorrect Output of Incremental Portable SHAKE API on Multiple Squeeze Calls
+- **RUSTSEC-2026-0208** · `libcrux-sha3` · 2026-05-21 · — — Potential Panic in AVX2 SHAKE-256
+- **RUSTSEC-2026-0209** · `libcrux-aesgcm` · 2026-06-09 · — — AES-GCM did not enforce limits on AAD length
+- **RUSTSEC-2026-0210** · `libcrux-aesgcm` · 2026-07-15 · — [UNMAINTAINED] — `libcrux-aesgcm` Renamed to `libcrux-aes`
+- **RUSTSEC-2026-0211** · `libcrux-aesgcm` · 2026-07-14 · — — Non-constant time Authentication Tag Check in AES-GCM Decryption
+- **RUSTSEC-2026-0212** · `libcrux-secrets` · 2026-05-26 · — — Potentially Incorrect Output of Constant-Time Swap/Select on Aarch64
+- **RUSTSEC-2026-0213** · `ammonia` · 2026-07-21 · — — XSS in ammonia via SVG `animate` and `set` animation tags
+- **RUSTSEC-2026-0214** · `gumdrop` · 2026-07-22 · — [UNMAINTAINED] — gumdrop is unmaintained
+- **RUSTSEC-2026-0215** · `smallstr` · 2026-07-22 · — [UNMAINTAINED] — smallstr is unmaintained
+- **RUSTSEC-2026-0216** · `nostr` · 2026-07-25 · — — Remote Denial of Service via malformed NIP‑44 v2 payload
+- **RUSTSEC-2026-0217** · `tract-nnef` · 2026-06-18 · CVE-2026-55093 — Integer overflow in tract-nnef NNEF tensor parser leads to out-of-bounds read on model load
+- **RUSTSEC-2026-0218** · `enum-map` · 2026-07-21 · — [UNSOUND] — `Enum` trait allows type confusion when manually implemented
+- **RUSTSEC-2026-0219** · `nostr` · 2026-07-26 · — — Remote Denial of Service via malformed NIP-04 IV
+- **RUSTSEC-2026-0220** · `ruint` · 2026-07-08 · — — Uint shift operations: incorrect overflow flags and truncated shift amounts
+- **RUSTSEC-2026-0221** · `event-listener` · 2026-07-13 · — [UNSOUND] — `event-listener` allows `!Send` tags to cross thread boundaries via `StackSlot`
+- **RUSTSEC-2026-0222** · `wasmtime` · 2026-07-31 · — — Stores can mix up type indices between engines
+- **RUSTSEC-2026-0223** · `wasmtime` · 2026-07-31 · — — Preemption and traps during bulk operations enable breaking internal VM state
+- **RUSTSEC-2026-0224** · `nostr-relay-pool` · 2026-08-01 · — — Verification cache poisoning allows forged Nostr events to bypass signature validation
+- **RUSTSEC-2026-0225** · `nostr` · 2026-08-01 · — — Debug output exposes NIP-46 and NIP-60 credentials
+- **RUSTSEC-2026-0226** · `nostr` · 2026-08-01 · — — Wallet event parsers accept unauthenticated events
+- **RUSTSEC-2026-0227** · `nostr` · 2026-08-01 · — — NIP-44 v2 decryption permits resource exhaustion
+- **RUSTSEC-2026-0228** · `nostr` · 2026-08-01 · — — NIP-04 parsing amplifies malformed ciphertext memory use
+- **RUSTSEC-2026-0229** · `nostr` · 2026-08-01 · — — NIP-98 authorization parsing permits resource exhaustion
+- **RUSTSEC-2026-0230** · `nostr` · 2026-08-01 · — — Empty NIP-50 search filters can panic
+- **RUSTSEC-2026-0231** · `nostr-relay-pool` · 2026-08-01 · — — Relay authentication challenges can exhaust memory
+- **RUSTSEC-2026-0232** · `nostr-relay-pool` · 2026-08-01 · — — Processing of unverified relay events
+- **RUSTSEC-2026-0233** · `rkyv` · 2026-05-11 · — — Crafted archives can cause a use-after-free during deserialization
+- **RUSTSEC-2026-0234** · `rkyv` · 2026-05-11 · — — Insufficient archive validation can cause out-of-bounds reads in archives containing hash tables
+- **RUSTSEC-2026-0235** · `rkyv` · 2026-05-13 · — — Insufficient archive validation can cause out-of-bounds reads in archives containing Rc/Arc
+- **RUSTSEC-2026-0236** · `viperjs` · 2026-08-06 · — — A `BigInt` division panics, and two neighbouring operations answer wrongly in silence
+- **RUSTSEC-2026-0237** · `nostr-relay-builder` · 2026-08-03 · — [UNMAINTAINED] — `nostr-relay-builder` is unmaintained
+- **RUSTSEC-2026-0238** · `dcrypt-algorithms` · 2026-08-09 · — — Low-level GCM ignores the operation nonce
+- **RUSTSEC-2026-0239** · `dcrypt-symmetric` · 2026-08-09 · — — Streaming AEAD does not authenticate stream structure
+- **RUSTSEC-2026-0240** · `dcrypt-sign` · 2026-08-09 · — — Ed25519 identity public keys permit universal signature forgery
+- **RUSTSEC-2026-0241** · `nostr-keyring` · 2026-08-03 · — [UNMAINTAINED] — `nostr-keyring` is unmaintained
+- **RUSTSEC-2026-0242** · `dcrypt-api` · 2026-08-09 · — — Safe ErrorRegistry APIs can cause undefined behavior
+- **RUSTSEC-2026-0243** · `nostr-relay-pool` · 2026-08-03 · — [UNMAINTAINED] — `nostr-relay-pool` is unmaintained
+- **RUSTSEC-2026-0244** · `gettext-rs` · 2026-08-06 · — [UNSOUND] — `setlocale` and `TextDomain::init` are unsound as they access environment with no synchronization
+- **RUSTSEC-2026-0245** · `sevenz-rust` · 2026-08-06 · — — Relative/Absolute Path Traversal (CWE-23/CWE-36) in `decompress_impl` that enables an arbitrary file write.
+- **RUSTSEC-2026-0246** · `sevenz-rust` · 2026-08-06 · — [UNMAINTAINED] — `sevenz-rust` is unmaintained
+- **RUSTSEC-2026-0247** · `bitmaps` · 2026-05-03 · — [UNMAINTAINED] — bitmaps is unmaintained
+- **RUSTSEC-2026-0248** · `im` · 2026-05-03 · — [UNMAINTAINED] — im is unmaintained
+- **RUSTSEC-2026-0249** · `smartstring` · 2026-05-03 · — [UNMAINTAINED] — smartstring is unmaintained
+- **RUSTSEC-2026-0250** · `im-rc` · 2026-05-03 · — [UNMAINTAINED] — im-rc is unmaintained
+- **RUSTSEC-2026-0251** · `sized-chunks` · 2026-05-03 · — [UNMAINTAINED] — sized-chunks is unmaintained
+- **RUSTSEC-2026-0252** · `orx-split-vec` · 2026-08-11 · — [UNSOUND] — Panic-safety unsoundness in `SplitVec::extend_from_slice` (uninitialized read)
+- **RUSTSEC-2026-0253** · `lru` · 2026-05-12 · — [UNSOUND] — Potential use-after-free due to lack of panic safety in `LruCache::pop()`
+- **RUSTSEC-2026-0254** · `sp-sized-chunks` · 2026-08-11 · — [UNSOUND] — Panic-safety unsoundness in `Chunk` and `InlineArray` (use-after-free / double-free)
+- **RUSTSEC-2026-0255** · `sized-chunks` · 2026-08-11 · — [UNSOUND] — Panic-safety unsoundness in `Chunk`, `RingBuffer`, and `InlineArray` (use-after-free / double-free)
+- **RUSTSEC-2026-0256** · `circular-buffer` · 2026-08-11 · — [UNSOUND] — Panic-safety unsoundness in `truncate_back`, `truncate_front`, `clear`, and `extend_from_slice` (use-after-free / double-free)
+- **RUSTSEC-2026-0257** · `webbrowser` · 2026-07-29 · — — Unix `BROWSER` handling allows browser argument injection
+- **RUSTSEC-2026-0258** · `h2` · 2026-08-17 · — — h2 unbounded empty DATA frames
+- **RUSTSEC-2026-0259** · `arone` · 2026-08-20 · — — `arone` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0260** · `arrayref` · 2026-08-20 · — — `arrayref` 0.3.10 was removed from crates.io due to a malicious dependency
+- **RUSTSEC-2026-0261** · `aronenao` · 2026-08-20 · — — `aronenao` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0262** · `append-only-vec` · 2026-08-20 · — — `append-only-vec` 0.1.9 was removed from crates.io due to a malicious dependency
+- **RUSTSEC-2026-0263** · `tinymember` · 2026-08-20 · — — `tinymember` was removed from crates.io due to affiliation with malicious code
+- **RUSTSEC-2026-0264** · `proc-macro-en` · 2026-08-20 · — — `proc-macro-en` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0265** · `proc-macro1` · 2026-08-20 · — — `proc-macro1` was removed from crates.io due to malicious code
+- **RUSTSEC-2026-0266** · `internment` · 2026-08-20 · — — `internment` 0.8.7 was removed from crates.io due to a malicious dependency
+- **RUSTSEC-2026-0267** · `stable-vec` · 2026-08-24 · — [UNSOUND] — Panic-safety unsoundness in `BitVecCore::clear` (double-free / use-after-free)
+- **RUSTSEC-2026-0268** · `wasmtime` · 2026-08-20 · — — Guest controlled-size host heap allocation through WASIp3 streams
+- **RUSTSEC-2026-0269** · `wasmtime` · 2026-08-20 · — — Filesystem sandbox escape when paths or symlinks contain trailing slashes
+- **RUSTSEC-2026-0270** · `sp-sized-chunks` · 2026-08-11 · — [UNMAINTAINED] — `sp-sized-chunks` is unmaintained
+- **RUSTSEC-2026-0271** · `suppaftp` · 2026-08-18 · — — FTP command injection via CRLF in control channel arguments
+- **RUSTSEC-2026-0272** · `stack_dst` · 2026-08-27 · — [UNSOUND] — Panic-safety unsoundness in `Stack::pop`, `Fifo::pop_front` and `Value::replace_stable` (use-after-free / double-free)
+- **RUSTSEC-2026-0273** · `manzana` · 2026-04-07 · — — Stubbed cryptography without warnings
+- **RUSTSEC-2026-0274** · `rtrb` · 2026-08-04 · — — Double free / use-after-free in `ReadChunk::commit` when an element's `Drop` panics
+- **RUSTSEC-2026-0275** · `azure_core` · 2026-08-15 · — — Legacy `azure_core` writes the `authorization` header value to logs
+- **RUSTSEC-2026-0276** · `apimock` · 2026-08-26 · — — Path traversal in apimock's file-serving fallback
+- **RUSTSEC-2026-0277** · `apimock-server` · 2026-08-26 · — — Path traversal in apimock-server's file-serving fallback
+- **RUSTSEC-2026-0278** · `zbus_polkit` · 2026-08-31 · CVE-2026-78422 — `zbus_polkit`: authorization bypass via PID reuse
+- **RUSTSEC-2026-0279** · `rojo` · 2026-06-02 · — — Rojo development server vulnerable to DNS rebinding, allowing unauthenticated read/write access and local program execution
+- **RUSTSEC-2026-0280** · `greentic-setup-dev` · 2026-09-07 · — — `greentic-setup-dev` 1.3.34027618345 was removed from crates.io due to containing malicious code
+- **RUSTSEC-2026-0281** · `greentic-setup` · 2026-09-07 · — — `greentic-setup` 1.3.1-dev.34027618345 was removed from crates.io due to containing malicious code
+- **RUSTSEC-2026-0282** · `aligned_box` · 2026-09-09 · — — Double free in `AlignedBox<[T]>::realloc_with_default` when an element's `Drop` panics
+- **RUSTSEC-2026-0283** · `clear_on_drop` · 2026-09-13 · — [UNMAINTAINED] — clear_on_drop is unmaintained
+- **RUSTSEC-2026-0284** · `lockfree` · 2026-08-26 · — [UNSOUND] — Double free in `Map::into_iter` and an uninitialized `Arc` in `SharedIncin::clear`
+- **RUSTSEC-2026-0285** · `rustls` · 2026-09-14 · — — TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries
+- **RUSTSEC-2026-0286** · `cryptoki` · 2026-09-16 · — — Out-of-bounds read when decoding CKA_ALLOWED_MECHANISMS
+
+## Rust toolchain (rustc, std, cargo, rustdoc) — ALL 39 NVD CVEs for vendor rust-lang
+- Complete NVD list 2018 → today. RustSec `rust/` folder is stale (stops 2023), so this section is the real toolchain record. `✓` = also in the RustSec list above.
+- **CVE-2018-1000622** · 2018-07-09 · CVSS 7.8 ✓ — The Rust Programming Language rustdoc version Between 0.8 and 1.27.0 contains a CWE-427: Uncontrolled Search Path Element vulnerability in rustdoc plugins that can result in local code execution as a 
+- **CVE-2018-1000657** · 2018-08-20 · CVSS 7.8 ✓ — Rust Programming Language Rust standard library version Commit bfa0e1f58acf1c28d500c34ed258f09ae021893e and later; stable release 1.3.0 and later contains a Buffer Overflow vulnerability in std::colle
+- **CVE-2018-1000810** · 2018-10-08 · CVSS 9.8 ✓ — The Rust Programming Language Standard Library version 1.29.0, 1.28.0, 1.27.2, 1.27.1, 127.0, 126.2, 126.1, 126.0 contains a CWE-680: Integer Overflow to Buffer Overflow vulnerability in standard libr
+- **CVE-2019-12083** · 2019-05-13 · CVSS 8.1 ✓ — The Rust Programming Language Standard Library 1.34.x before 1.34.2 contains a stabilized method which, if overridden, can violate Rust's safety guarantees and cause memory unsafety. If the `Error::ty
+- **CVE-2019-1010299** · 2019-07-15 · CVSS 5.3 ✓ — The Rust Programming Language Standard Library 1.18.0 and later is affected by: CWE-200: Information Exposure. The impact is: Contents of uninitialized memory could be printed to string or to log file
+- **CVE-2019-16760** · 2019-09-30 · CVSS 4.6 ✓ — Cargo prior to Rust 1.26.0 may download the wrong dependency if your package.toml file uses the `package` configuration key. Usage of the `package` key to rename dependencies in `Cargo.toml` is ignore
+- **CVE-2020-26281** · 2020-12-21 · CVSS 6.8 ✓ — async-h1 is an asynchronous HTTP/1.1 parser for Rust (crates.io). There is a request smuggling vulnerability in async-h1 before version 2.3.0. This vulnerability affects any webserver that uses async-
+- **CVE-2020-35905** · 2020-12-31 · CVSS 4.7 ✓ — An issue was discovered in the futures-util crate before 0.3.7 for Rust. MutexGuard::map can cause a data race for certain closure situations (in safe code).
+- **CVE-2020-35906** · 2020-12-31 · CVSS 7.8 ✓ — An issue was discovered in the futures-task crate before 0.3.6 for Rust. futures_task::waker may cause a use-after-free in a non-static type situation.
+- **CVE-2020-35907** · 2020-12-31 · CVSS 5.5 ✓ — An issue was discovered in the futures-task crate before 0.3.5 for Rust. futures_task::noop_waker_ref allows a NULL pointer dereference.
+- **CVE-2020-35908** · 2020-12-31 · CVSS 5.5 ✓ — An issue was discovered in the futures-util crate before 0.3.2 for Rust. FuturesUnordered can lead to data corruption because Sync is mishandled.
+- **CVE-2020-35920** · 2020-12-31 · CVSS 5.5 ✓ — An issue was discovered in the socket2 crate before 0.3.16 for Rust. It has false expectations about the std::net::SocketAddr memory representation.
+- **CVE-2020-26297** · 2021-01-04 · CVSS 8.2 ✓ — mdBook is a utility to create modern online books from Markdown files and is written in Rust. In mdBook before version 0.4.5, there is a vulnerability affecting the search feature of mdBook, which cou
+- **CVE-2020-36202** · 2021-01-26 · CVSS 6.1 ✓ — An issue was discovered in the async-h1 crate before 2.3.0 for Rust. Request smuggling can occur when used behind a reverse proxy.
+- **CVE-2015-20001** · 2021-04-11 · CVSS 7.5 ✓ — In the standard library in Rust before 1.2.0, BinaryHeap is not panic-safe. The binary heap is left in an inconsistent state when the comparison of generic elements inside sift_up or sift_down_range p
+- **CVE-2020-36317** · 2021-04-11 · CVSS 7.5 ✓ — In the standard library in Rust before 1.49.0, String::retain() function has a panic safety problem. It allows creation of a non-UTF-8 Rust string when the provided closure panics. This bug could resu
+- **CVE-2020-36318** · 2021-04-11 · CVSS 9.8 ✓ — In the standard library in Rust before 1.49.0, VecDeque::make_contiguous has a bug that pops the same element more than once under certain condition. This bug could result in a use-after-free or doubl
+- **CVE-2021-28875** · 2021-04-11 · CVSS 7.5 ✓ — In the standard library in Rust before 1.50.0, read_to_end() does not validate the return value from Read in an unsafe context. This bug could lead to a buffer overflow.
+- **CVE-2021-28876** · 2021-04-11 · CVSS 5.3 ✓ — In the standard library in Rust before 1.52.0, the Zip implementation has a panic safety issue. It calls __iterator_get_unchecked() more than once for the same index when the underlying iterator panic
+- **CVE-2021-28877** · 2021-04-11 · CVSS 7.5 ✓ — In the standard library in Rust before 1.51.0, the Zip implementation calls __iterator_get_unchecked() for the same index more than once when nested. This bug can lead to a memory safety violation due
+- **CVE-2021-28878** · 2021-04-11 · CVSS 7.5 ✓ — In the standard library in Rust before 1.52.0, the Zip implementation calls __iterator_get_unchecked() more than once for the same index (under certain conditions) when next_back() and next() are used
+- **CVE-2021-28879** · 2021-04-11 · CVSS 9.8 ✓ — In the standard library in Rust before 1.52.0, the Zip implementation can report an incorrect size due to an integer overflow. This bug can lead to a buffer overflow when a consumed Zip iterator is us
+- **CVE-2017-20004** · 2021-04-14 · CVSS 5.9 ✓ — In the standard library in Rust before 1.19.0, there is a synchronization problem in the MutexGuard object. MutexGuards can be used across threads with any types, allowing for memory safety issues thr
+- **CVE-2018-25008** · 2021-04-14 · CVSS 5.9 ✓ — In the standard library in Rust before 1.29.0, there is weak synchronization in the Arc::get_mut method. This synchronization issue can be lead to memory safety issues through race conditions.
+- **CVE-2020-36323** · 2021-04-14 · CVSS 8.2 ✓ — In the standard library in Rust before 1.52.0, there is an optimization for joining strings that can cause uninitialized bytes to be exposed (or the program to crash) if the borrowed string changes af
+- **CVE-2021-31162** · 2021-04-14 · CVSS 9.8 ✓ — In the standard library in Rust before 1.52.0, a double free can occur in the Vec::from_iter function if freeing the element panics.
+- **CVE-2021-29922** · 2021-08-07 · CVSS 9.1 ✓ — library/std/src/net/parser.rs in Rust before 1.53.0 does not properly consider extraneous zero characters at the beginning of an IP address string, which (in some situations) allows attackers to bypas
+- **CVE-2022-21658** · 2022-01-20 · CVSS 7.3 ✓ — Rust is a multi-paradigm, general-purpose programming language designed for performance and safety, especially safe concurrency. The Rust Security Response WG was notified that the `std::fs::remove_di
+- **CVE-2022-24713** · 2022-03-08 · CVSS 7.5 ✓ — regex is an implementation of regular expressions for the Rust language. The regex crate features built-in mitigations to prevent denial of service attacks caused by untrusted regexes, or untrusted in
+- **CVE-2022-36113** · 2022-09-14 · CVSS 4.6 — Cargo is a package manager for the rust programming language. After a package is downloaded, Cargo extracts its source code in the ~/.cargo folder on disk, making it available to the Rust projects it 
+- **CVE-2022-36114** · 2022-09-14 · CVSS 4.8 — Cargo is a package manager for the rust programming language. It was discovered that Cargo did not limit the amount of data extracted from compressed archives. An attacker could upload to an alternate
+- **CVE-2022-46176** · 2023-01-11 · CVSS 5.3 — Cargo is a Rust package manager. The Rust Security Response WG was notified that Cargo did not perform SSH host key verification when cloning indexes and dependencies via SSH. An attacker could exploi
+- **CVE-2023-38497** · 2023-08-04 · CVSS 7.9 — Cargo downloads the Rust project’s dependencies and compiles the project. Cargo prior to version 0.72.2, bundled with Rust prior to version 1.71.1, did not respect the umask when extracting crate arch
+- **CVE-2023-40030** · 2023-08-24 · CVSS 6.1 — Cargo downloads a Rust project’s dependencies and compiles the project. Starting in Rust 1.60.0 and prior to 1.72, Cargo did not escape Cargo feature names when including them in the report generated 
+- **CVE-2024-24576** · 2024-04-09 · CVSS 10.0 — Rust is a programming language. The Rust Security Response WG was notified that the Rust standard library prior to version 1.77.2 did not properly escape arguments when invoking batch files (with the 
+- **CVE-2024-3566** · 2024-04-10 · CVSS 9.8 — A command inject vulnerability allows an attacker to perform command injection on Windows applications that indirectly depend on the CreateProcess function when the specific conditions are satisfied.
+- **CVE-2024-43402** · 2024-09-04 · CVSS 8.1 — Rust is a programming language. The fix for CVE-2024-24576, where `std::process::Command` incorrectly escaped arguments when invoking batch files on Windows, was incomplete. Prior to Rust version 1.81
+- **CVE-2026-5222** · 2026-05-25 · CVSS 6.5 — Cargo between 1.68 and 1.96 incorrectly normalized the URLs of third-party registries using the sparse index protocol. If a hosting provider allowed multiple registries to be hosted with arbitrary nam
+- **CVE-2026-5223** · 2026-05-25 · CVSS 5.3 — Cargo incorrectly handled symlinks inside of crate tarballs downloaded from third-party registries, allowing a malicious crate to override the source code of another crate from the same registry. The 
+
+## All unique CVE IDs (flat, for grep)
+CVE-2015-20001, CVE-2016-10931, CVE-2016-10932, CVE-2016-10933, CVE-2017-1000168, CVE-2017-1000430, CVE-2017-18587, CVE-2017-18588
+CVE-2017-18589, CVE-2017-20004, CVE-2018-1000622, CVE-2018-1000657, CVE-2018-1000810, CVE-2018-20989, CVE-2018-20990, CVE-2018-20991
+CVE-2018-20992, CVE-2018-20993, CVE-2018-20994, CVE-2018-20995, CVE-2018-20996, CVE-2018-20997, CVE-2018-20998, CVE-2018-20999
+CVE-2018-21000, CVE-2018-25001, CVE-2018-25008, CVE-2018-25023, CVE-2018-25024, CVE-2018-25025, CVE-2018-25026, CVE-2018-25027
+CVE-2018-25028, CVE-2019-1010299, CVE-2019-12083, CVE-2019-15542, CVE-2019-15543, CVE-2019-15544, CVE-2019-15545, CVE-2019-15546
+CVE-2019-15547, CVE-2019-15548, CVE-2019-15549, CVE-2019-15550, CVE-2019-15551, CVE-2019-15552, CVE-2019-15553, CVE-2019-15554
+CVE-2019-16137, CVE-2019-16138, CVE-2019-16139, CVE-2019-16140, CVE-2019-16141, CVE-2019-16142, CVE-2019-16143, CVE-2019-16144
+CVE-2019-16760, CVE-2019-16880, CVE-2019-16881, CVE-2019-16882, CVE-2019-20399, CVE-2019-25001, CVE-2019-25002, CVE-2019-25003
+CVE-2019-25004, CVE-2019-25005, CVE-2019-25006, CVE-2019-25007, CVE-2019-25008, CVE-2019-25009, CVE-2019-25010, CVE-2019-25054
+CVE-2019-25055, CVE-2020-13759, CVE-2020-15093, CVE-2020-15254, CVE-2020-1967, CVE-2020-25016, CVE-2020-25573, CVE-2020-25574
+CVE-2020-25575, CVE-2020-25576, CVE-2020-25791, CVE-2020-25792, CVE-2020-25793, CVE-2020-25794, CVE-2020-25795, CVE-2020-25796
+CVE-2020-26235, CVE-2020-26281, CVE-2020-26297, CVE-2020-28247, CVE-2020-35711, CVE-2020-35857, CVE-2020-35858, CVE-2020-35859
+CVE-2020-35860, CVE-2020-35861, CVE-2020-35862, CVE-2020-35863, CVE-2020-35864, CVE-2020-35865, CVE-2020-35866, CVE-2020-35867
+CVE-2020-35868, CVE-2020-35869, CVE-2020-35870, CVE-2020-35871, CVE-2020-35872, CVE-2020-35873, CVE-2020-35874, CVE-2020-35875
+CVE-2020-35876, CVE-2020-35877, CVE-2020-35878, CVE-2020-35879, CVE-2020-35880, CVE-2020-35881, CVE-2020-35882, CVE-2020-35883
+CVE-2020-35884, CVE-2020-35885, CVE-2020-35886, CVE-2020-35887, CVE-2020-35888, CVE-2020-35889, CVE-2020-35890, CVE-2020-35891
+CVE-2020-35892, CVE-2020-35893, CVE-2020-35894, CVE-2020-35895, CVE-2020-35896, CVE-2020-35897, CVE-2020-35898, CVE-2020-35899
+CVE-2020-35900, CVE-2020-35901, CVE-2020-35902, CVE-2020-35903, CVE-2020-35904, CVE-2020-35905, CVE-2020-35906, CVE-2020-35907
+CVE-2020-35908, CVE-2020-35909, CVE-2020-35910, CVE-2020-35911, CVE-2020-35912, CVE-2020-35913, CVE-2020-35914, CVE-2020-35915
+CVE-2020-35916, CVE-2020-35917, CVE-2020-35918, CVE-2020-35919, CVE-2020-35920, CVE-2020-35921, CVE-2020-35922, CVE-2020-35923
+CVE-2020-35924, CVE-2020-35925, CVE-2020-35926, CVE-2020-35927, CVE-2020-35928, CVE-2020-36202, CVE-2020-36203, CVE-2020-36204
+CVE-2020-36205, CVE-2020-36206, CVE-2020-36207, CVE-2020-36208, CVE-2020-36209, CVE-2020-36210, CVE-2020-36211, CVE-2020-36212
+CVE-2020-36213, CVE-2020-36214, CVE-2020-36215, CVE-2020-36216, CVE-2020-36217, CVE-2020-36218, CVE-2020-36219, CVE-2020-36220
+CVE-2020-36317, CVE-2020-36318, CVE-2020-36323, CVE-2020-36432, CVE-2020-36433, CVE-2020-36434, CVE-2020-36435, CVE-2020-36436
+CVE-2020-36437, CVE-2020-36438, CVE-2020-36439, CVE-2020-36440, CVE-2020-36441, CVE-2020-36442, CVE-2020-36443, CVE-2020-36444
+CVE-2020-36445, CVE-2020-36446, CVE-2020-36447, CVE-2020-36448, CVE-2020-36449, CVE-2020-36450, CVE-2020-36451, CVE-2020-36452
+CVE-2020-36453, CVE-2020-36454, CVE-2020-36455, CVE-2020-36456, CVE-2020-36457, CVE-2020-36458, CVE-2020-36459, CVE-2020-36460
+CVE-2020-36461, CVE-2020-36462, CVE-2020-36463, CVE-2020-36464, CVE-2020-36465, CVE-2020-36466, CVE-2020-36467, CVE-2020-36468
+CVE-2020-36469, CVE-2020-36470, CVE-2020-36471, CVE-2020-36472, CVE-2020-36511, CVE-2020-36512, CVE-2020-36513, CVE-2020-36514
+CVE-2020-36846, CVE-2020-8927, CVE-2021-20319, CVE-2021-21235, CVE-2021-21299, CVE-2021-23840, CVE-2021-23841, CVE-2021-25900
+CVE-2021-25901, CVE-2021-25902, CVE-2021-25903, CVE-2021-25904, CVE-2021-25905, CVE-2021-25906, CVE-2021-25907, CVE-2021-25908
+CVE-2021-26305, CVE-2021-26306, CVE-2021-26307, CVE-2021-26308, CVE-2021-26951, CVE-2021-26952, CVE-2021-26953, CVE-2021-26954
+CVE-2021-26955, CVE-2021-26956, CVE-2021-26957, CVE-2021-26958, CVE-2021-27376, CVE-2021-27377, CVE-2021-27378, CVE-2021-27671
+CVE-2021-28027, CVE-2021-28028, CVE-2021-28029, CVE-2021-28030, CVE-2021-28031, CVE-2021-28032, CVE-2021-28033, CVE-2021-28034
+CVE-2021-28035, CVE-2021-28036, CVE-2021-28037, CVE-2021-28305, CVE-2021-28306, CVE-2021-28307, CVE-2021-28308, CVE-2021-28875
+CVE-2021-28876, CVE-2021-28877, CVE-2021-28878, CVE-2021-28879, CVE-2021-29922, CVE-2021-29929, CVE-2021-29930, CVE-2021-29931
+CVE-2021-29932, CVE-2021-29933, CVE-2021-29934, CVE-2021-29935, CVE-2021-29936, CVE-2021-29937, CVE-2021-29938, CVE-2021-29939
+CVE-2021-29940, CVE-2021-29941, CVE-2021-29942, CVE-2021-3013, CVE-2021-30454, CVE-2021-30455, CVE-2021-30456, CVE-2021-30457
+CVE-2021-31153, CVE-2021-31154, CVE-2021-31155, CVE-2021-31162, CVE-2021-31919, CVE-2021-31996, CVE-2021-32629, CVE-2021-32714
+CVE-2021-32715, CVE-2021-32810, CVE-2021-3449, CVE-2021-3450, CVE-2021-36376, CVE-2021-36753, CVE-2021-3711, CVE-2021-3712
+CVE-2021-38186, CVE-2021-38187, CVE-2021-38188, CVE-2021-38189, CVE-2021-38190, CVE-2021-38191, CVE-2021-38192, CVE-2021-38193
+CVE-2021-38194, CVE-2021-38195, CVE-2021-38196, CVE-2021-38511, CVE-2021-38512, CVE-2021-39216, CVE-2021-39218, CVE-2021-39219
+CVE-2021-4044, CVE-2021-43620, CVE-2021-43790, CVE-2021-45680, CVE-2021-45681, CVE-2021-45682, CVE-2021-45683, CVE-2021-45684
+CVE-2021-45685, CVE-2021-45686, CVE-2021-45687, CVE-2021-45688, CVE-2021-45689, CVE-2021-45690, CVE-2021-45691, CVE-2021-45692
+CVE-2021-45693, CVE-2021-45694, CVE-2021-45695, CVE-2021-45696, CVE-2021-45697, CVE-2021-45698, CVE-2021-45699, CVE-2021-45700
+CVE-2021-45701, CVE-2021-45702, CVE-2021-45703, CVE-2021-45704, CVE-2021-45705, CVE-2021-45706, CVE-2021-45707, CVE-2021-45708
+CVE-2021-45709, CVE-2021-45710, CVE-2021-45711, CVE-2021-45712, CVE-2021-45713, CVE-2021-45714, CVE-2021-45715, CVE-2021-45716
+CVE-2021-45717, CVE-2021-45718, CVE-2021-45719, CVE-2021-45720, CVE-2022-0778, CVE-2022-1343, CVE-2022-1434, CVE-2022-1473
+CVE-2022-2097, CVE-2022-21658, CVE-2022-2274, CVE-2022-23486, CVE-2022-23636, CVE-2022-23639, CVE-2022-24713, CVE-2022-24791
+CVE-2022-29185, CVE-2022-31099, CVE-2022-31100, CVE-2022-31104, CVE-2022-31146, CVE-2022-31162, CVE-2022-31169, CVE-2022-31173
+CVE-2022-3212, CVE-2022-3358, CVE-2022-35737, CVE-2022-35922, CVE-2022-3602, CVE-2022-36086, CVE-2022-36113, CVE-2022-36114
+CVE-2022-3786, CVE-2022-39215, CVE-2022-39252, CVE-2022-39292, CVE-2022-39294, CVE-2022-39354, CVE-2022-39392, CVE-2022-39393
+CVE-2022-39394, CVE-2022-39397, CVE-2022-41874, CVE-2022-4203, CVE-2022-4304, CVE-2022-4450, CVE-2022-46149, CVE-2022-46176
+CVE-2022-50237, CVE-2023-0215, CVE-2023-0216, CVE-2023-0217, CVE-2023-0286, CVE-2023-0401, CVE-2023-22466, CVE-2023-22742
+CVE-2023-22895, CVE-2023-26489, CVE-2023-26964, CVE-2023-27477, CVE-2023-28448, CVE-2023-30610, CVE-2023-30624, CVE-2023-3766
+CVE-2023-38497, CVE-2023-39914, CVE-2023-40030, CVE-2023-41051, CVE-2023-41880, CVE-2023-42444, CVE-2023-42447, CVE-2023-42456
+CVE-2023-42805, CVE-2023-42811, CVE-2023-43669, CVE-2023-46277, CVE-2023-4863, CVE-2023-49092, CVE-2023-50711, CVE-2023-5129
+CVE-2023-53156, CVE-2023-53157, CVE-2023-53158, CVE-2023-53159, CVE-2023-53160, CVE-2023-53161, CVE-2023-6245, CVE-2024-11738
+CVE-2024-12224, CVE-2024-21491, CVE-2024-21530, CVE-2024-23644, CVE-2024-24576, CVE-2024-27284, CVE-2024-27308, CVE-2024-28854
+CVE-2024-30266, CVE-2024-32650, CVE-2024-32884, CVE-2024-34063, CVE-2024-35186, CVE-2024-35197, CVE-2024-35312, CVE-2024-35313
+CVE-2024-3566, CVE-2024-36400, CVE-2024-39697, CVE-2024-40640, CVE-2024-40644, CVE-2024-40648, CVE-2024-41178, CVE-2024-41815
+CVE-2024-43367, CVE-2024-43402, CVE-2024-43785, CVE-2024-4435, CVE-2024-45305, CVE-2024-45311, CVE-2024-45405, CVE-2024-47609
+CVE-2024-47763, CVE-2024-47813, CVE-2024-51745, CVE-2024-51756, CVE-2024-52813, CVE-2024-53856, CVE-2024-58261, CVE-2024-58262
+CVE-2024-58263, CVE-2024-58264, CVE-2024-58265, CVE-2024-58266, CVE-2024-7884, CVE-2024-9979, CVE-2025-22620, CVE-2025-24898
+CVE-2025-27591, CVE-2025-29787, CVE-2025-31130, CVE-2025-4366, CVE-2025-4432, CVE-2025-4574, CVE-2025-47737, CVE-2025-48935
+CVE-2025-48937, CVE-2025-53549, CVE-2025-53604, CVE-2025-53605, CVE-2025-53901, CVE-2025-55159, CVE-2025-5791, CVE-2025-58160
+CVE-2025-59047, CVE-2025-62370, CVE-2025-62518, CVE-2025-62711, CVE-2025-64345, CVE-2025-65947, CVE-2025-66016, CVE-2025-66017
+CVE-2025-66622, CVE-2025-67897, CVE-2025-69257, CVE-2025-8671, CVE-2026-0810, CVE-2026-22705, CVE-2026-23519, CVE-2026-24116
+CVE-2026-25541, CVE-2026-25727, CVE-2026-25800, CVE-2026-27195, CVE-2026-27204, CVE-2026-27572, CVE-2026-2833, CVE-2026-2835
+CVE-2026-2836, CVE-2026-30960, CVE-2026-31812, CVE-2026-32766, CVE-2026-32829, CVE-2026-33055, CVE-2026-33056, CVE-2026-3336
+CVE-2026-3337, CVE-2026-3338, CVE-2026-34941, CVE-2026-34942, CVE-2026-34943, CVE-2026-34944, CVE-2026-34945, CVE-2026-34946
+CVE-2026-34971, CVE-2026-34983, CVE-2026-34987, CVE-2026-34988, CVE-2026-35186, CVE-2026-35195, CVE-2026-42559, CVE-2026-44216
+CVE-2026-4428, CVE-2026-45056, CVE-2026-45057, CVE-2026-45137, CVE-2026-46428, CVE-2026-46673, CVE-2026-46695, CVE-2026-46703
+CVE-2026-47261, CVE-2026-5222, CVE-2026-5223, CVE-2026-52834, CVE-2026-54786, CVE-2026-55093, CVE-2026-58494, CVE-2026-63430
+CVE-2026-6654, CVE-2026-68523, CVE-2026-68537, CVE-2026-76234, CVE-2026-78422
+
+## How this note was made (repeat to refresh)
+- `git clone --depth 1 https://github.com/rustsec/advisory-db` → parse the TOML header of every `RUSTSEC-*.md` in `crates/` and `rust/` → one line per advisory. Zero entries skipped.
+- NVD API `cves/2.0?virtualMatchString=cpe:2.3:a:rust-lang` → every toolchain CVE (catches what RustSec misses, e.g. BatBadBut).
+
+## Links
+- [[Articles - Rust apps still ship hundreds of CVEs]]
+- [[Embedded security roadmap aims at a first hacking job and CVEs]]
+
+## Source
+- https://github.com/rustsec/advisory-db (cloned 2026-09-18)
+- https://rustsec.org/advisories/
+- https://services.nvd.nist.gov/rest/json/cves/2.0?virtualMatchString=cpe:2.3:a:rust-lang (fetched 2026-09-18)

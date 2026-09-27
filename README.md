@@ -8,6 +8,7 @@
 - [x86-64 Mastery](https://smalinux.github.io/notes-goblin/x86-64-mastery.html) — deep-dive lessons on x86-64 assembly
 - [x86-64 Cheatsheet](https://smalinux.github.io/notes-goblin/x86-64-cheatsheet.html) — quick reference
 - [Stack Visualizer](https://smalinux.github.io/notes-goblin/stack-visualizer.html) — interactive stack frame visualizer
+- [ASLR On vs Off · Process Memory](https://smalinux.github.io/notes-goblin/aslr-memory-layout.html) — side-by-side view of where stack, heap, libs & code land with and without ASLR
 - [x86-64 Segment Registers — Interactive Guide](https://smalinux.github.io/notes-goblin/segment_registers.html)
 - [Segment Registers in 32-bit x86 — A Complete Tutorial](https://smalinux.github.io/notes-goblin/segments_32.html)
 - [Segment Registers in x86-64 — A Complete Tutorial](https://smalinux.github.io/notes-goblin/segments_64.html)
@@ -29,5 +30,9 @@
 - [Mastering ELF with your own cat](https://smalinux.github.io/notes-goblin/elf-mastery.html) — byte-by-byte walkthrough of a real binary: header, segments, sections, GOT/PLT, and the startup path
 - [ELF · The Complete Anatomy](https://smalinux.github.io/notes-goblin/elf-anatomy.svg) — every structure, section & segment, and the exact tool + command to read each byte
 - [The ELF File Format](https://smalinux.github.io/notes-goblin/elf-format.svg) — visual guide to elf(5): every structure, where it lives in the file, and how the kernel + dynamic linker use it
+
+## Books
+
+- [Book Library](https://smalinux.github.io/notes-goblin/books.html) — the whole security/RE shelf in one place: covers, star ratings, reading status, page progress & notes (saved per browser)
 
 > Tip: view the raw HTML pages via GitHub Pages or [htmlpreview.github.io](https://htmlpreview.github.io/).

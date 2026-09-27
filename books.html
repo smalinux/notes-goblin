@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Library 🧌</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 20px 80px; }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 40px 24px 28px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 8px; font-size: 36px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 760px; margin: 0 auto; font-size: 15px; }
+
+  .stats {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px;
+  }
+  .stat {
+    background: #ffffff08; border: 1px solid var(--border); border-radius: 10px;
+    padding: 6px 16px; font-size: 13px; color: var(--dim);
+  }
+  .stat b { color: var(--fg); font-size: 16px; margin-right: 5px; }
+
+  .toolbar {
+    position: sticky; top: 0; z-index: 20; background: #0d1117ee; backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border); padding: 12px 0; margin-bottom: 10px;
+  }
+  .toolbar .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .toolbar input[type=search], .toolbar select, .toolbar button, dialog input, dialog select, dialog textarea {
+    background: var(--panel); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 10px; font-size: 13.5px; font-family: inherit;
+  }
+  .toolbar input[type=search] { flex: 1 1 200px; min-width: 160px; }
+  .toolbar select { cursor: pointer; }
+  .toolbar button, dialog button { cursor: pointer; }
+  .toolbar button:hover, dialog button:hover { border-color: var(--accent); }
+  .toolbar button.active { border-color: var(--yellow); color: var(--yellow); }
+  .spacer { flex: 1; }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 10px; margin: 34px 0 14px;
+    font-size: 20px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .dot { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+  h2.sec .count { color: var(--dim); font-weight: 400; font-size: 13px; margin-left: auto; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 14px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: #58a6ff66; }
+  .card.done { border-color: #3fb95055; }
+  .card.done::after {
+    content: "✓ DONE"; position: absolute; top: 10px; right: 10px;
+    background: #3fb950; color: #0d1117; font-size: 10.5px; font-weight: 800;
+    padding: 2px 8px; border-radius: 999px; letter-spacing: .5px;
+  }
+  .cover {
+    height: 210px; background: var(--panel2); display: flex; align-items: center;
+    justify-content: center; position: relative; border-bottom: 1px solid var(--border);
+  }
+  .cover img { max-height: 100%; max-width: 100%; object-fit: contain; }
+  .cover a { display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; }
+  .ph {
+    width: 130px; height: 180px; border-radius: 6px; display: flex; align-items: center;
+    justify-content: center; text-align: center; padding: 12px; font-weight: 700;
+    font-size: 13px; line-height: 1.35; color: #0d1117;
+  }
+  .badges { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .badge {
+    font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; letter-spacing: .5px;
+    width: fit-content;
+  }
+  .badge.core { background: var(--yellow); color: #0d1117; }
+  .badge.free { background: var(--cyan); color: #0d1117; }
+
+  .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .chip {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; width: fit-content; border: 1px solid;
+  }
+  .title { margin: 0; font-size: 15px; line-height: 1.35; }
+  .title a { color: var(--fg); }
+  .author { color: var(--dim); font-size: 12.5px; }
+  .blurb { margin: 0; color: var(--dim); font-size: 12.5px; line-height: 1.45; }
+
+  .stars { font-size: 20px; letter-spacing: 3px; cursor: pointer; user-select: none; line-height: 1; }
+  .stars span { color: #3a4453; transition: color .1s; }
+  .stars span.on { color: var(--yellow); }
+  .stars span:hover { transform: scale(1.1); display: inline-block; }
+
+  .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: auto; }
+  .controls select {
+    background: var(--panel2); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 7px; padding: 4px 6px; font-size: 12px; cursor: pointer;
+  }
+  .controls select.st-reading { border-color: #58a6ff88; color: var(--accent); }
+  .controls select.st-done { border-color: #3fb95088; color: var(--green); }
+  .controls select.st-stopped { border-color: #ff7b7288; color: var(--red); }
+  .pages { display: flex; align-items: center; gap: 3px; font-size: 12px; color: var(--dim); }
+  .pages input {
+    width: 52px; background: var(--panel2); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 5px; font-size: 12px; text-align: center;
+  }
+  .pages input::-webkit-outer-spin-button, .pages input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .pages input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+  .progress { height: 6px; background: var(--panel2); border-radius: 999px; overflow: hidden; }
+  .progress .bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple)); transition: width .2s; }
+  .card.done .progress .bar { background: var(--green); }
+  .card.stopped .progress .bar { background: var(--red); }
+  .meta { font-size: 11.5px; color: var(--dim); min-height: 15px; }
+  .meta .stop { color: var(--red); }
+  .meta .fin { color: var(--green); }
+
+  .notes-toggle {
+    background: none; border: none; color: var(--dim); font-size: 12px; cursor: pointer;
+    text-align: left; padding: 0; font-family: inherit;
+  }
+  .notes-toggle:hover { color: var(--accent); }
+  .notes-toggle.has { color: var(--orange); }
+  textarea.notes {
+    background: var(--code-bg); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px; font-size: 12.5px; font-family: inherit;
+    min-height: 64px; resize: vertical; width: 100%;
+  }
+  .del {
+    position: absolute; top: 8px; right: 8px; background: #ff7b7222; border: 1px solid #ff7b7255;
+    color: var(--red); border-radius: 6px; font-size: 11px; padding: 2px 7px; cursor: pointer;
+  }
+
+  dialog {
+    background: var(--panel); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px 24px; width: min(440px, 92vw);
+  }
+  dialog::backdrop { background: #000a; backdrop-filter: blur(3px); }
+  dialog h3 { margin: 0 0 14px; }
+  dialog form { display: flex; flex-direction: column; gap: 9px; }
+  dialog label { font-size: 12px; color: var(--dim); display: flex; flex-direction: column; gap: 3px; }
+  dialog .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+  dialog button.primary { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+
+  .empty { text-align: center; color: var(--dim); padding: 60px 0; font-size: 15px; }
+  footer { margin-top: 50px; text-align: center; color: var(--dim); font-size: 12.5px; border-top: 1px solid var(--border); padding-top: 18px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>📚 Book Library</h1>
+  <p>Reverse engineering &amp; security shelf. Covers link to Open Library. Ratings, reading status, page progress and notes are saved in this browser — use <b>Export</b> to back them up.</p>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div class="row">
+      <input type="search" id="q" placeholder="🔍 Search title, author, notes…">
+      <select id="fStatus">
+        <option value="">Status: all</option>
+        <option value="toread">📥 To read</option>
+        <option value="reading">📖 Reading</option>
+        <option value="done">✅ Done</option>
+        <option value="stopped">⏸ Stopped</option>
+      </select>
+      <select id="fCat"><option value="">Category: all</option></select>
+      <select id="fStars">
+        <option value="0">Rating: any</option>
+        <option value="1">★+</option><option value="2">★★+</option><option value="3">★★★+</option>
+        <option value="4">★★★★+</option><option value="5">★★★★★</option>
+      </select>
+      <select id="sort">
+        <option value="default">Sort: category</option>
+        <option value="title">Title A–Z</option>
+        <option value="rating">Rating ↓</option>
+        <option value="progress">Progress ↓</option>
+        <option value="pages">Pages ↑</option>
+        <option value="status">Status</option>
+      </select>
+      <button id="coreBtn" title="Only the 10 priority picks from books.md">⭐ Top 10</button>
+      <span class="spacer"></span>
+      <button id="addBtn">＋ Add book</button>
+      <button id="exportBtn">⬇ Export</button>
+      <button id="importBtn">⬆ Import</button>
+      <button id="resetBtn" title="Clear all ratings, statuses, pages & notes">↺ Reset</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+  </div>
+
+  <div id="shelf"></div>
+
+  <footer>
+    notes-goblin 🧌 · progress lives in <code style="color:var(--accent)">localStorage</code> per browser —
+    Export a JSON backup before switching machines. Sources: books.md + the hacking-books inbox note.
+  </footer>
+</div>
+
+<dialog id="addDlg">
+  <h3>Add a book</h3>
+  <form method="dialog" id="addForm">
+    <label>Title * <input name="t" required></label>
+    <label>Author <input name="a"></label>
+    <label>Category <select name="c" id="addCat"></select></label>
+    <label>ISBN-13 (fetches cover from Open Library) <input name="isbn" placeholder="9781593279127"></label>
+    <label>Cover image URL (overrides ISBN cover) <input name="cover" type="url"></label>
+    <label>Total pages <input name="pg" type="number" min="1"></label>
+    <label>Note <textarea name="n" rows="2"></textarea></label>
+    <div class="btns">
+      <button value="cancel">Cancel</button>
+      <button value="ok" class="primary" id="addOk">Add</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+
+const CATS = {
+  rc: { name: "Reverse Engineering Core",        color: "#58a6ff" },
+  dt: { name: "Disassemblers & Tools",           color: "#bc8cff" },
+  ma: { name: "Malware Analysis",                color: "#ff7b72" },
+  os: { name: "Assembly & OS Internals",         color: "#ffa657" },
+  rk: { name: "Rootkits, Kernel & Anti-malware", color: "#ff7bc6" },
+  ex: { name: "Exploitation & Vuln Discovery",   color: "#3fb950" },
+  cr: { name: "Cryptography",                    color: "#e3b341" },
+  hw: { name: "Hardware, IoT & Embedded",        color: "#39c5cf" },
+  mo: { name: "Mobile: Android, iOS, macOS",     color: "#9aa7b3" },
+  fr: { name: "Free & Online",                   color: "#7ee787" },
+};
+
+// core: priority number from books.md (1–10). pg: page counts are estimates — edit them on the card.
+const BOOKS = [
+  // Reverse engineering core
+  { id: "reversing-eilam", c: "rc", t: "Reversing: Secrets of Reverse Engineering", a: "Eldad Eilam", isbn: "9780764574818", pg: 624 },
+  { id: "pre",  c: "rc", core: 10, t: "Practical Reverse Engineering", a: "Dang, Gazet, Bachaalany", isbn: "9781118787311", pg: 384, n: "Broad coverage: x86/x64, ARM and Windows kernel internals." },
+  { id: "pba",  c: "rc", core: 3, t: "Practical Binary Analysis", a: "Dennis Andriesse", isbn: "9781593279127", pg: 456, n: "Linux-native binary instrumentation, taint analysis, symbolic execution." },
+  { id: "re-ida-code", c: "rc", t: "Reverse Engineering Code with IDA Pro", a: "Kris Kaspersky et al.", isbn: "9781597492379", pg: 328 },
+  { id: "hacker-disasm", c: "rc", t: "Hacker Disassembling Uncovered", a: "Kris Kaspersky", isbn: "9781931769228", pg: 584 },
+  { id: "surreptitious", c: "rc", t: "Surreptitious Software", a: "Collberg & Nagra", isbn: "9780321549259", pg: 792, cover: "https://www.informit.com/ShowCover.aspx?isbn=9780321549259", n: "Obfuscation, watermarking, tamperproofing." },
+  { id: "x86-cracking", c: "rc", t: "x86 Software Reverse-Engineering, Cracking, and Counter-Measures", a: "Wartell & Hartong", isbn: "9781394199884", pg: 336, cover: "https://media.wiley.com/product_data/coverImage300/80/13941998/1394199880.jpg" },
+  { id: "arm64-debug", c: "rc", t: "Foundations of ARM64 Linux Debugging, Disassembling, Reversing", a: "Dmitry Vostokov", isbn: "9781484290811", pg: 272, cover: "https://media.springernature.com/w306/springer-static/cover-hires/book/978-1-4842-9081-1" },
+  { id: "llba", c: "rc", t: "Learning Linux Binary Analysis", a: "Ryan \"elfmaster\" O'Neill", isbn: "9781782167105", pg: 282, n: "ELF internals, viruses, binary protection, forensics." },
+  { id: "mastering-re", c: "rc", t: "Mastering Reverse Engineering", a: "Reginald Wong", isbn: "9781788838849", pg: 436, n: "IDA Pro, x64dbg, Radare2 workflow." },
+  { id: "gray-hat-python", c: "rc", t: "Gray Hat Python", a: "Justin Seitz", isbn: "9781593271923", pg: 216, n: "Build debuggers/DBI tools in Python. Dated (2009), classic." },
+  { id: "apple-debugging", c: "rc", t: "Advanced Apple Debugging & Reverse Engineering, 4th ed.", a: "Kodeco / Walter Tyree", isbn: "9781950325634", pg: 466, cover: "https://assets.alexandria.kodeco.com/books/22879e7c4d1c3a6b431e68c9a4e9831710e0b9ec6250dc205f0e8bc40aec6d44/images/e2b9ff839b3b9cf3ee79a61f8f7aac46/original.png", n: "LLDB, Python, DTrace on macOS/iOS." },
+  { id: "re4b", c: "rc", free: true, t: "Reverse Engineering for Beginners (RE4B)", a: "Dennis Yurichev", link: "https://beginners.re/", pg: 1084, n: "FREE, ~1000 pages, x86/x64/ARM/MIPS. Most cited free RE book." },
+  { id: "re4e", c: "rc", free: true, t: "Reverse Engineering for Everyone!", a: "Kevin Thomas (mytechnotalent)", link: "https://0xinfection.github.io/reversing/", pg: 800, n: "FREE, x86/x64 + ARM32/ARM64, beginner friendly." },
+
+  // Disassemblers & tools
+  { id: "ida-pro-book", c: "dt", t: "The IDA Pro Book, 2nd ed.", a: "Chris Eagle", isbn: "9781593272890", pg: 672 },
+  { id: "ghidra-book", c: "dt", core: 4, t: "The Ghidra Book", a: "Eagle & Nance", isbn: "9781718501027", pg: 608, n: "Learn Ghidra rather than paying for IDA at the start." },
+  { id: "ghidra-beginners", c: "dt", t: "Ghidra Software Reverse Engineering for Beginners", a: "A. P. David", isbn: "9781800207974", pg: 322, cover: "https://static.packt-cdn.com/products/9781800207974/cover/smaller" },
+  { id: "blue-fox", c: "dt", core: 2, t: "Blue Fox: Arm Assembly Internals and Reverse Engineering", a: "Maria Markstedter", isbn: "9781119745303", pg: 512, n: "Modern, and ARM is your native architecture. Rare combination." },
+
+  // Malware analysis
+  { id: "pma", c: "ma", t: "Practical Malware Analysis", a: "Sikorski & Honig", isbn: "9781593272906", pg: 800, n: "The standard intro." },
+  { id: "malware-cookbook", c: "ma", t: "Malware Analyst's Cookbook", a: "Ligh, Adair, Hartstein, Richard", isbn: "9780470613030", pg: 744 },
+  { id: "memory-forensics", c: "ma", t: "The Art of Memory Forensics", a: "Ligh, Case, Levy, Walters", isbn: "9781118825099", pg: 912 },
+  { id: "learning-malware", c: "ma", t: "Learning Malware Analysis", a: "Monnappa K A", isbn: "9781788392501", pg: 510 },
+  { id: "mastering-malware", c: "ma", t: "Mastering Malware Analysis, 2nd ed.", a: "Kleymenov & Thabet", isbn: "9781803240244", pg: 572, cover: "https://static.packt-cdn.com/products/9781803240244/cover/smaller" },
+  { id: "malware-ds", c: "ma", t: "Malware Data Science", a: "Saxe & Sanders", isbn: "9781593278595", pg: 272 },
+  { id: "evasive-malware", c: "ma", t: "Evasive Malware", a: "Kyle Cucci", isbn: "9781718503267", pg: 488 },
+  { id: "mac-malware-1", c: "ma", t: "The Art of Mac Malware, Vol. 1: Analysis", a: "Patrick Wardle", isbn: "9781718501942", pg: 328 },
+  { id: "mac-malware-2", c: "ma", t: "The Art of Mac Malware, Vol. 2: Detection", a: "Patrick Wardle", isbn: "9781718503786", pg: 336, cover: "https://nostarch.com/sites/default/files/ArtMacMalware2e_CV_frontcover.jpg" },
+  { id: "android-malware", c: "ma", t: "The Android Malware Handbook", a: "Qian Han et al.", isbn: "9781718503304", pg: 328, cover: "https://nostarch.com/sites/default/files/Android%20Malware_WEB.jpg" },
+
+  // Assembly & OS internals
+  { id: "aoe", c: "os", t: "Hacking: The Art of Exploitation, 2nd ed.", a: "Jon Erickson", isbn: "9781593271442", pg: 488 },
+  { id: "art-64bit-asm", c: "os", t: "The Art of 64-Bit Assembly, Vol. 1", a: "Randall Hyde", isbn: "9781718501089", pg: 1032, cover: "https://nostarch.com/sites/default/files/The%20Art%20of%2064-Bit%20Assembly%2C%20Volume%201.jpg" },
+  { id: "win-internals-1", c: "os", t: "Windows Internals, Part 1, 7th ed.", a: "Russinovich, Solomon, Ionescu, Yosifovich", isbn: "9780735684188", pg: 800 },
+  { id: "win-internals-2", c: "os", t: "Windows Internals, Part 2, 7th ed.", a: "Allievi, Ionescu, Russinovich, Solomon", isbn: "9780135462409", pg: 944 },
+  { id: "inside-win-debug", c: "os", t: "Inside Windows Debugging", a: "Tarik Soulami", isbn: "9780735662780", pg: 592 },
+
+  // Rootkits, kernel & anti-malware
+  { id: "rootkits-hoglund", c: "rk", t: "Rootkits: Subverting the Windows Kernel", a: "Hoglund & Butler", isbn: "9780321294319", pg: 352 },
+  { id: "rootkit-arsenal", c: "rk", t: "The Rootkit Arsenal, 2nd ed.", a: "Bill Blunden", isbn: "9781449626365", pg: 784 },
+  { id: "rootkits-bootkits", c: "rk", core: 8, t: "Rootkits and Bootkits", a: "Matrosov, Rodionov, Bratus", isbn: "9781593277161", pg: 448, n: "Firmware and bootloader attack surface. Directly adjacent to your barebox and U-Boot work — you'd read this faster than almost anyone." },
+  { id: "antivirus-hb", c: "rk", t: "The Antivirus Hacker's Handbook", a: "Koret & Bachaalany", isbn: "9781119028758", pg: 384 },
+  { id: "kernel-exploitation", c: "rk", core: 5, t: "A Guide to Kernel Exploitation", a: "Perla & Oldani", isbn: "9781597494861", pg: 464, n: "The only book-length treatment of kernel exploitation. Badly dated (2010, pre-SMEP/SMAP/KASLR) — read it for structure, get current technique from kernelCTF writeups." },
+
+  // Exploitation & vuln discovery
+  { id: "shellcoders", c: "ex", core: 6, t: "The Shellcoder's Handbook, 2nd ed.", a: "Anley, Heasman, Lindner, Richarte", isbn: "9780470080238", pg: 744, n: "Dated, also foundational. Skim." },
+  { id: "taossa", c: "ex", core: 1, t: "The Art of Software Security Assessment", a: "Dowd, McDonald, Schuh", isbn: "9780321444424", pg: 1174, n: "Twenty years old and still the best book on finding bugs by reading C. This is the one that matters most for you." },
+  { id: "bug-hunters-diary", c: "ex", t: "A Bug Hunter's Diary", a: "Tobias Klein", isbn: "9781593273859", pg: 208 },
+  { id: "gray-hat-hacking", c: "ex", t: "Gray Hat Hacking, 6th ed.", a: "Harper et al.", isbn: "9781264268948", pg: 704 },
+  { id: "anp", c: "ex", core: 7, t: "Attacking Network Protocols", a: "James Forshaw", isbn: "9781593277505", pg: 336, n: "Excellent, and Forshaw is worth reading on anything." },
+  { id: "fuzzing-bfvd", c: "ex", t: "Fuzzing: Brute Force Vulnerability Discovery", a: "Sutton, Greene, Amini", isbn: "9780321446114", pg: 576 },
+  { id: "game-hacking", c: "ex", t: "Game Hacking", a: "Nick Cano", isbn: "9781593276690", pg: 304 },
+
+  // Cryptography
+  { id: "serious-crypto", c: "cr", core: 9, t: "Serious Cryptography, 2nd ed.", a: "Jean-Philippe Aumasson", isbn: "9781718503847", pg: 384, n: "Crypto bugs are everywhere and most people miss them." },
+
+  // Hardware, IoT & embedded
+  { id: "hardware-hacking-hb", c: "hw", t: "The Hardware Hacking Handbook", a: "Woudenberg & O'Flynn", isbn: "9781593278748", pg: 512, cover: "https://nostarch.com/sites/default/files/HardwareHacking_revised.jpg", n: "Fault injection, side channels." },
+  { id: "practical-iot", c: "hw", t: "Practical IoT Hacking", a: "Chantzis, Stais, Calderon, Deirmentzoglou, Woods", isbn: "9781718500907", pg: 464 },
+  { id: "car-hackers", c: "hw", t: "The Car Hacker's Handbook", a: "Craig Smith", isbn: "9781593277031", pg: 304 },
+  { id: "hacking-xbox", c: "hw", t: "Hacking the Xbox", a: "Andrew \"bunnie\" Huang", isbn: "9781593270292", pg: 288 },
+  { id: "hardware-hacker", c: "hw", t: "The Hardware Hacker", a: "Andrew \"bunnie\" Huang", isbn: "9781593277581", pg: 416 },
+
+  // Mobile
+  { id: "android-hackers", c: "mo", t: "Android Hacker's Handbook", a: "Drake, Lanier, Mulliner, Fora, Ridley, Wicherski", isbn: "9781118608647", pg: 576 },
+  { id: "ios-hackers", c: "mo", t: "iOS Hacker's Handbook", a: "Miller, Blazakis, DaiZovi, Esser, Iozzo, Weinmann", isbn: "9781118204122", pg: 408 },
+  { id: "ios-app-sec", c: "mo", t: "iOS Application Security", a: "David Thiel", isbn: "9781593276010", pg: 296 },
+  { id: "macos-internals", c: "mo", t: "Mac OS X and iOS Internals", a: "Jonathan Levin", isbn: "9781118057650", pg: 864 },
+  { id: "macos-internals-v1", c: "mo", t: "MacOS and iOS Internals, Vol. I: User Mode", a: "Jonathan Levin", isbn: "9780991055562", pg: 420 },
+
+  // Free & online
+  { id: "fuzzing-book", c: "fr", free: true, t: "The Fuzzing Book", a: "Zeller, Gopinath, Böhme, Fraser, Holler", link: "https://www.fuzzingbook.org/", n: "Free and better than most paid books on the topic." },
+  { id: "p0-blog", c: "fr", free: true, t: "Google Project Zero — blog archive", a: "Project Zero team", link: "https://googleprojectzero.blogspot.com/", n: "Read the archive as a curriculum." },
+  { id: "phrack", c: "fr", free: true, t: "Phrack", a: "the underground", link: "https://phrack.org/", n: "The classics still teach." },
+  { id: "goog-secres", c: "fr", free: true, t: "google/security-research", a: "Google", link: "https://github.com/google/security-research", n: "PoCs and advisories repo — current technique lives here." },
+];
+
+// ---------- state ----------
+const LS_KEY = "notesgoblin.books.v1";
+const STATUSES = { toread: "📥 To read", reading: "📖 Reading", done: "✅ Done", stopped: "⏸ Stopped" };
+
+let state = load();
+function load() {
+  try { return Object.assign({ entries: {}, custom: [] }, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); }
+  catch { return { entries: {}, custom: [] }; }
+}
+function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function entry(id) {
+  if (!state.entries[id]) state.entries[id] = { rating: 0, status: "toread", page: 0, total: null, notes: "" };
+  return state.entries[id];
+}
+function allBooks() { return BOOKS.concat(state.custom); }
+
+// ---------- helpers ----------
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+const coverUrl = b => b.cover || (b.isbn ? `https://covers.openlibrary.org/b/isbn/${b.isbn}-L.jpg?default=false` : null);
+const bookLink = b => b.link || (b.isbn ? `https://openlibrary.org/isbn/${b.isbn}` : null);
+const totalOf  = b => { const e = entry(b.id); return e.total ?? b.pg ?? null; };
+const pctOf    = b => { const e = entry(b.id); const t = totalOf(b);
+  if (e.status === "done") return 100;
+  return t ? Math.min(100, Math.round(100 * (e.page || 0) / t)) : 0; };
+function phColor(t) { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `linear-gradient(160deg, hsl(${h},55%,62%), hsl(${(h + 50) % 360},55%,42%))`; }
+
+// ---------- filtering / sorting ----------
+let coreOnly = false;
+function visibleBooks() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const fs = document.getElementById("fStatus").value;
+  const fc = document.getElementById("fCat").value;
+  const fr = +document.getElementById("fStars").value;
+  return allBooks().filter(b => {
+    const e = entry(b.id);
+    if (coreOnly && !b.core) return false;
+    if (fs && e.status !== fs) return false;
+    if (fc && b.c !== fc) return false;
+    if (fr && (e.rating || 0) < fr) return false;
+    if (q) {
+      const hay = `${b.t} ${b.a || ""} ${b.n || ""} ${e.notes || ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function sortBooks(list, mode) {
+  const st = { reading: 0, stopped: 1, toread: 2, done: 3 };
+  const by = {
+    title:    (x, y) => x.t.localeCompare(y.t),
+    rating:   (x, y) => (entry(y.id).rating || 0) - (entry(x.id).rating || 0) || x.t.localeCompare(y.t),
+    progress: (x, y) => pctOf(y) - pctOf(x) || x.t.localeCompare(y.t),
+    pages:    (x, y) => (totalOf(x) || 1e9) - (totalOf(y) || 1e9),
+    status:   (x, y) => st[entry(x.id).status] - st[entry(y.id).status] || x.t.localeCompare(y.t),
+  }[mode];
+  return by ? [...list].sort(by) : list;
+}
+
+// ---------- rendering ----------
+function cardHTML(b) {
+  const e = entry(b.id);
+  const cat = CATS[b.c] || { name: b.c, color: "#9aa7b3" };
+  const url = coverUrl(b), link = bookLink(b), total = totalOf(b), pct = pctOf(b);
+  const img = url
+    ? `<img loading="lazy" src="${esc(url)}" alt="" data-title="${esc(b.t)}">`
+    : `<div class="ph" style="background:${phColor(b.t)}">${esc(b.t)}</div>`;
+  const stars = [1,2,3,4,5].map(i =>
+    `<span class="${i <= (e.rating||0) ? "on" : ""}" data-star="${i}">★</span>`).join("");
+  const badges =
+    (b.core ? `<span class="badge core">⭐ TOP #${b.core}</span>` : "") +
+    (b.free ? `<span class="badge free">FREE</span>` : "");
+  let meta = "";
+  if (e.status === "stopped" && e.page) meta = `<span class="stop">⏸ stopped at p. ${e.page}${total ? " / " + total : ""}</span>`;
+  else if (e.status === "done") meta = `<span class="fin">✓ finished${e.finished ? " " + e.finished : ""}</span>`;
+  else if (e.status === "reading" && e.page) meta = `📖 on p. ${e.page}${total ? " / " + total + " · " + pct + "%" : ""}`;
+  return `
+  <div class="card ${e.status}" data-id="${esc(b.id)}">
+    <div class="cover">
+      ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${img}</a>` : img}
+      <div class="badges">${badges}</div>
+      ${b.custom ? `<button class="del" title="Remove this book">✕</button>` : ""}
+    </div>
+    <div class="body">
+      <span class="chip" style="color:${cat.color};border-color:${cat.color}55">${esc(cat.name)}</span>
+      <h3 class="title">${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(b.t)}</a>` : esc(b.t)}</h3>
+      <div class="author">${esc(b.a || "")}</div>
+      ${b.n ? `<p class="blurb">${esc(b.n)}</p>` : ""}
+      <div class="stars" title="Click to rate (click again to clear)">${stars}</div>
+      <div class="controls">
+        <select class="status st-${e.status}">
+          ${Object.entries(STATUSES).map(([v, l]) =>
+            `<option value="${v}" ${v === e.status ? "selected" : ""}>${l}</option>`).join("")}
+        </select>
+        <div class="pages">
+          p. <input type="number" class="page" min="0" value="${e.page || ""}" placeholder="0">
+          / <input type="number" class="total" min="1" value="${total || ""}" placeholder="?">
+        </div>
+      </div>
+      <div class="progress" title="${pct}%"><div class="bar" style="width:${pct}%"></div></div>
+      <div class="meta">${meta}</div>
+      <button class="notes-toggle ${e.notes ? "has" : ""}">📝 ${e.notes ? "notes" : "add notes"}</button>
+      <textarea class="notes" hidden placeholder="your notes…">${esc(e.notes)}</textarea>
+    </div>
+  </div>`;
+}
+
+function mkPh(title) {
+  const d = document.createElement("div");
+  d.className = "ph"; d.style.background = phColor(title); d.textContent = title;
+  return d;
+}
+
+function render() {
+  const shelf = document.getElementById("shelf");
+  const mode = document.getElementById("sort").value;
+  const books = sortBooks(visibleBooks(), mode);
+  if (!books.length) { shelf.innerHTML = `<div class="empty">Nothing matches — clear a filter 🤷</div>`; renderStats(); return; }
+  if (mode === "default") {
+    let html = "";
+    for (const key of Object.keys(CATS)) {
+      const group = books.filter(b => b.c === key);
+      if (!group.length) continue;
+      html += `<h2 class="sec"><span class="dot" style="background:${CATS[key].color}"></span>${esc(CATS[key].name)}
+               <span class="count">${group.length}</span></h2>
+               <div class="grid">${group.map(cardHTML).join("")}</div>`;
+    }
+    const stray = books.filter(b => !CATS[b.c]);
+    if (stray.length) html += `<h2 class="sec"><span class="dot" style="background:#9aa7b3"></span>Other
+      <span class="count">${stray.length}</span></h2><div class="grid">${stray.map(cardHTML).join("")}</div>`;
+    shelf.innerHTML = html;
+  } else {
+    shelf.innerHTML = `<div class="grid" style="margin-top:20px">${books.map(cardHTML).join("")}</div>`;
+  }
+  shelf.querySelectorAll(".cover img").forEach(img =>
+    img.addEventListener("error", () => img.replaceWith(mkPh(img.dataset.title)), { once: true }));
+  renderStats();
+}
+
+function renderStats() {
+  const books = allBooks();
+  const es = books.map(b => entry(b.id));
+  const done = es.filter(e => e.status === "done").length;
+  const reading = es.filter(e => e.status === "reading").length;
+  const stopped = es.filter(e => e.status === "stopped").length;
+  const rated = es.filter(e => e.rating > 0);
+  const avg = rated.length ? (rated.reduce((s, e) => s + e.rating, 0) / rated.length).toFixed(1) : "–";
+  const pagesRead = books.reduce((s, b) => {
+    const e = entry(b.id); const t = totalOf(b);
+    return s + (e.status === "done" && t ? t : Math.min(e.page || 0, t || Infinity));
+  }, 0);
+  document.getElementById("stats").innerHTML =
+    `<span class="stat"><b>${books.length}</b>books</span>
+     <span class="stat"><b style="color:var(--green)">${done}</b>done</span>
+     <span class="stat"><b style="color:var(--accent)">${reading}</b>reading</span>
+     <span class="stat"><b style="color:var(--red)">${stopped}</b>stopped</span>
+     <span class="stat"><b style="color:var(--yellow)">${avg}</b>avg ★</span>
+     <span class="stat"><b>${pagesRead.toLocaleString()}</b>pages read</span>`;
+}
+
+// ---------- events ----------
+document.getElementById("shelf").addEventListener("click", ev => {
+  const card = ev.target.closest(".card"); if (!card) return;
+  const id = card.dataset.id, e = entry(id);
+  const star = ev.target.closest("[data-star]");
+  if (star) {
+    const v = +star.dataset.star;
+    e.rating = (e.rating === v) ? 0 : v;
+    save(); render(); return;
+  }
+  if (ev.target.classList.contains("notes-toggle")) {
+    card.querySelector("textarea.notes").hidden ^= true; return;
+  }
+  if (ev.target.classList.contains("del")) {
+    if (confirm("Remove this book from your library?")) {
+      state.custom = state.custom.filter(b => b.id !== id);
+      delete state.entries[id];
+      save(); render();
+    }
+  }
+});
+
+document.getElementById("shelf").addEventListener("change", ev => {
+  const card = ev.target.closest(".card"); if (!card) return;
+  const id = card.dataset.id, e = entry(id);
+  const b = allBooks().find(x => x.id === id);
+  if (ev.target.classList.contains("status")) {
+    e.status = ev.target.value;
+    if (e.status === "done") {
+      const t = totalOf(b); if (t) e.page = t;
+      e.finished = new Date().toISOString().slice(0, 10);
+    } else delete e.finished;
+  } else if (ev.target.classList.contains("page")) {
+    e.page = Math.max(0, +ev.target.value || 0);
+    const t = totalOf(b);
+    if (t && e.page >= t) { e.page = t; e.status = "done"; e.finished = new Date().toISOString().slice(0, 10); }
+    else if (e.page > 0 && e.status === "toread") e.status = "reading";
+  } else if (ev.target.classList.contains("total")) {
+    e.total = +ev.target.value || null;
+  } else if (ev.target.classList.contains("notes")) {
+    e.notes = ev.target.value; save(); renderStats();
+    ev.target.previousElementSibling?.classList.toggle("has", !!e.notes);
+    return; // keep the textarea open — no re-render
+  }
+  save(); render();
+});
+
+for (const id of ["q", "fStatus", "fCat", "fStars", "sort"])
+  document.getElementById(id).addEventListener("input", render);
+
+document.getElementById("coreBtn").addEventListener("click", ev => {
+  coreOnly = !coreOnly;
+  ev.currentTarget.classList.toggle("active", coreOnly);
+  render();
+});
+
+// add book
+const addDlg = document.getElementById("addDlg");
+document.getElementById("addBtn").addEventListener("click", () => {
+  document.getElementById("addForm").reset();
+  addDlg.showModal();
+});
+addDlg.addEventListener("close", () => {
+  if (addDlg.returnValue !== "ok") return;
+  const f = new FormData(document.getElementById("addForm"));
+  const t = (f.get("t") || "").trim(); if (!t) return;
+  state.custom.push({
+    id: "c_" + Date.now(), custom: true,
+    t, a: (f.get("a") || "").trim(), c: f.get("c"),
+    isbn: (f.get("isbn") || "").replace(/[^0-9Xx]/g, "") || undefined,
+    cover: (f.get("cover") || "").trim() || undefined,
+    pg: +f.get("pg") || undefined,
+    n: (f.get("n") || "").trim() || undefined,
+  });
+  save(); render();
+});
+
+// export / import / reset
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(blob),
+    download: `book-library-${new Date().toISOString().slice(0, 10)}.json`,
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", async ev => {
+  const file = ev.target.files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data.entries) throw new Error("no entries key");
+    if (confirm("Replace your current ratings/progress with this backup?")) {
+      state = Object.assign({ entries: {}, custom: [] }, data);
+      save(); render();
+    }
+  } catch (err) { alert("Not a valid library backup: " + err.message); }
+  ev.target.value = "";
+});
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("Clear ALL ratings, statuses, pages and notes? (Export first if unsure)")) {
+    localStorage.removeItem(LS_KEY);
+    state = { entries: {}, custom: [] };
+    render();
+  }
+});
+
+// populate category selects
+for (const sel of [document.getElementById("fCat"), document.getElementById("addCat")])
+  for (const [k, v] of Object.entries(CATS))
+    sel.insertAdjacentHTML("beforeend", `<option value="${k}">${esc(v.name)}</option>`);
+
+render();
+</script>
+</body>
+</html>
