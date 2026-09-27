@@ -31,6 +31,10 @@
 - [ELF · The Complete Anatomy](https://smalinux.github.io/notes-goblin/elf-anatomy.svg) — every structure, section & segment, and the exact tool + command to read each byte
 - [The ELF File Format](https://smalinux.github.io/notes-goblin/elf-format.svg) — visual guide to elf(5): every structure, where it lives in the file, and how the kernel + dynamic linker use it
 
+## Resources
+
+- [Master Resource List](./resources.md) — every link from every note in one categorized index: platforms, CTFs, courses, books, tools, blogs, people, conferences, papers & more
+
 ## Books
 
 - [Book Library](https://smalinux.github.io/notes-goblin/books.html) — the whole security/RE shelf in one place: covers, star ratings, reading status, page progress & notes (saved per browser)

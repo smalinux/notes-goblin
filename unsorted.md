@@ -98,11 +98,63 @@ CTFs
 
 ===============================================================================
 
+Malwares
+# Top ⭐
+- [LiveOverflow] Binary Exploitation / Memory Corruption https://www.youtube.com/playlist?list=PLhixgUqwRTjxglIswKp9mpkfPNfHkzyeN
+- https://github.com/mytechnotalent/Reverse-Engineering
+
+# References
+- https://www.virustotal.com/gui/home/upload
+- < Interesting channel https://www.youtube.com/@ConsoleCowboys/playlists
+- < another interesting https://www.youtube.com/@stacksmashing
+- binary ninja auther Jordan https://github.com/psifertex
+- elf malware analysis article https://intezer.com/blog/elf-malware-analysis-101-initial-analysis
+- elf 🥂 https://github.com/tmpout/Resources
+- 
+
+# Streams
+- Syrillian https://www.youtube.com/@Syrillian/videos
+- https://www.youtube.com/@InvokeReversing
 
 
+# Articles
+- binary ninja guide: https://zerotistic.blog/posts/binary-ninja-zero-to-hero
+- 
+
+# Beginners
+
+- OpenSecurityTraining2's Architecture 1001 (x86-64 assembly)
+- Dennis Yurichev's free book _Reverse Engineering for Beginners_
+- The classic book _Practical Malware Analysis_
+- Easy challenges from crackmes.one, for practice
+- embedded hacking https://github.com/mytechnotalent/Embedded-Hacking
+
+===============================================================================
 
 
+/src/notes/notes/inbox/Reverse engineering mastery.canvas
 
+
+===============================================================================
+
+
+"Smashing the Stack for Fun and Profit" by Aleph One ⭐
+http://phrack.org/issues/49/14.html
+
+Binary Bomb Lab ⭐ 
+https://csapp.cs.cmu.edu/
+
+OST2 ⭐ What is waiting for you after pwn.college
+https://p.ost2.fyi/courses
+
+Re, nice video ⭐
+https://www.youtube.com/watch?v=u-ahOATO62U
+
+books
+https://github.com/onethawt/reverseengineering-reading-list
+
+
+===============================================================================
 
 
 
