@@ -217,7 +217,7 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - The Shellcoder's Handbook (2nd) — Anley et al. — https://www.amazon.com/Shellcoders-Handbook-Discovering-Exploiting-Security/dp/047008023X
 - A Guide to Kernel Exploitation — Perla & Oldani — https://www.amazon.com/Guide-Kernel-Exploitation-Attacking-Core/dp/1597494860
 - The Art of Software Security Assessment (TAOSSA) — Dowd, McDonald, Schuh — https://www.amazon.com/Art-Software-Security-Assessment-Vulnerabilities/dp/0321444426
-- The Ghidra Book — Eagle & Nance · The IDA Pro Book — Chris Eagle
+- The Ghidra Book — Eagle & Nance · The IDA Pro Book — Chris Eagle ⭐
 - Blue Fox: Arm Assembly Internals & RE — Maria Markstedter
 - Reverse Engineering for Beginners (RE4B) — Dennis Yurichev (free) — https://beginners.re/
 - Reversing: Secrets of Reverse Engineering — Eldad Eilam · Surreptitious Software — Collberg & Nagra
@@ -279,6 +279,10 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Kaitai Struct Web IDE — https://ide.kaitai.io/ (devel https://ide.kaitai.io/devel/) · repo https://github.com/kaitai-io/kaitai_struct_webide · awesome https://github.com/kaitai-io/awesome-kaitai · guide https://gettocode.com/2017/09/22/kaitai-web-ide-on-windows-and-linux/ · https://www.techwriter.ai/kaitai/tooling/web-ide-and-gallery
 - ELF tooling: `gcc`, `readelf`, `objdump`, `nm`, `patchelf`, `objcopy`, `strip`, `ldd`/`lddtree`, `strace`, `ltrace`; `man 2 execve`, `man syscall`, `man open`
 - Syscall tables — https://x64.syscall.sh/ · https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/ · https://filippo.io/linux-syscall-table/ · https://syscalls.mebeim.net/?table=x86/64/x64/latest · https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+
+## PE Windows format
+- [An In-Depth Look into the Win32 Portable Executable File Format - Part 1](https://www.delphibasics.info/home/delphibasicsarticles/anin-depthlookintothewin32portableexecutablefileformat-part1) by Matt Pietrek #article — PE headers deep dive
+- [An In-Depth Look into the Win32 Portable Executable File Format - Part 2](https://www.delphibasics.info/home/delphibasicsarticles/anin-depthlookintothewin32portableexecutablefileformat-part2) by Matt Pietrek #article — PE sections, imports, exports
 
 ## Reverse engineering — learning & workflow
 - Static tools: kaitai struct (https://ide.kaitai.io/), nm, strings, objdump, checksec (https://github.com/slimm609/checksec.sh · https://github.com/slimm609/checksec)
