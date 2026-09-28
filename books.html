@@ -170,7 +170,7 @@
 
 <div class="hero">
   <h1>📚 Book Library</h1>
-  <p>Reverse engineering &amp; security shelf. Covers link to Open Library. Ratings, reading status, page progress and notes are saved in this browser — use <b>Export</b> to back them up.</p>
+  <p>Reverse engineering, security &amp; eBPF/cloud-native shelf. Covers link to Open Library. Ratings, reading status, page progress and notes are saved in this browser — use <b>Export</b> to back them up.</p>
   <div class="stats" id="stats"></div>
 </div>
 
@@ -213,7 +213,7 @@
 
   <footer>
     notes-goblin 🧌 · progress lives in <code style="color:var(--accent)">localStorage</code> per browser —
-    Export a JSON backup before switching machines. Sources: books.md + the hacking-books inbox note.
+    Export a JSON backup before switching machines. Sources: books.md, the hacking-books inbox note + the eBPF roadmap reading list.
   </footer>
 </div>
 
@@ -247,6 +247,7 @@ const CATS = {
   cr: { name: "Cryptography",                    color: "#e3b341" },
   hw: { name: "Hardware, IoT & Embedded",        color: "#39c5cf" },
   mo: { name: "Mobile: Android, iOS, macOS",     color: "#9aa7b3" },
+  eb: { name: "eBPF, Performance & Cloud Native", color: "#7c72ff" },
   fr: { name: "Free & Online",                   color: "#7ee787" },
 };
 
@@ -325,6 +326,23 @@ const BOOKS = [
   { id: "ios-app-sec", c: "mo", t: "iOS Application Security", a: "David Thiel", isbn: "9781593276010", pg: 296 },
   { id: "macos-internals", c: "mo", t: "Mac OS X and iOS Internals", a: "Jonathan Levin", isbn: "9781118057650", pg: 864 },
   { id: "macos-internals-v1", c: "mo", t: "MacOS and iOS Internals, Vol. I: User Mode", a: "Jonathan Levin", isbn: "9780991055562", pg: 420 },
+
+  // eBPF, performance & cloud native — from "The eBPF roadmap reading list" (tiers = reading plan)
+  { id: "learning-ebpf", c: "eb", t: "Learning eBPF", a: "Liz Rice", isbn: "9781098135126", pg: 226, cover: "https://m.media-amazon.com/images/P/1098135121.01._SCLZZZZZZZ_.jpg", n: "Tier 1, months 3–6. The best eBPF book — non-negotiable. Repo: lizrice/learning-ebpf." },
+  { id: "bpf-perf-tools", c: "eb", t: "BPF Performance Tools", a: "Brendan Gregg", isbn: "9780136554820", pg: 880, cover: "https://m.media-amazon.com/images/P/0136554822.01._SCLZZZZZZZ_.jpg", n: "Tier 1, months 2–5. The tracing bible. Slightly BCC-dated but conceptually essential." },
+  { id: "learning-go", c: "eb", t: "Learning Go, 2nd ed.", a: "Jon Bodner", isbn: "9781098139292", pg: 496, cover: "https://m.media-amazon.com/images/P/1098139291.01._SCLZZZZZZZ_.jpg", n: "Tier 1, month 1. Best modern Go book for experienced programmers." },
+  { id: "k8s-in-action", c: "eb", t: "Kubernetes in Action, 2nd ed.", a: "Marko Lukša", isbn: "9781617297618", pg: 1000, cover: "https://m.media-amazon.com/images/P/1617297615.01._SCLZZZZZZZ_.jpg", n: "Tier 1, months 2–3. Deeper than Up & Running." },
+  { id: "systems-performance", c: "eb", t: "Systems Performance, 2nd ed.", a: "Brendan Gregg", isbn: "9780136820154", pg: 928, cover: "https://m.media-amazon.com/images/P/0136820158.01._SCLZZZZZZZ_.jpg", n: "Tier 2 — ongoing reference; the methodology chapters especially." },
+  { id: "container-security", c: "eb", t: "Container Security", a: "Liz Rice", isbn: "9781492056706", pg: 200, cover: "https://m.media-amazon.com/images/P/1492056707.01._SCLZZZZZZZ_.jpg", n: "Tier 2, months 1 & 9." },
+  { id: "learning-otel", c: "eb", t: "Learning OpenTelemetry", a: "Young & Parker", isbn: "9781098147181", pg: 290, cover: "https://m.media-amazon.com/images/P/1098147189.01._SCLZZZZZZZ_.jpg", n: "Tier 2, month 7." },
+  { id: "programming-k8s", c: "eb", t: "Programming Kubernetes", a: "Hausenblas & Schimanski", isbn: "9781492047100", pg: 314, cover: "https://m.media-amazon.com/images/P/1492047104.01._SCLZZZZZZZ_.jpg", n: "Tier 2, month 8 — if you go the operator route." },
+  { id: "terraform-up-running", c: "eb", t: "Terraform: Up & Running, 3rd ed.", a: "Yevgeniy Brikman", isbn: "9781098116743", pg: 459, cover: "https://m.media-amazon.com/images/P/1098116747.01._SCLZZZZZZZ_.jpg", n: "Tier 2, month 10." },
+  { id: "ddia", c: "eb", t: "Designing Data-Intensive Applications", a: "Martin Kleppmann", isbn: "9781449373320", pg: 616, cover: "https://m.media-amazon.com/images/P/1449373321.01._SCLZZZZZZZ_.jpg", n: "Tier 3 — skim ch. 1–4, 10–11 for interviews." },
+  { id: "sre-book", c: "eb", free: true, t: "Site Reliability Engineering", a: "Beyer, Jones, Petoff, Murphy (Google)", isbn: "9781491929124", link: "https://sre.google/books/", pg: 552, n: "Tier 3 — free at sre.google/books. Read ch. 1–6." },
+  { id: "sec-obs-ebpf", c: "eb", free: true, t: "Security Observability with eBPF", a: "Ivánkó & Salazar", isbn: "9781492096719", link: "https://isovalent.com/books/ebpf-security/", pg: 50, n: "Tier 3 — free O'Reilly report via Isovalent, short." },
+  { id: "linux-kernel-dev", c: "eb", t: "Linux Kernel Development, 3rd ed.", a: "Robert Love", isbn: "9780672329463", pg: 440, cover: "https://m.media-amazon.com/images/P/0672329468.01._SCLZZZZZZZ_.jpg", n: "Tier 3 — you likely have this; keep it near." },
+  { id: "networking-top-down", c: "eb", t: "Computer Networking: A Top-Down Approach", a: "Kurose & Ross", isbn: "9780133594140", pg: 864, cover: "https://m.media-amazon.com/images/P/0133594149.01._SCLZZZZZZZ_.jpg", n: "Tier 3 — only the chapters covering your gaps." },
+  { id: "cloud-native-devops", c: "eb", t: "Cloud Native DevOps with Kubernetes, 2nd ed.", a: "Arundel & Domingus", isbn: "9781098116828", pg: 460, cover: "https://m.media-amazon.com/images/P/1098116828.01._SCLZZZZZZZ_.jpg", n: "Tier 3 — skim / reference." },
 
   // Free & online
   { id: "fuzzing-book", c: "fr", free: true, t: "The Fuzzing Book", a: "Zeller, Gopinath, Böhme, Fraser, Holler", link: "https://www.fuzzingbook.org/", n: "Free and better than most paid books on the topic." },

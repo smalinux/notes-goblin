@@ -136,7 +136,6 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - SEC Consult Vulnerability Lab — https://sec-consult.com/vulnerability-lab/
 - SBA Research (Vienna, TU Wien-affiliated) · We0wnY0u (TU Wien CTF team)
 - Gray market (cautionary, NOT recommended): Zerodium — https://en.wikipedia.org/wiki/Zerodium , Crowdfense — https://securityaffairs.com/161584/hacking/crowdfense-30m-exploit-acquisition-program.html
-- See [[Keep the money legal by choosing bounties over the gray market]]
 
 ## Courses & training
 - OpenSecurityTraining2 (OST2) — https://ost2.fyi/ (portal: https://p.ost2.fyi/) — Xeno Kovah, university-grade x86/ARM/firmware/Windows
@@ -173,7 +172,6 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - CompTIA Network+ / Security+, eJPT, PNPT, CCNA (entry/network)
 - Governance/standards: CISSP path, Common Criteria, FIPS 140-3, EMVCo, ISA/IEC 62443, ISO 27001, SOC 2, NIST CSF, CIS Controls
 - Skip: eLearnSecurity eCRE/eCMAP (retired 2023)
-- Note: certs are optional for the vuln-research path — see [[Phase 7 adds optional certs and the job hunt]]
 
 ---
 
@@ -226,7 +224,6 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - The Car Hacker's Handbook (free) · Power Analysis Attacks
 - Computer Networking: A Top-Down Approach — Kurose & Ross · TCP/IP Illustrated Vol.1 — Stevens/Fall · Practical Packet Analysis — Chris Sanders · Network Security Assessment — Chris McNab · The Practice of Network Security Monitoring — Bejtlich · Applied Network Security Monitoring — Sanders & Smith
 - Mobile: OS Internals trilogy — Jonathan Levin (newosxbook.com) · Android Security Internals — Elenkov · The Mobile Application Hacker's Handbook — Chell et al. · Android Hacker's Handbook · iOS Hacker's Handbook · iOS Application Security — David Thiel
-- See [[Security roadmap book stack and free platforms]] and [[Ten hacking books as reference not curriculum]]
 
 ---
 
@@ -474,29 +471,108 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Google upping Linux bug bounty — https://www.techradar.com/news/google-is-upping-its-linux-bug-bounty-prize
 - GhostLock kernel privesc — https://www.ghacks.net/2026/07/13/ai-agent-discovers-15-year-old-linux-kernel-privilege-escalation-bug-named-ghostlock/
 - 15-year Linux flaw, 5-sec root — https://www.techtimes.com/articles/319914/20260708/public-exploit-turns-15-year-linux-kernel-flaw-5-second-root-attack.htm
-- See [[This security path rewards obsession and dips your income first]]
 
 ## Adjacent path A — eBPF & cloud-native
 - Books: Learning eBPF (Liz Rice) https://www.amazon.com/dp/1098135121 · BPF Performance Tools (Gregg) https://www.amazon.com/dp/0136554822 · Systems Performance 2e (Gregg) https://www.amazon.com/dp/0136820158 · Container Security (Rice) https://www.amazon.com/dp/1492056707 · Learning Go 2e (Bodner) https://www.amazon.com/dp/1098139291 · Kubernetes in Action 2e https://www.amazon.com/dp/1617297615 · Designing Data-Intensive Applications https://www.amazon.com/dp/1449373321
-- Repos/tutorials: eunomia-bpf/bpf-developer-tutorial · lizrice/learning-ebpf · libbpf/libbpf-bootstrap · xdp-project/xdp-tutorial · qmonnet/awesome-ebpf
-- Docs: ebpf.io (+ /get-started , /slack) · eBPF reference (Dylan Reimerink) https://ebpf-docs.dylanreimerink.nl · Cilium BPF & XDP guide
+- Repos/tutorials: eunomia-bpf/bpf-developer-tutorial · lizrice/learning-ebpf · libbpf/libbpf-bootstrap · xdp-project/xdp-tutorial · qmonnet/awesome-ebpf · isovalent/CCA-Study-Guide
+- Docs: ebpf.io (+ /get-started , /slack) · eBPF reference (Dylan Reimerink) https://ebpf-docs.dylanreimerink.nl · Cilium docs (genuinely excellent, read them like a book — incl. the BPF & XDP guide)
 - Blogs: brendangregg.com · Andrii Nakryiko https://nakryiko.com · Cilium & Datadog eng blogs
+- Zines: Julia Evans' zines (networking, debugging — wildly efficient) https://wizardzines.com
 - Labs/courses: Isovalent labs https://labs.isovalent.com · KillerCoda · Kubernetes the Hard Way · killer.sh https://killer.sh · KodeKloud · Ultimate Go (Ardan Labs)
 - Projects: Cilium/Hubble/Tetragon · Falco · Inspektor Gadget · Kepler · Parca/Pyroscope/Pixie · Grafana Beyla/OBI · Aya (Rust)
 - Talks: eBPF Summit · KubeCon eBPF/Cilium Day · Linux Plumbers BPF track
 - Slack: eBPF https://ebpf.io/slack · Cilium · CNCF (#tetragon #falco) · Kubernetes
-- Full detail: [[The eBPF roadmap reading list]] · [[The cloud and eBPF roadmap from Linux to Kubernetes to eBPF to Go]]
 
 ## Adjacent path B — network security
-- Full list in [[zettel - ROADMAP - network security]] (books, platforms, tools already merged above)
+Goal: zero → job-ready network security, defensive + offensive. Style: open-source, free, self-study — pwn.college-type platforms first.
+
+### Learning path — the 6 phases
+- Phase 0 — Networking base (how packets move): OSI + TCP/IP model, IP, TCP, UDP, DNS, HTTP, ARP, DHCP, NAT, routing
+- Phase 1 — Linux + command line (the hacker's tool): shell, permissions, processes, sockets, `ss`, `ip`, `tcpdump`, `nmap`
+- Phase 2 — Packet + traffic analysis (see the network): Wireshark, tshark, tcpdump, pcap reading, protocol dissection
+- Phase 3 — Attacks + protocol exploitation (offensive): scanning, MITM, spoofing, sniffing, weak protocols, network pentest
+- Phase 4 — Defense / monitoring / detection (blue team): IDS/IPS, Snort/Suricata/Zeek, NSM, logging, threat hunting
+- Phase 5 — CTF grind + pick a niche: grind challenges, join community, focus (cloud, wireless, ICS, etc.)
+
+### Practice platforms (pwn.college style)
+- pwn.college — free, ASU, belts system; low-level, exploitation, systems. Best structured free hacking course
+- picoCTF — free, Carnegie Mellon; 500+ challenges, beginner to hard. Best for students
+- OverTheWire — free wargames; start with Bandit (Linux/CLI), then Natas, Leviathan
+- SEED Labs — free university labs (Syracuse); real network security labs: ARP spoof, TCP attacks, DNS, firewall, VPN. Best for network-specific hands-on
+- Root-Me — free; huge challenge count, network + web + crypto categories
+- Exploit Education (Phoenix / Nebula) — free VMs, memory + privesc
+- pwnable.kr / pwnable.tw — free binary exploitation
+- CTFlearn — free beginner CTF practice
+- PortSwigger Web Security Academy — free, best web/app labs
+- VulnHub — free vulnerable VMs to attack at home
+- Malware-Traffic-Analysis.net — free real pcap exercises; best for traffic analysis practice
+- CyberDefenders / LetsDefend (free tier) — blue-team pcap + SOC labs
+- Hack The Box (free tier) + TryHackMe (free rooms) — guided rooms + machines
+
+### Free courses
+- Stanford CS144 — Introduction to Computer Networking (free slides + labs; build a TCP/IP stack from scratch — gold standard for "how networking really works") — https://cs144.github.io/
+- Google Cybersecurity Certificate (Coursera, audit free) — network security + SIEM basics
+- SANS Cyber Aces — short free OS + networking modules
+- Professor Messer — CompTIA Network+ / Security+ (free YouTube) — cheap way to cover the whole map
+- Practical Networking (YouTube, free) — TCP/IP fundamentals
+
+### Books (reference, not curriculum — read in this order)
+1. Networking base: *Computer Networking: A Top-Down Approach* — Kurose & Ross (best first book) · *TCP/IP Illustrated, Vol. 1: The Protocols* — Stevens/Fall (dense, deep reference)
+2. Packet analysis: *Practical Packet Analysis* — Chris Sanders (Wireshark, best hands-on)
+3. Offensive / protocols: *Attacking Network Protocols* — James Forshaw (network attack bible) · *Network Security Assessment* — Chris McNab (attacker's field manual) · *The Hacker Playbook 3* — Peter Kim (practical pentest flow)
+4. Defense / monitoring: *The Practice of Network Security Monitoring* — Richard Bejtlich · *Applied Network Security Monitoring* — Sanders & Smith (Snort, Zeek, Security Onion)
+5. Theory (optional): *Cryptography and Network Security* — William Stallings
+
+### Core tools to master
+- Capture / analyze: Wireshark, tshark, tcpdump
+- Scan / map: nmap, masscan
+- Attack: Scapy (packet crafting), bettercap, Ettercap, aircrack-ng (wireless)
+- Defend: Snort, Suricata, Zeek, Security Onion (full NSM distro)
+- Lab: VirtualBox / VMware, GNS3 / EVE-NG (network topology sim), Docker
+
+### Weekly cadence (suggested)
+- Pick ONE platform, ONE book, ONE tool per phase — don't spread
+- 1 hr theory (book/course) + 2 hrs hands-on (platform/lab); daily beats weekend binge
+- Ship proof: write short notes / blog per solved box — build a public trail
+- Join a community week 0: r/netsec, TryHackMe/HTB Discord, local CTF team
+
+### Certs (only if HR needs them)
+- Network+ → Security+ → (optional) OSCP / eJPT / PNPT / CCNA
+- Certs are HR filters, not skill
 
 ## Adjacent path C — electronics
-- Full playlists in [[Electronics roadmap runs from circuits to power electronics]]
-- Circuits (Eng Karim): https://youtube.com/playlist?list=PLFM6wDAJoh--qm9UD3VatCBeGJaPGlLK6 · https://youtube.com/playlist?list=PLFM6wDAJoh-88gjdMrSJ28aPkw2-9uR6f
-- Practical electronics (Walid Issa): https://youtube.com/playlist?list=PLww54WQ2wa5qVh1p8iPi7HspX7N9hbvbc
-- Digital (Neso Academy): https://youtube.com/playlist?list=PLBlnK6fEyqRjMH3mWf6kwqiTbT798eAOm
-- Razavi Electronics 1 & 2: https://youtube.com/playlist?list=PL7qUW0KPfsIIOPOKL84wK_Qj9N7gvJX6v · https://youtube.com/playlist?list=PL7qUW0KPfsIJ7RH4ga4kMENDgI_KWRy8v
-- Power Electronics (Al-Sharif) 01–10: https://youtube.com/playlist?list=PLJqRpPcJQ_g0DlrD452NGJUOriJEXd2gH · https://youtube.com/playlist?list=PLJqRpPcJQ_g1NpCmJeihvSnwyES8MEhfd · https://youtube.com/playlist?list=PLJqRpPcJQ_g0UEOMJf0hWzkUQBA0XgpJz · https://youtube.com/playlist?list=PLJqRpPcJQ_g2vwDhFx_SdE_BauE6u2rMm · https://youtube.com/playlist?list=PLJqRpPcJQ_g2bT6mmCB6qlitLKwPRtwKf · https://youtube.com/playlist?list=PLJqRpPcJQ_g1RfueC0ENOo7-N9o_-24Tf · https://youtube.com/playlist?list=PLJqRpPcJQ_g3IiXx-jQ51KW5qHMOZ_wix · https://youtube.com/playlist?list=PLJqRpPcJQ_g0H61cbXll_BDkGScNzSsRO · https://youtube.com/playlist?list=PLJqRpPcJQ_g301b-N60ulk0D3gd2P_QjZ · https://youtube.com/playlist?list=PLJqRpPcJQ_g0yFfWeKEuzQ8uMGDY16RmX
+Full electronics study path from Gihad (works in the field), ordered like a multi-year university track: circuits → practical electronics → digital → analog (Razavi) → power electronics → transducers → control. Big part is theory — work around it smart: follow your priority and your project's need, apply as much as you can, connect the ideas. You do NOT need to build boards by hand — understanding boards well is enough; board design + manufacturing is a separate specialty (better for big companies / older engineers).
+
+### The path (in order)
+1. Electric circuits — Eng Karim: [Electric circuit 1](https://youtube.com/playlist?list=PLFM6wDAJoh--qm9UD3VatCBeGJaPGlLK6) (28 videos) · [Electric circuits 2](https://youtube.com/playlist?list=PLFM6wDAJoh-88gjdMrSJ28aPkw2-9uR6f) (35 videos)
+2. Practical electronics — Walid Issa: [دبلومة الالكترونيات العملية](https://youtube.com/playlist?list=PLww54WQ2wa5qVh1p8iPi7HspX7N9hbvbc) (216 videos) — the hands-on side of the roadmap
+3. Digital electronics — Neso Academy: [Digital Electronics](https://youtube.com/playlist?list=PLBlnK6fEyqRjMH3mWf6kwqiTbT798eAOm) (202 videos)
+4. Analog electronics — Razavi: [Razavi Electronics 1](https://youtube.com/playlist?list=PL7qUW0KPfsIIOPOKL84wK_Qj9N7gvJX6v) (45 videos) · [Razavi Electronics 2](https://youtube.com/playlist?list=PL7qUW0KPfsIJ7RH4ga4kMENDgI_KWRy8v) (45 videos)
+5. Power electronics — Dr. Lutfi Al-Sharif (10 playlists):
+   - [01 Introduction and Basic Concepts](https://youtube.com/playlist?list=PLJqRpPcJQ_g0DlrD452NGJUOriJEXd2gH) — 7 videos
+   - [02 Components](https://youtube.com/playlist?list=PLJqRpPcJQ_g1NpCmJeihvSnwyES8MEhfd) — 29 videos
+   - [03 Average and RMS Calculations](https://youtube.com/playlist?list=PLJqRpPcJQ_g0UEOMJf0hWzkUQBA0XgpJz) — 8 videos
+   - [04 Harmonics, Fourier Series and Orthogonality](https://youtube.com/playlist?list=PLJqRpPcJQ_g2vwDhFx_SdE_BauE6u2rMm) — 16 videos
+   - [05 The Power Factor](https://youtube.com/playlist?list=PLJqRpPcJQ_g2bT6mmCB6qlitLKwPRtwKf) — 18 videos
+   - [06 AC to DC Converters (Rectifiers)](https://youtube.com/playlist?list=PLJqRpPcJQ_g1RfueC0ENOo7-N9o_-24Tf) — 55 videos
+   - [07 DC to DC Converters](https://youtube.com/playlist?list=PLJqRpPcJQ_g3IiXx-jQ51KW5qHMOZ_wix) — 17 videos
+   - [08 DC to AC Converters (Inverters)](https://youtube.com/playlist?list=PLJqRpPcJQ_g0H61cbXll_BDkGScNzSsRO) — 40 videos
+   - [09 AC to AC Converters](https://youtube.com/playlist?list=PLJqRpPcJQ_g301b-N60ulk0D3gd2P_QjZ) — 22 videos
+   - [10 Introduction to SimPowerSystems](https://youtube.com/playlist?list=PLJqRpPcJQ_g0yFfWeKEuzQ8uMGDY16RmX) — 24 videos
+6. After that (same channels, no direct links yet): Transducers section — 6 playlists (Lutfi Al-Sharif channel) · Control section — playlists for every control type · Motors + systems — also on Lutfi Al-Sharif channel, optional
+
+### How to study it (Gihad's advice)
+- This is years of material — don't do it linearly start-to-finish
+- Stop any time → check what your project needs → study that part → come back and continue
+- Hunting a specific job position? Stop, find the shortest set of courses that leads straight to it, start there
+- Apply as much as you can, connect information together — specialization comes with time
+- Don't work alone for a long time in the dark: while learning basics, find someone already doing the job you want, ask them, follow their path
+- Warning from Gihad: most people he knows work PLC and embedded, not pure electronics; he doesn't know how people in Europe get electronics jobs. In Egypt, factories usually hire juniors after basics and train them their own way
+- Job angle: this curriculum is enough for someone who *uses* boards; board design/manufacture = a different specialty
+
+### Why it matters
+- Having the whole ordered path in one place kills the "what do I watch next" question
+- Source: WhatsApp messages from Gihad, 29.08.2026 (playlist links + study advice, Arabic)
 
 ## Game RE, decompilation & modding
 - Skyrim Script Extender (SKSE) — https://skse.silverlock.org/ · David J. Cobb's RE findings — https://github.com/davidjcobb/tesv-cobb-api
