@@ -11,7 +11,6 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 > Book covers + reading tracker live in [books.html](./books.html). Rule for me: read less, build more — every resource means do the labs and publish a writeup.
 
 ## Table of contents
-- [The path & roadmap (vault notes)](#the-path--roadmap-vault-notes)
 - [My notes-goblin pages](#my-notes-goblin-pages)
 - [Practice platforms & wargames](#practice-platforms--wargames)
 - [CTFs, competitions & events](#ctfs-competitions--events)
@@ -48,32 +47,6 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 
 ---
 
-## The path & roadmap (vault notes)
-Internal `[[wikilinks]]` to the roadmap notes that structure everything below.
-- [[PWN MOC]] — master map for pwning
-- [[Security MOC]] — security topic map
-- [[Reverse Engineering]]
-- [[Binary Exploitation]]
-- [[Seven overlapping phases structure the security roadmap]]
-- [[Security roadmap timeline runs about 18 months]]
-- [[Phase 1 builds binary exploitation foundations]]
-- [[Phase 2 builds reverse engineering skill]]
-- [[Phase 3 covers advanced exploitation and kernel]]
-- [[Phase 4 makes firmware and IoT your specialization]]
-- [[Phase 5 goes into hardware hacking]]
-- [[Phase 6 grinds bug bounty, CTFs, and CVEs]]
-- [[Phase 7 adds optional certs and the job hunt]]
-- [[The security end goal is belts, CVEs, bounty, and a job]]
-- [[Pick Linux kernel and container exploitation as your security niche]]
-- [[Sohaib's roadmap turns an embedded engineer into a vuln researcher]]
-- [[The security roadmap has a master book list]]
-- [[Practice exploitation with pwntools, pwn.college, and kernel CTFs]]
-- [[This security path rewards obsession and dips your income first]]
-- [[Keep the money legal by choosing bounties over the gray market]]
-- [[Security roadmap book stack and free platforms]]
-- [[Ten hacking books as reference not curriculum]]
-- [[index]]
-
 ## My notes-goblin pages
 Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https://htmlpreview.github.io/)).
 - [Book Library](https://smalinux.github.io/notes-goblin/books.html) — covers, ratings, reading status, progress & notes
@@ -100,10 +73,7 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 ---
 
 ## Practice platforms & wargames
-- pwn.college — https://pwn.college/ (dojos: https://pwn.college/dojos , source: https://github.com/pwncollege)
-  - Linux Luminarium — https://pwn.college/linux-luminarium/
-  - Computing 101 — https://pwn.college/computing-101/
-  - Advanced dojos — kernel, browser, hard pwn modules
+- pwn.college — https://pwn.college/
 - ROP Emporium — https://ropemporium.com/guide.html
 - exploit.education (Phoenix, Nebula, Protostar) — https://exploit.education
 - Nightmare (guyinatuxedo, heap/pwn) — https://guyinatuxedo.github.io/nightmare/ · https://guyinatuxedo.github.io
@@ -189,8 +159,8 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - Google Cybersecurity Certificate (Coursera, audit free)
 - SANS Cyber Aces / SANS FOR / SANS MGT
 - Professor Messer Network+ / Security+ (free YouTube) · Practical Networking (YouTube, TCP/IP)
-- Hoppers Roppers pwning roadmap — https://www.hoppersroppers.org/roadmap/training/pwning.html
-- Izzy's "pwner's roadmap" — https://izzy.sh/posts/pwners-roadmap/
+- Hoppers Roppers pwning roadmap — https://www.hoppersroppers.org/roadmap/training/pwning.html  ⭐⭐⭐⭐⭐
+- Izzy's "pwner's roadmap" — https://izzy.sh/posts/pwners-roadmap/  ⭐⭐⭐⭐⭐
 - Cybershelf best RE books — https://www.cybershelf.org/en/blog/best-reverse-engineering-books-2026
 - Cybershelf best cybersecurity books — https://www.cybershelf.org/en/guides/best-cybersecurity-books-2026
 - Kernel Recipes 2026: single place to learn Linux kernel internals — Day 1 https://lnkd.in/dTE83Tpd · Day 2 https://lnkd.in/d8vcnmnW · Day 3 https://lnkd.in/ddv5dBaY
