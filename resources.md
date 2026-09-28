@@ -303,6 +303,36 @@ Actual videos & playlists matched to the book's chapters — every link verified
 **Whole-book practice lane (malware RE end-to-end)**
 - [Marcus Hutchins — Reverse Engineering for Beginners, 2024 (playlist)](https://www.youtube.com/playlist?list=PLPsJIruML_ZivGWUd6bPkwDe-KFOIYg7p) + his 2018 series (not in any playlist): [#1](https://www.youtube.com/watch?v=w_rQJ7u-lpk) · [#2](https://www.youtube.com/watch?v=b0WQwCQGjv4) · [#3](https://www.youtube.com/watch?v=jm4DmdygLvw)
 
+### Compiler optimization tricks
+Goal: recognize what the optimizer did to the code — not become a compiler engineer. Order: Godbolt's talk → his Advent series for daily pattern drills → Rolles' deck → the idiom articles as you hit each pattern in real binaries; keep Yurichev + Raymond Chen as references. Lab: compile snippets at -O0 vs -O2 on [godbolt.org](https://godbolt.org/) and diff.
+
+**Start here**
+- ⭐ [Matt Godbolt — What Has My Compiler Done for Me Lately? (CppCon 2017)](https://www.youtube.com/watch?v=bSkpMdDe4g4) — the canonical talk on reading optimizer output
+- ⭐ [Advent of Compiler Optimisations 2025 (Godbolt)](https://xania.org/AoCO2025) — 25 days, one optimization per day, x86-64 + ARM64/ARM32; blog + [YouTube playlist](https://www.youtube.com/playlist?list=PL2HVqYf7If8cY4wLk7JUQ2f0JXY_xMQm2). Key days: [7 — division by constant](https://youtu.be/V9Pvv1tkocM) · [23 — switch lowering](https://youtu.be/aSljdPafBAw)
+- [Rolf Rolles — Binary Literacy: Optimizations slide deck (free .ppt)](https://www.msreverseengineering.com/s/Binary-Literacy-Static-6-Optimizations.ppt) — from the one training literally built around compiler optimizations for REs ([course page](https://www.msreverseengineering.com/training))
+- [Yurichev — Understanding Assembly Language / RE4B (free book)](https://beginners.re/) — small C snippets → x86/x64/ARM/MIPS output, -O0 and optimized; use as pattern reference, don't read linearly
+
+**More talks**
+- Godbolt: [What Everyone Should Know About How Amazing Compilers Are (C++ on Sea'19)](https://www.youtube.com/watch?v=w0sz5WbS5AM) · [What Else Has My Compiler Done For Me Lately? (C++Now'18)](https://www.youtube.com/watch?v=nAbCKa0FzjQ) · [The Bits Between the Bits: How We Get to main() (CppCon'18)](https://www.youtube.com/watch?v=dOfucXtyEsU)
+- Chandler Carruth: [Understanding Compiler Optimization (Meeting C++'15)](https://www.youtube.com/watch?v=FnGCDLhaxKU) · [Tuning C++: Benchmarks, and CPUs, and Compilers! Oh My! (CppCon'15)](https://www.youtube.com/watch?v=nXaxk27zwlk) — how the optimizer thinks
+- RE-side view: [Laurie Kirk — Thinking Like a Compiler: Obfuscation from the Other Side (RE//verse 2026 keynote)](https://www.youtube.com/watch?v=jfqFHHsYQAs) · [OliveStem — gcc functions & compiler optimizations in disassembly](https://www.youtube.com/watch?v=JMQQmnjXCmQ)
+- [Creel — Branchless Programming](https://www.youtube.com/watch?v=bVJ-mWWL7cE) — the cmov/branchless patterns all over optimized binaries
+
+**Recognize-the-idiom articles**
+- [ridiculousfish — Labor of Division, Episode I](https://ridiculousfish.com/blog/posts/labor-of-division-episode-i.html) — why `/` becomes multiply-by-magic-number + shift
+- Igor's Tip of the Week ([index](https://hex-rays.com/blog/tag/igors-tip-of-the-week) · [season 1 PDF](https://hex-rays.com/blog/igors-tip-of-the-week-season-01)): [#53 manual switch idioms](https://hex-rays.com/blog/igors-tip-of-the-week-53-manual-switch-idioms) · [Ilfak — tricky jump tables](https://hex-rays.com/blog/tricky-jump-tables)
+- Skochinsky — Reversing Microsoft Visual C++: [Part I: exceptions/SEH](http://www.openrce.org/articles/full_view/21) · [Part II: classes, methods, RTTI](http://www.openrce.org/articles/full_view/23) · [REcon'12 Compiler Internals slides (PDF)](http://www.hexblog.com/wp-content/uploads/2012/06/Recon-2012-Skochinsky-Compiler-Internals.pdf)
+- Eli Bendersky: [stack frame layout on x86-64](https://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64) (red zone, frame-pointer omission) · [where the top of the stack is](https://eli.thegreenplace.net/2011/02/04/where-the-top-of-the-stack-is-on-x86/) · [PIC in shared libraries](https://eli.thegreenplace.net/2011/11/03/position-independent-code-pic-in-shared-libraries/) · [PIC on x64](https://eli.thegreenplace.net/2011/11/11/position-independent-code-pic-in-shared-libraries-on-x64) — GOT/PLT & RIP-relative patterns in disassembly
+- [Stefanos Baziotis — Compiler Optimization in a Language you Can Understand](https://sbaziotis.com/compilers/compiler-opt.html) — inlining, strength reduction, CSE, DCE with C→asm examples
+- [Agner Fog — Calling Conventions (PDF)](https://www.agner.org/optimize/calling_conventions.pdf) — the cross-compiler/cross-OS reference
+- Bridge to PRE Ch.5: [Blazytko — practical MBA deobfuscation with msynth](https://synthesis.to/2021/11/11/practical_mba_deobfuscation.html)
+
+**Per-architecture — Raymond Chen's processor series (compiler-codegen viewpoint)**
+- [ARM32/Thumb-2](https://devblogs.microsoft.com/oldnewthing/20210531-00/?p=105265) · [AArch64](https://devblogs.microsoft.com/oldnewthing/20220726-00/?p=106898) · [x86-64 whirlwind tour](https://devblogs.microsoft.com/oldnewthing/20220831-00/?p=107077) · [MIPS R4000](https://devblogs.microsoft.com/oldnewthing/20180402-00/?p=98415) · also Alpha AXP, PowerPC 600, SuperH-3, Itanium (each part 1 links onward)
+
+**Book-shelf reference**
+- Hacker's Delight (2nd) — Henry Warren — [publisher page](https://www.informit.com/store/hackers-delight-9780321842688) — the bible of the bit tricks compilers emit (hackersdelight.org is dead; ignore it)
+
 ---
 
 ## Tools — RE & disassembly
