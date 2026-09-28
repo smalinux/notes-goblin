@@ -108,7 +108,7 @@ function visible(c) {
   if (filter === "done" && !s.done) return false;
   if (filter === "todo" && (s.done || s.star)) return false;
   if ((filter === "notes" || filter === "curated") && !c.src.includes(filter)) return false;
-  if (query && !(c.name + " " + (c.desc || "") + " " + (c.why || "")).toLowerCase().includes(query)) return false;
+  if (query && !(c.name + " " + c.url + " " + (c.desc || "") + " " + (c.why || "")).toLowerCase().includes(query)) return false;
   return true;
 }
 
