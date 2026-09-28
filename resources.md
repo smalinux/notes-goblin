@@ -21,6 +21,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Assembly & number bases](#assembly--number-bases)
 - [ELF & process loading](#elf--process-loading)
 - [Reverse engineering — learning & workflow](#reverse-engineering--learning--workflow)
+- [Book — Practical Reverse Engineering](#book--practical-reverse-engineering)
 - [Tools — RE & disassembly](#tools--re--disassembly)
 - [Tools — debugging & dynamic analysis](#tools--debugging--dynamic-analysis)
 - [Tools — exploitation](#tools--exploitation)
@@ -260,7 +261,47 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Here Be Dragons: Reverse Engineering with Ghidra — Part 1 (Steven Patterson, Shogun Lab; tutorial series with CrackMe/CTF exercises) — https://www.shogunlab.com/blog/2019/12/22/here-be-dragons-ghidra-1.html
 - RE tutorial series (mytechnotalent) — https://github.com/mytechnotalent/Reverse-Engineering ⭐
 - Practice ladder: crackmes.one → reversing.kr → challenges.re; pwnable.kr → pwnable.tw → ROP Emporium → how2heap; Flare-On archives → live Flare-On each fall; Microcorruption
-- Practical Reverse Engineering (book) notes: MSRs (RDMSR/WRMSR, ring 0), SYSENTER → IA32_SYSENTER_EIP MSR (0x17), CR0/CR3
+
+## Book — Practical Reverse Engineering
+
+### Watch this while reading
+Actual videos & playlists matched to the book's chapters — every link verified. Workflow: read a chapter → watch its matches → redo the book's exercises in IDA/Ghidra + WinDbg.
+
+**The book applied directly** ⭐
+- [Practical Reverse Engineering Exercises — Guided Hacking, 5-part playlist](https://www.youtube.com/playlist?list=PLt9cUwGw6CYFFCQXdowh_hHj0PWTfqKz-) — solves the book's own exercises in IDA/x64dbg: [Ex.1 p.11](https://www.youtube.com/watch?v=1zY7lbcbBZQ) · [p.35 Ex.1 sample J](https://www.youtube.com/watch?v=5_LHA3sl7-4) · [p.35 Ex.5 RtlValidateUnicodeString](https://www.youtube.com/watch?v=2zme_cCTHPo)
+- Exercise solutions to check yours against: [repnz (kernel ch., excellent writeups)](https://repnz.github.io/posts/practical-reverse-engineering/solutions/) · [bin.re](https://bin.re/projects/solutions-to-practical-reverse-engineering/) · [tandasat Ch.1 gist](https://gist.github.com/tandasat/a9ce7a7b4bfa7cf4f860) · GitHub: [baderj](https://github.com/baderj/practical-reverse-engineering) · [nanabingies](https://github.com/nanabingies/Practical-Reverse-Engineering-Solutions) · [uf0o](https://github.com/uf0o/practical_reverse_engineering) · [alal4465 (kernel drivers)](https://github.com/alal4465/Practical-Reverse-Engineering-Solutions)
+- [AllThingsIDA](https://www.youtube.com/@allthingsida) — co-author Elias Bachaalany's own channel; IDA-driven RE from the book's mindset
+
+**Ch.1 — x86/x64**
+- [OST2 Arch1001: x86-64 Assembly (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-m9B0DhHjkXd8foIMuZO1Gd) → [OST2 Arch2001: x86-64 OS Internals (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-myVyCmMvfz_W5Z5SauI3cN) — segmentation, paging, MSRs, SYSENTER/SYSCALL, ring transitions = the system half of this chapter
+- [Creel — Modern x64 Assembly (playlist)](https://www.youtube.com/playlist?list=PLKK11Ligqitg9MOX3-0tFT1Rmh3uJp7kA) · [xorpd — x86 Assembly Adventures pt.1 (playlist)](https://www.youtube.com/playlist?list=PLn4AdTx18u3s2ZUo4DetnL5QzjujJSgxN) · [Low Level — Learn Assembly in 10 Minutes](https://www.youtube.com/watch?v=jPDiaZS-2ok)
+
+**Ch.2 — ARM**
+- [LaurieWired — Practical ARM Assembly Tutorial Series (playlist)](https://www.youtube.com/playlist?list=PLn_It163He32Ujm-l_czgEBhbJjOUgFhg)
+- [Azeria — Writing ARM Assembly pt.1 (written tutorials; no video version exists)](https://azeria-labs.com/writing-arm-assembly-part-1/) · her talk: [ARM shellcode in six minutes](https://www.youtube.com/watch?v=DGJZBDlhIGU)
+- [OST — Introduction to ARM (legacy playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-n91t_AX5zO007Giz1INwPd) · stacksmashing applied: [bare-metal ARM firmware in Ghidra + SVD-Loader](https://www.youtube.com/watch?v=q4CxE5P6RUE) · [breaking embedded firmware encryption](https://www.youtube.com/watch?v=4urMITJKQQs)
+
+**Ch.3 — Windows kernel**
+- [OST2 Arch2821: Windows Kernel Internals 2 (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-kOQnYJwx3x9wPMDjlv2iSg)
+- Pavel Yosifovich: [Windows Internals (playlist)](https://www.youtube.com/playlist?list=PLxWtYM8HSeNtJpxakYdK_aF78jWEsBmWD) · [Writing a Windows kernel driver in an hour (NDC)](https://www.youtube.com/watch?v=6ZPdbHJH_2g) · on Off By One: [Windows Device Drivers Internals and Some Reversing](https://www.youtube.com/watch?v=cAvgVAJr5fU)
+- Driver RE walkthroughs: [Static RE of Windows Kernel Drivers in IDA — device objects, IOCTLs, dispatch routines](https://www.youtube.com/watch?v=5vHhx44Lp2Q) · kernel driver chall in Ghidra [S01E01](https://www.youtube.com/watch?v=Ar4dZNL9rHE)/[E02](https://www.youtube.com/watch?v=e7ydGxJ5fTQ) · [OALabs — reversing a vulnerable AV driver abused by ransomware](https://www.youtube.com/watch?v=ViWLMfSwGVA)
+- [Guided Hacking — Kernel Hacking Tutorials (playlist)](https://www.youtube.com/playlist?list=PLt9cUwGw6CYHWuMtGHSgdLUaTo7aa2lEr) · Alex Ionescu talks: [NT Kernel Shim Engine (REcon'16)](https://www.youtube.com/watch?v=qCa9icMqBNM) · [ALPC/LPC internals (SyScan'14)](https://www.youtube.com/watch?v=UNpL5csYC1E) · from yt.html: [Shadow Walker rootkit analysis (WindowsSCOPE)](https://www.youtube.com/watch?v=BETP4koskoE)
+
+**Ch.4 — debugging & automation**
+- WinDbg path: [OST2 Dbg1011 Intro WinDbg](https://ost2.fyi/Dbg1011) (videos live on ost2.fyi, not YouTube) → [OST2 Debuggers 3011: Advanced WinDbg (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-ka9dfeHWmhqDV-qIns-9uR) — kernel-mode WinDbg + ret-sync with IDA/Ghidra
+- Pavel Yosifovich WinDbg singles: [kernel debugging with a VM](https://www.youtube.com/watch?v=wpBbd5FoRMw) · [the dx command](https://www.youtube.com/watch?v=lg36vt1a8Cg) · [Time Travel Debugging](https://www.youtube.com/watch?v=q6QQfjVv76Y) · [write a WinDbg extension](https://www.youtube.com/watch?v=ly-nZjuLNkw)
+- OALabs: [WinDbg Basics for Malware Analysis](https://www.youtube.com/watch?v=QuFJpH3My7A) · [x64dbg system breakpoint explained](https://www.youtube.com/watch?v=vdyyg72tc2w) · [unpacking Remcos RAT with x64dbg](https://www.youtube.com/watch?v=DIH4SvKuktM)
+- Off By One Security: [Debugging the Windows Kernel and Undocumented Structures](https://www.youtube.com/watch?v=bo7pGYh-7kQ) · [Following the C with WinDbg](https://www.youtube.com/watch?v=sAxBDkB_idM)
+- [Josh Stroschein — Ghidra Reversing Tutorials (playlist)](https://www.youtube.com/playlist?list=PLHJns8WZXCdu6kPwPpBhA0mfdB4ZuWy6M) · Arabic, Linux side: [Moatasem Elsayed — Mastering GDB (playlist)](https://www.youtube.com/playlist?list=PLkH1REggdbJozCn0ftsshAPdetD6Bd4hz)
+
+**Ch.5 — obfuscation**
+- Tim Blazytko: [34C3 — Let's break modern binary code obfuscation](https://www.youtube.com/watch?v=TDnAkm6ZTYw) · [BH Asia'18 — breaking obfuscation via program synthesis (Syntia)](https://www.youtube.com/watch?v=0SvX6F80qg8) · [r2con'21 hands-on workshop — VM-based obfuscation](https://www.youtube.com/watch?v=b6udPT79itk) · [REcon'22 — next-gen virtualization obfuscators](https://www.youtube.com/watch?v=EWCcOlJf4pE)
+- [Rolf Rolles — Program Synthesis in Reverse Engineering](https://www.youtube.com/watch?v=mFjSbxV_1vw) (taught alongside the book's authors) · [Salwan & Thomas — Triton vs VM-based protections](https://www.youtube.com/watch?v=Fk7bF94sy9U)
+- Unpacking practice: [hasherezade — malware unpacking (playlist)](https://www.youtube.com/playlist?list=PL3CZ2aaB7m83eYTAVV2knNglB8I4y5QmH) · [MalwareAnalysisForHedgehogs — unpacking theory & tutorials (playlist)](https://www.youtube.com/playlist?list=PLynb9SXC4yER8NinXJwV4GHUM9-jaIsN_) · [OALabs — Open Analysis Live! (playlist, 89 eps)](https://www.youtube.com/playlist?list=PLGf_j68jNtWG_6ZwFN4kx7jfKTQXoG_BN)
+- Extra: [DEF CON 33 — automated unpacking of nested VM-based protectors](https://www.youtube.com/watch?v=uCZRf3v3EUI) · [RECON 2026 — deobfuscation in the age of agentic RE](https://www.youtube.com/watch?v=3-gJ6EUFoKM)
+
+**Whole-book practice lane (malware RE end-to-end)**
+- [Marcus Hutchins — Reverse Engineering for Beginners, 2024 (playlist)](https://www.youtube.com/playlist?list=PLPsJIruML_ZivGWUd6bPkwDe-KFOIYg7p) + his 2018 series (not in any playlist): [#1](https://www.youtube.com/watch?v=w_rQJ7u-lpk) · [#2](https://www.youtube.com/watch?v=b0WQwCQGjv4) · [#3](https://www.youtube.com/watch?v=jm4DmdygLvw)
 
 ---
 
