@@ -74,21 +74,21 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 ---
 
 ## Practice platforms & wargames
-- pwn.college — https://pwn.college/
+- pwn.college — https://pwn.college/ 🦄
 - ROP Emporium — https://ropemporium.com/guide.html
 - exploit.education (Phoenix, Nebula, Protostar) — https://exploit.education
 - Nightmare (guyinatuxedo, heap/pwn) — https://guyinatuxedo.github.io/nightmare/ · https://guyinatuxedo.github.io
 - how2heap (Shellphish) — https://github.com/shellphish/how2heap — every glibc heap technique per libc version
 - pwnable.kr · pwnable.tw (hardest quality) · pwnable.xyz
-- picoCTF
-- Microcorruption (MSP430 firmware, in browser) — https://microcorruption.com
-- crackmes.one — https://crackmes.one (+ yearly Feb RE CTF) · Crackme wiki — https://en.wikipedia.org/wiki/Crackme
+- picoCTF 🦄
+- Microcorruption (MSP430 firmware, in browser) — https://microcorruption.com 🦄
+- crackmes.one — https://crackmes.one (+ yearly Feb RE CTF) · Crackme wiki — https://en.wikipedia.org/wiki/Crackme 🦄
 - reversing.kr · challenges.re (Yurichev's "what does this code do?" drills) · Dreamhack
 - ret2wargames / RET2 WarGames (live memory visualizer, browser x64 pwn) — https://wargames.ret2.systems
-- HackTheBox — https://www.hackthebox.com (Reversing/Pwn categories) · TryHackMe · Root-Me
+- HackTheBox — https://www.hackthebox.com (Reversing/Pwn categories) · TryHackMe · Root-Me 🦄
 - OverTheWire wargames (Bandit, Narnia, Behemoth, Utumno, Natas, Leviathan) — https://overthewire.org/wargames
 - Modern Binary Exploitation (RPISEC, free course) · RPISEC MBE
-- Malware Unicorn RE101 / RE102 · MalwareTech Labs
+- Malware Unicorn RE101 / RE102 · MalwareTech Labs 🦄
 - CryptoHack — https://cryptohack.org/ · Cryptopals
 - Azeria Labs (ARM asm & exploitation) — https://azeria-labs.com
 - PortSwigger Web Security Academy — https://portswigger.net/
@@ -97,7 +97,7 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - OWASP IoTGoat · Damn Vulnerable Router Firmware (DVRF) · Damn Vulnerable ARM Router (DVAR)
 - SEED Labs (Syracuse) · CTFlearn · VulnHub
 - HEVD (Windows kernel LPE) · Google kernelCTF (real Linux 0-day writeups)
-- Flare-On archives (best malware-RE skill test) · MemLabs (Volatility CTF) · PMAT-labs (safe samples)
+- Flare-On archives (best malware-RE skill test) · MemLabs (Volatility CTF) · PMAT-labs (safe samples) 🦄
 - OWASP MAS Crackmes · DVIA-v2 (iOS) · DIVA / InsecureBankv2 / InjuredAndroid (Android) · iGoat · awesome-mobile-CTF
 - Malware-Traffic-Analysis.net — https://malware-traffic-analysis.net (Brad Duncan; pcap + samples)
 - CyberDefenders · LetsDefend (free tier) · Blue Team Labs Online · DetectionLab
@@ -120,13 +120,13 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
   - Pwn2Own "IoT / SOHO Smashup" category
   - 34 0-days at Pwn2Own — https://cybersecuritynews.com/34-0-day-vulnerabilities-pwn2own/
 - Zero Day Initiative (ZDI)
-- Flare-On (solo malware-RE CTF each fall) — https://flare-on.com
+- Flare-On (solo malware-RE CTF each fall) — https://flare-on.com 🦄
 - DEF CON CTF · Google CTF · PlaidCTF (CMU PPP) · HITCON CTF · Real World CTF (Chaitin, hypervisor) · hxp / Dragon / 0CTF
 - Rhme CTF (ChipWhisperer / fault injection) · Hack-A-Sat (satellite)
 - Code4rena / Sherlock / Secureum (smart-contract audits)
 - Trace Labs CTFs (OSINT) · Snyk "Fetch the Flag" (John Hammond / Snyk)
 - Huntress CTF — https://ctf.huntress.com/
-- PicoCTF
+- PicoCTF 🦄
 
 ## Bug bounty & vuln research programs
 - HackerOne — https://www.hackerone.com/
@@ -139,15 +139,15 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - Gray market (cautionary, NOT recommended): Zerodium — https://en.wikipedia.org/wiki/Zerodium , Crowdfense — https://securityaffairs.com/161584/hacking/crowdfense-30m-exploit-acquisition-program.html
 
 ## Courses & training
-- OpenSecurityTraining2 (OST2) — https://ost2.fyi/ (portal: https://p.ost2.fyi/) — Xeno Kovah, university-grade x86/ARM/firmware/Windows
-  - Arch1001 x86-64 Assembly — https://p.ost2.fyi/courses/course-v1:OpenSecurityTraining2+Arch1001_x86-64_Asm+2021_v1/about
+- OpenSecurityTraining2 (OST2) — https://ost2.fyi/ (portal: https://p.ost2.fyi/) — Xeno Kovah, university-grade x86/ARM/firmware/Windows 🦄
+  - Arch1001 x86-64 Assembly — https://p.ost2.fyi/courses/course-v1:OpenSecurityTraining2+Arch1001_x86-64_Asm+2021_v1/about 🦄
   - RE1001 / RE2001, RE3011 (C++), RE3201 (angr), Debuggers 1012 (GDB), Debuggers 1102 (Ghidra), Arch2001 (OS Internals), Arch4031 (coreboot/firmware), Arch4001 (x86-64 Intel Firmware Attack & Defense), Arch1005, Bluetooth 1601, TC (Trusted Computing), SCA101, FAULT101, WinDbg Intro/Intermediate
 - ASU CSE 466 public lectures (pwn.college source course)
 - Nand2Tetris — https://nand2tetris.org
 - CMU 15-213 / CS:APP labs — https://csapp.cs.cmu.edu/3e/labs.html
 - MIT 6.1810 (xv6 OS) — https://pdos.csail.mit.edu/6.1810
 - Stanford CS144 Networking — https://cs144.github.io/
-- Intro to RE with Ghidra (wrongbaud / HackadayU) · MalwareUnicorn RE101/RE102 · begin.re (Ophir Harpaz) · angr_ctf (17 graded levels) · Azeria ARM tutorials
+- Intro to RE with Ghidra (wrongbaud / HackadayU) · MalwareUnicorn RE101/RE102 · begin.re (Ophir Harpaz) · angr_ctf (17 graded levels) · Azeria ARM tutorials 🦄
 - "Software Deobfuscation Techniques" — Tim Blazytko (synthesis.to / REcon)
 - REcon Montreal trainings · Azeria Labs ARM trainings
 - Malware: SANS FOR610 (GREM) → SANS FOR710 · Zero2Automated (0ffset) · TCM PMAT (HuskyHacks) · OALabs Patreon · Invoke RE (Josh Reynolds)
@@ -188,7 +188,7 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - The Art of Software Security Assessment (TAOSSA) — Dowd, McDonald, Schuh — https://www.amazon.com/Art-Software-Security-Assessment-Vulnerabilities/dp/0321444426
 - The Ghidra Book — Eagle & Nance · The IDA Pro Book — Chris Eagle ⭐
 - Blue Fox: Arm Assembly Internals & RE — Maria Markstedter
-- Reverse Engineering for Beginners (RE4B) — Dennis Yurichev (free) — https://beginners.re/
+- Reverse Engineering for Beginners (RE4B) — Dennis Yurichev (free) — https://beginners.re/ 🦄
 - Reversing: Secrets of Reverse Engineering — Eldad Eilam · Surreptitious Software — Collberg & Nagra
 - Learning Linux Binary Analysis — Ryan "elfmaster" O'Neill
 - Linkers and Loaders — John Levine (free) · SAT/SMT by Example — Yurichev (free) · The Beginner's Guide to IDAPython — Alexander Hanel
@@ -206,7 +206,7 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Attacking JavaScript Engines — Saelo (Phrack 70)
 
 ### Malware analysis, intel & forensics
-- Practical Malware Analysis — Sikorski & Honig
+- Practical Malware Analysis — Sikorski & Honig 🦄
 - The Art of Memory Forensics — Ligh, Case, Levy, Walters
 - Evasive Malware — Kyle Cucci (2024) · Mastering Malware Analysis (2nd) — Kleymenov & Thabet · Learning Malware Analysis — Monnappa K A
 - Malware Analysis and Detection Engineering — Mohanta & Saldanha
@@ -229,7 +229,7 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 ---
 
 ## Assembly & number bases
-- Assembly learning path (mine): [pwn.college Computing 101](https://pwn.college/computing-101/) → OST2 Architecture 1001 x86-64 Assembly
+- Assembly learning path (mine): [pwn.college Computing 101](https://pwn.college/computing-101/) → OST2 Architecture 1001 x86-64 Assembly 🦄
 - Flippy Bit and the Attack of the Hexadecimals from Base 16 (Hex↔Binary) — https://flippybitandtheattackofthehexadecimalsfrombase16.com/
 - Cisco Binary Game (Binary↔Decimal) — https://learningnetwork.cisco.com/s/binary-game
 - Online disassembler (Google: "Online disassembler")
@@ -260,7 +260,8 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Walkthroughs: Adam Doupé (ASU) hacking challenges — https://www.youtube.com/watch?v=qGt-0OOAFcM&list=PLK06XT3hFPziMAZj8QuoqC8iVaEbrlZWh ⭐
 - Here Be Dragons: Reverse Engineering with Ghidra — Part 1 (Steven Patterson, Shogun Lab; tutorial series with CrackMe/CTF exercises) — https://www.shogunlab.com/blog/2019/12/22/here-be-dragons-ghidra-1.html
 - RE tutorial series (mytechnotalent) — https://github.com/mytechnotalent/Reverse-Engineering ⭐
-- Practice ladder: crackmes.one → reversing.kr → challenges.re; pwnable.kr → pwnable.tw → ROP Emporium → how2heap; Flare-On archives → live Flare-On each fall; Microcorruption
+- Practice ladder: crackmes.one → reversing.kr → challenges.re; pwnable.kr → pwnable.tw → ROP Emporium → how2heap; Flare-On archives → live Flare-On each fall; Microcorruption 🦄
+- Suggested path: OST2 Arch1001 → crackmes.one easy levels + picoCTF → Practical Malware Analysis labs → pwn.college → old Flare-On challenges, checking writeups only after trying each one yourself 🦄
 
 ## Book — Practical Reverse Engineering
 
@@ -273,7 +274,7 @@ Actual videos & playlists matched to the book's chapters — every link verified
 - [AllThingsIDA](https://www.youtube.com/@allthingsida) — co-author Elias Bachaalany's own channel; IDA-driven RE from the book's mindset
 
 **Ch.1 — x86/x64**
-- [OST2 Arch1001: x86-64 Assembly (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-m9B0DhHjkXd8foIMuZO1Gd) → [OST2 Arch2001: x86-64 OS Internals (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-myVyCmMvfz_W5Z5SauI3cN) — segmentation, paging, MSRs, SYSENTER/SYSCALL, ring transitions = the system half of this chapter
+- [OST2 Arch1001: x86-64 Assembly (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-m9B0DhHjkXd8foIMuZO1Gd) → [OST2 Arch2001: x86-64 OS Internals (playlist)](https://www.youtube.com/playlist?list=PLUFkSN0XLZ-myVyCmMvfz_W5Z5SauI3cN) — segmentation, paging, MSRs, SYSENTER/SYSCALL, ring transitions = the system half of this chapter 🦄
 - [Creel — Modern x64 Assembly (playlist)](https://www.youtube.com/playlist?list=PLKK11Ligqitg9MOX3-0tFT1Rmh3uJp7kA) · [xorpd — x86 Assembly Adventures pt.1 (playlist)](https://www.youtube.com/playlist?list=PLn4AdTx18u3s2ZUo4DetnL5QzjujJSgxN) · [Low Level — Learn Assembly in 10 Minutes](https://www.youtube.com/watch?v=jPDiaZS-2ok)
 
 **Ch.2 — ARM**
@@ -310,7 +311,7 @@ Goal: recognize what the optimizer did to the code — not become a compiler eng
 - ⭐ [Matt Godbolt — What Has My Compiler Done for Me Lately? (CppCon 2017)](https://www.youtube.com/watch?v=bSkpMdDe4g4) — the canonical talk on reading optimizer output
 - ⭐ [Advent of Compiler Optimisations 2025 (Godbolt)](https://xania.org/AoCO2025) — 25 days, one optimization per day, x86-64 + ARM64/ARM32; blog + [YouTube playlist](https://www.youtube.com/playlist?list=PL2HVqYf7If8cY4wLk7JUQ2f0JXY_xMQm2). Key days: [7 — division by constant](https://youtu.be/V9Pvv1tkocM) · [23 — switch lowering](https://youtu.be/aSljdPafBAw)
 - [Rolf Rolles — Binary Literacy: Optimizations slide deck (free .ppt)](https://www.msreverseengineering.com/s/Binary-Literacy-Static-6-Optimizations.ppt) — from the one training literally built around compiler optimizations for REs ([course page](https://www.msreverseengineering.com/training))
-- [Yurichev — Understanding Assembly Language / RE4B (free book)](https://beginners.re/) — small C snippets → x86/x64/ARM/MIPS output, -O0 and optimized; use as pattern reference, don't read linearly
+- [Yurichev — Understanding Assembly Language / RE4B (free book)](https://beginners.re/) — small C snippets → x86/x64/ARM/MIPS output, -O0 and optimized; use as pattern reference, don't read linearly 🦄
 
 **More talks**
 - Godbolt: [What Everyone Should Know About How Amazing Compilers Are (C++ on Sea'19)](https://www.youtube.com/watch?v=w0sz5WbS5AM) · [What Else Has My Compiler Done For Me Lately? (C++Now'18)](https://www.youtube.com/watch?v=nAbCKa0FzjQ) · [The Bits Between the Bits: How We Get to main() (CppCon'18)](https://www.youtube.com/watch?v=dOfucXtyEsU)
@@ -333,10 +334,43 @@ Goal: recognize what the optimizer did to the code — not become a compiler eng
 **Book-shelf reference**
 - Hacker's Delight (2nd) — Henry Warren — [publisher page](https://www.informit.com/store/hackers-delight-9780321842688) — the bible of the bit tricks compilers emit (hackersdelight.org is dead; ignore it)
 
+### Assembly anti-forgetting system
+The trap has a name — **illusion of competence**: the moment an idea feels clear, the brain files it as "done" before anything is actually stored. The cure: convert everything read into something **made or done**. Anchor habit (decided 2026-09): 30–60 min *daily* — read RE4B, apply by hand, let the book take as long as it needs; every day = one small new thing + review, Intel SDM open on the side for lookups.
+
+**The rules**
+- **Predict-then-verify on Godbolt** — write a tiny C function, predict its asm *before* looking, then compare; re-run the same code at `-O0` vs `-O2` and diff. Builds asm-reading intuition faster than anything else — [godbolt.org](https://godbolt.org/) (offline: `gcc -S -masm=intel`)
+- **Debugger every single day** — run the small programs under gdb + pwndbg/GEF (x64dbg on Windows), step instruction by instruction, watch registers/stack/flags mutate. Once you've *watched* `push`/`call`/`ret` move the stack live, you can't forget them.
+- **Write asm, don't just read it** — reading and writing are different skills. NASM ladder: ① no-libc programs via raw syscalls → ② hand-roll `strlen`, `memcpy`, `atoi` → ③ an asm function called from C, to learn the calling convention for real.
+- **Drills & challenges** — [challenges.re](https://challenges.re/) (Yurichev's own drill site, built to pair with RE4B) · [crackmes.one](https://crackmes.one/) starting at very-easy · pwn.college [Assembly Crash Course](https://pwn.college/computing-101/) module
+- **Daily log in my own words** — 2–3 lines after each session: *learned what / still fuzzy on what*. Writing it exposes the spots I only *think* I understand; explaining it to someone (blog post) is the Feynman-technique upgrade.
+- **Spaced review** — one day per week is review-only, no new material: re-solve an old exercise from scratch without peeking. Anki only for true memorize-items: SysV arg-register order (`rdi rsi rdx rcx r8 r9`), caller/callee-saved sets, which flags each instruction writes.
+- **Narrow the scope first** — RE4B covers x86/x64/ARM/MIPS; stay on x86-64 + Intel syntax until comfortable, then widen. Intel SDM = lookup reference, not reading material; [felixcloutier.com/x86](https://www.felixcloutier.com/x86/) is the browsable version of the same content.
+- ⭐ **The gate rule (the actual cure for chapter-hopping)** — no moving to the next chapter until something got *made by hand* from this one: a tiny program, an exercise, or a C snippet compiled and taken apart in the debugger. Understanding alone doesn't unlock the next chapter.
+- **Streak beats session length** — set a bad-day floor (10 min = one Godbolt predict-diff). Topics die at the restart-after-a-break, not at the short session.
+
+**Deeper cut** — every rule above is one of the three most-replicated results in learning science in disguise: retrieval practice (testing effect), spaced repetition, and the generation effect. Extra ammo: [rappel](https://github.com/yrp604/rappel) as an instant "what does this instruction really do" REPL · [xorpd — xchg rax,rax](https://www.xorpd.net/pages/xchg_rax/snip_00.html) — 0x40 wordless x86 snippets, perfect weekly-review puzzles (explain each one aloud). Pairs with the [Compiler optimization tricks](#compiler-optimization-tricks) lab above — same predict-and-diff muscle.
+
+**The honest closer** — partial forgetting is normal, not failure. Deeply-learned material reloads in an hour; shallow material restarts from zero. This system buys the cheap reload.
+
+### RE roadmap — finish the core once
+Assembly fundamentals barely change, so the core can be "finished" once. What keeps coming is new *patterns* — new compilers, obfuscation, ARM. Target state: self-sufficient, where anything new is a quick lookup, not a restudy.
+
+**3-month full-time core**
+- **Month 1 — x86-64 foundations:** [OST2 Arch1001](https://p.ost2.fyi/courses/course-v1:OpenSecurityTraining2+Arch1001_x86-64_Asm+2021_v1/about) in full, all exercises · daily [godbolt](https://godbolt.org/) drills — write C, compile at `-O0` and `-O2`, explain every line · hand-decompile 2–3 small functions a day back into C, no Ghidra. Exit bar: read any non-SIMD function and write its C equivalent.
+- **Month 2 — compiler patterns & tools:** structs, arrays, pointers, switch tables, loops, recursion, and C++ (vtables, `this`, constructors, STL containers) · master Ghidra (retyping, creating structs, renaming) + one debugger (x64dbg or GDB with pwndbg) · PE and ELF formats, imports/exports, how the loader works · [crackmes.one](https://crackmes.one/) levels 1–3 daily.
+- **Month 3 — real binaries:** [Practical Malware Analysis labs](https://practicalmalwareanalysis.com/labs/) · anti-debugging, packing & unpacking, basic obfuscation · 3–5 old [Flare-On](https://flare-on.com) challenges *before* reading the writeups · reverse one real small program end to end (a CLI tool, an old game).
+
+**1-year daily hour (after the core)**
+- Steady rhythm: one crackme or challenge every 2–3 days + one good writeup a week (Flare-On solutions, malware blogs).
+- Breadth once per quarter: **Q1** SIMD basics + floating point · **Q2** ARM64 (mostly the same concepts, different syntax) · **Q3** Windows internals · **Q4** pwn.college or a specialization — malware, games, or firmware.
+
+**What makes it stick — the pattern notebook** ⭐
+Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes into a personal notebook with an example. After a year the notebook replaces restudying — lookups happen in my own reference. Long-term form of the daily log above; the [Compiler optimization tricks](#compiler-optimization-tricks) section is its seed content.
+
 ---
 
 ## Tools — RE & disassembly
-- Ghidra (ghidra.re + The Ghidra Book + GhidraClass — full NSA course inside the repo)
+- Ghidra (ghidra.re + The Ghidra Book + GhidraClass — full NSA course inside the repo) 🦄
 - IDA Pro / IDA Free + Hex-Rays (Igor's Tips; Hanel IDAPython book; microcode API via Rolf Rolles)
 - Binary Ninja (learn LLIL/MLIL/HLIL; scripting-first) — API https://api.binary.ninja/ · cookbook https://docs.binary.ninja/dev/cookbook.html · plugins https://extensions.binary.ninja/ · https://banteg.xyz/posts/bn/ · https://zerotistic.github.io/binja-plugins/ · psifertex/callgraph https://github.com/psifertex/callgraph
 - radare2 / rizin / Cutter (book.rada.re, book.rizin.re, Megabeets' journey) ⭐⭐⭐⭐
@@ -518,7 +552,7 @@ Goal: recognize what the optimizer did to the code — not become a compiler eng
 - CVE.org — https://www.cve.org/ · vulnerability-databases — https://github.com/haxdoggy/vulnerability-databases
 - simulacra — https://github.com/Em3ritus/simulacra
 - awesome-embedded-and-iot-security (fkie-cad) · awesome-trustzone + OP-TEE · awesome-yara (InQuest) · #100DaysOfYARA
-- GhidraClass (inside Ghidra repo) · vergiliusproject.com · MalAPI.io · Unprotect.it · MWDB + karton + malduck (CERT.pl)
+- GhidraClass (inside Ghidra repo) · vergiliusproject.com · MalAPI.io · Unprotect.it · MWDB + karton + malduck (CERT.pl) 🦄
 
 ## Conferences
 - Tier-1 RE/exploit: REcon Montreal (recon.cx) · OffensiveCon (Berlin) · Hexacon (Paris, Synacktiv) · RE//verse (Orlando) · Zer0Con / TyphoonCon / POC (Seoul) · Hardwear.io (NL/USA) · Objective by the Sea (Apple/macOS)
@@ -566,8 +600,8 @@ Goal: zero → job-ready network security, defensive + offensive. Style: open-so
 - Phase 5 — CTF grind + pick a niche: grind challenges, join community, focus (cloud, wireless, ICS, etc.)
 
 ### Practice platforms (pwn.college style)
-- pwn.college — free, ASU, belts system; low-level, exploitation, systems. Best structured free hacking course
-- picoCTF — free, Carnegie Mellon; 500+ challenges, beginner to hard. Best for students
+- pwn.college — free, ASU, belts system; low-level, exploitation, systems. Best structured free hacking course 🦄
+- picoCTF — free, Carnegie Mellon; 500+ challenges, beginner to hard. Best for students 🦄
 - OverTheWire — free wargames; start with Bandit (Linux/CLI), then Natas, Leviathan
 - SEED Labs — free university labs (Syracuse); real network security labs: ARP spoof, TCP attacks, DNS, firewall, VPN. Best for network-specific hands-on
 - Root-Me — free; huge challenge count, network + web + crypto categories
@@ -578,7 +612,7 @@ Goal: zero → job-ready network security, defensive + offensive. Style: open-so
 - VulnHub — free vulnerable VMs to attack at home
 - Malware-Traffic-Analysis.net — free real pcap exercises; best for traffic analysis practice
 - CyberDefenders / LetsDefend (free tier) — blue-team pcap + SOC labs
-- Hack The Box (free tier) + TryHackMe (free rooms) — guided rooms + machines
+- Hack The Box (free tier) + TryHackMe (free rooms) — guided rooms + machines 🦄
 
 ### Free courses
 - Stanford CS144 — Introduction to Computer Networking (free slides + labs; build a TCP/IP stack from scratch — gold standard for "how networking really works") — https://cs144.github.io/
@@ -662,8 +696,8 @@ Full electronics study path from Gihad (works in the field), ordered like a mult
 
 ## Hidden gems — the "unknowns"
 Resources most people never find (from `known pwn.md`):
-- GhidraClass — full NSA RE course inside the Ghidra repo
-- OST2 (ost2.fyi) — free university-grade x86/ARM/firmware/Windows
+- GhidraClass — full NSA RE course inside the Ghidra repo 🦄
+- OST2 (ost2.fyi) — free university-grade x86/ARM/firmware/Windows 🦄
 - challenges.re — Yurichev's brutal "what does this code do" drills
 - dogbolt.org — diff 10+ decompilers on one upload
 - corkami — Ange Albertini's visual file-format posters + PoC binaries
