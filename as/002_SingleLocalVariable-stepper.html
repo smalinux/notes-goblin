@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SingleLocalVariable.c — Interactive Single-Stepper (OST2 Arch1001)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;   /* executed instruction */
+    --red:       #ff6b6b;   /* modified value       */
+    --green:     #4ade80;   /* start value          */
+    --purple:    #c084fc;   /* modified badge       */
+    --amber:     #fbbf24;
+    --rip:       #f472b6;
+    --row-h:     52px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1180px; margin:0 auto}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.6rem; letter-spacing:.5px }
+  header h1 span{ color:var(--blue) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .val{ color:var(--text) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  /* ============ legend ============ */
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.4rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.82rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; height:1.25rem; border-radius:4px; font-size:.8rem; flex:none;
+  }
+  .badge.exec { color:var(--blue);   border:1px solid var(--blue) }
+  .badge.mod  { color:#fff; background:var(--purple) }
+  .badge.start{ color:var(--green);  border:1px solid var(--green) }
+  .legend .exec-t { color:var(--blue) }
+  .legend .mod-t  { color:var(--red) }
+  .legend .start-t{ color:var(--green); text-decoration:underline }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; grid-template-columns: 1.05fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 900px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+
+  /* ============ C source ============ */
+  .csrc{ font-size:.86rem; line-height:1.55 }
+  .csrc .cl{ padding:.05rem .55rem; border-radius:6px; white-space:pre; transition:background .3s }
+  .csrc .cl.cur{ background:rgba(244,114,182,.14); box-shadow:inset 0 0 0 1px rgba(244,114,182,.45) }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.9rem; line-height:1.15; padding-left:3.2rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.6rem;
+    padding:.32rem .5rem; border-radius:7px; position:relative;
+    transition: background .3s, color .3s;
+    white-space:nowrap;
+  }
+  .asm .lbl{ color:var(--amber); padding-left:.5rem; margin-top:.25rem }
+  .asm .addr{ color:var(--dim); font-size:.8rem; width:11.5ch; flex:none }
+  .asm .mark{ width:1.3rem; flex:none; text-align:center; color:transparent }
+  .asm .mn  { width:4.2ch; flex:none }
+  .asm .row.executed .addr,
+  .asm .row.executed .mn,
+  .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.executed .mark{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.78rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{
+    0%{ background:rgba(97,165,255,.35) }
+    100%{ background:transparent }
+  }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.8rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  /* ============ registers ============ */
+  .regs table{ width:100%; border-collapse:collapse; font-size:.95rem }
+  .regs td{ border:1px solid var(--line); padding:.5rem .7rem }
+  .regs td.name{ width:4.5rem; color:var(--dim) }
+  .regs .val{ display:inline-flex; align-items:center; gap:.5rem }
+  .v-start{ color:var(--green); text-decoration:underline }
+  .v-mod  { color:var(--red) }
+  .v-plain{ color:var(--text) }
+  .zx{ background:rgba(251,191,36,.22); color:var(--amber); border-radius:3px; padding:0 2px }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{
+    0%{ background:rgba(192,132,252,.4) }
+    100%{ background:transparent }
+  }
+
+  /* ============ stack ============ */
+  .stack-outer{ position:relative; padding-left:4.8rem }
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.72rem; padding:.25rem 0 }
+  .stack-grow .arr{ font-size:1rem; display:block; line-height:1 }
+  .stack{ border:2px solid var(--line); border-radius:8px; overflow:visible }
+  .stack .srow{
+    display:grid; grid-template-columns: 1.1fr 1fr; height:var(--row-h);
+    border-bottom:1px solid var(--line); position:relative;
+    transition:background .35s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .cell{ display:flex; align-items:center; padding:0 .6rem; font-size:.88rem; overflow:hidden }
+  .stack .cell.addr{ color:var(--dim); border-right:1px solid var(--line); font-size:.82rem }
+  .stack .cell.val{ justify-content:center; gap:.45rem }
+  .undef{ color:var(--dim); font-style:italic }
+  .stale{ opacity:.45 }
+  .srow .pop-in{ animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  @keyframes popIn{
+    0%{ transform:translateY(-14px); opacity:0 }
+    100%{ transform:translateY(0); opacity:1 }
+  }
+  /* rsp arrow */
+  #rspArrow{
+    position:absolute; left:.2rem; display:flex; align-items:center; gap:.15rem;
+    color:var(--red); font-weight:bold; font-size:.9rem;
+    transition: top .55s cubic-bezier(.4,0,.2,1); z-index:5;
+    transform:translateY(-50%);
+  }
+  #rspArrow::after{ content:"⟶"; font-size:1.05rem }
+  /* frame overlays */
+  .srow.frame-caller{ box-shadow: inset 4px 0 0 var(--green) }
+  .srow.frame-main  { box-shadow: inset 4px 0 0 var(--amber) }
+  .srow.frame-func  { box-shadow: inset 4px 0 0 var(--purple) }
+  .frame-tag{
+    position:absolute; right:calc(100% + .55rem); top:50%; transform:translateY(-50%);
+    font-size:.62rem; color:var(--bg); padding:.15rem .4rem; border-radius:4px;
+    white-space:nowrap; z-index:4;
+  }
+  .frame-tag.caller{ background:var(--green) }
+  .frame-tag.main  { background:var(--amber) }
+  .frame-tag.func  { background:var(--purple) }
+  .frames-note{
+    margin-top:.6rem; font-size:.78rem; color:var(--purple); display:none; font-style:italic;
+  }
+  .stack-outer.show-frames .frames-note{ display:block }
+  /* bubble callout */
+  #bubble{
+    position:absolute; left:52%; z-index:8; max-width:17rem;
+    background:#256b2f; color:#fff; border:2px solid #77c877; border-radius:9px;
+    padding:.45rem .6rem; font-size:.75rem; line-height:1.35;
+    transform:translateY(.4rem); opacity:0; transition:opacity .4s, top .4s;
+    pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  #bubble.on{ opacity:1 }
+  #bubble::before{
+    content:""; position:absolute; top:-.55rem; left:1.2rem;
+    border:.55rem solid transparent; border-bottom-color:#77c877; border-top:none;
+  }
+
+  /* ============ note panel ============ */
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7.5rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.55; color:var(--text) }
+  .note p+p{ margin-top:.4rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .warn-box{
+    margin-top:.6rem; background:#3d1113; border:2px solid var(--red); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.5; color:#ffd9d9;
+  }
+  .note details{ margin-top:.6rem; font-size:.82rem }
+  .note summary{ cursor:pointer; color:var(--amber) }
+  .note blockquote{
+    margin:.5rem 0 0 .6rem; padding:.4rem .8rem; border-left:3px solid var(--line);
+    color:var(--dim); line-height:1.5; font-size:.8rem;
+  }
+
+  /* ============ controls ============ */
+  .controls{
+    position:sticky; bottom:0; margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:rgba(14,17,23,.92); backdrop-filter:blur(6px);
+    border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .9rem; font:inherit; font-size:.88rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.4rem }
+  .dots .dot{
+    width:.65rem; height:.65rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.35) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{
+    border:1px solid var(--line); border-radius:4px; padding:0 .3rem;
+    background:var(--panel2); font-size:.9em;
+  }
+
+  /* ============ quiz ============ */
+  .quiz{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem;
+  }
+  .quiz h2{ font-size:1.05rem; color:var(--rip); margin-bottom:.4rem }
+  .quiz .q-sub{ color:var(--dim); font-size:.82rem; margin-bottom:.9rem; line-height:1.55 }
+  .quiz code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.9em; color:var(--text) }
+  .q-rsp{
+    display:flex; align-items:center; gap:.6rem; justify-content:center;
+    margin-bottom:.8rem; font-size:.88rem;
+  }
+  .q-rsp b{ color:var(--red) }
+  .quiz select{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:.3rem .45rem; font:inherit; font-size:.8rem; cursor:pointer;
+  }
+  .quiz select:focus{ outline:none; border-color:var(--blue) }
+  .q-table{ border:2px solid var(--line); border-radius:8px; overflow:hidden; max-width:38rem; margin:0 auto }
+  .q-row{
+    display:grid; grid-template-columns: 1fr 1.35fr 2.2rem; align-items:center;
+    border-bottom:1px solid var(--line);
+  }
+  .q-row:last-child{ border-bottom:none }
+  .q-addr{ padding:.5rem .7rem; color:var(--dim); font-size:.84rem; border-right:1px solid var(--line) }
+  .q-row select{ margin:.3rem .5rem; width:calc(100% - 1rem) }
+  .q-mark{ text-align:center; font-size:1rem }
+  .q-mark.ok { color:var(--green) }
+  .q-mark.bad{ color:var(--red); cursor:help }
+  .q-actions{ display:flex; gap:.6rem; justify-content:center; margin-top:.9rem; flex-wrap:wrap }
+  .q-actions button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .9rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .q-actions button:hover{ border-color:var(--blue); background:#223049 }
+  .q-actions button.primary{ background:#1d3557; border-color:var(--blue) }
+  .q-verdict{ text-align:center; margin-top:.7rem; font-size:.92rem; min-height:1.4rem }
+  .q-verdict.win{ color:var(--green) }
+  .q-verdict.try{ color:var(--amber) }
+
+  /* ============ mystery section ============ */
+  .mystery{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem;
+  }
+  .mystery h2{ font-size:1.05rem; color:var(--amber); margin-bottom:.6rem }
+  .mystery details{ border:1px solid var(--line); border-radius:9px; padding:.6rem .8rem; margin-top:.55rem }
+  .mystery summary{ cursor:pointer; font-size:.9rem }
+  .mystery summary:hover{ color:var(--amber) }
+  .mystery .a{ margin-top:.55rem; font-size:.84rem; line-height:1.6; color:var(--text) }
+  .mystery .a p+p{ margin-top:.4rem }
+  .mystery code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem }
+  footer a{ color:var(--blue) }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SingleLocalVariable.c — <span>interactive single-stepper</span></h1>
+  <div class="subtitle">OST2 Arch1001 · adding a single local variable · func finally makes a stack frame</div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span class="val" id="ripVal">00000001`40001020</span>
+    <span class="ctx" id="ripCtx">— no instruction yet executed</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="badge exec">☒</span><span class="exec-t">executed instruction</span></div>
+  <div class="item"><span class="badge mod">♍</span><span class="mod-t">modified value</span></div>
+  <div class="item"><span class="badge start">⌘</span><span class="start-t">start value</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▶</span><span style="color:var(--dim)">next instruction</span></div>
+</div>
+
+<div class="layout">
+
+  <!-- ===== C source + disassembly ===== -->
+  <div class="col">
+    <div class="panel">
+      <h2>C source</h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>Disassembly</h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">⤴ execution continues at 00000001`40001349 — the code that called main()</div>
+    </div>
+  </div>
+
+  <!-- ===== registers + stack ===== -->
+  <div class="col">
+    <div class="panel regs">
+      <h2>Registers</h2>
+      <table>
+        <tr><td class="name">rax</td><td><span class="val" id="rax"></span></td></tr>
+        <tr><td class="name">rsp</td><td><span class="val" id="rsp"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Stack <span style="text-transform:none;letter-spacing:0">(each row = 8 bytes)</span></h2>
+      <div class="stack-outer" id="stackOuter">
+        <div class="stack-grow"><span class="arr">↑</span>higher addresses</div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-grow">lower addresses (stack grows down)<span class="arr">↓</span></div>
+        <div id="rspArrow">rsp</div>
+        <div id="bubble"></div>
+        <div class="frames-note">this time func DOES make/use a stack frame — 0x18 bytes for its local i!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== step explanation ===== -->
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<!-- ===== controls ===== -->
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <button id="btnFrames" title="Toggle stack-frame overlay (F)">Show stack frames</button>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>F</kbd> frames · <kbd>Home</kbd>/<kbd>End</kbd> jump</div>
+</div>
+
+<!-- ===== pop quiz ===== -->
+<div class="quiz">
+  <h2>Pop Quiz — fill in the stack 📝</h2>
+  <div class="q-sub">
+    Straight from the course: <b>if we step <i>through</i> line <code>0000000140001004</code></b>
+    (the <code>mov dword ptr [rsp], 5CA1AB1Eh</code> in func()), what does the stack look like?
+    This table shows <i>every</i> 8-byte slot — including the five rows the stepper above collapses
+    into "…". Fill in each value, then check yourself. (That state is Step 4 up top.
+    Also: the original slide lists 0014FED0 — a typo for 0014FDD0, fixed here.)
+  </div>
+
+  <div class="q-rsp"><b>rsp</b> points at: <select id="qRsp"></select> <span class="q-mark" id="qRspMark"></span></div>
+  <div class="q-table" id="qTable"></div>
+
+  <div class="q-actions">
+    <button id="qCheck" class="primary">Check answers</button>
+    <button id="qReveal">Reveal all</button>
+    <button id="qReset">Reset quiz</button>
+    <button id="qJump">Jump to Step 4 in the stepper ↑</button>
+  </div>
+  <div class="q-verdict" id="qVerdict"></div>
+</div>
+
+<!-- ===== mystery listery ===== -->
+<div class="mystery">
+  <h2>Mystery Listery 🕵️</h2>
+
+  <details>
+    <summary>Why <code>sub rsp, 18h</code> — 24 bytes for a single 4-byte <code>int</code>?</summary>
+    <div class="a">
+      <p>Two ingredients: <b>allocation granularity + alignment</b>.</p>
+      <p>MSVC hands out local-variable storage in <b>16-byte chunks</b>, so one 4-byte int rounds up
+      to 0x10. Then 8 more bytes are added so that the frame keeps rsp <b>16-byte aligned</b>:
+      the <code>call</code> into func pushed an 8-byte return address (rsp ended in 8), and
+      8 + 0x18 = 0x20 — a multiple of 16. Hence 0x18.</p>
+      <p>Compare with main, which has <i>no</i> locals but calls func: its <code>sub rsp, 28h</code>
+      is 32 bytes of shadow space + 8 alignment. func is a leaf (calls nobody), so it needs no
+      shadow space — just local storage + alignment.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Why does <code>i</code> live in memory at all? Why not just <code>mov eax, 5CA1AB1Eh</code>?</summary>
+    <div class="a">
+      <p>This is an <b>unoptimized</b> build. At -O0 / MSVC debug, every local variable gets a real
+      stack slot, and every read/write of it becomes a real memory access — that's what lets a
+      debugger show and modify <code>i</code> at any moment.</p>
+      <p>An optimizing compiler would collapse func to <code>mov eax, 5CA1AB1Eh; ret</code> —
+      or inline the whole thing and have main return the constant directly. No frame, no store,
+      no load.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Why does the assembly say <code>dword ptr</code>?</summary>
+    <div class="a">
+      <p><code>mov [rsp], 5CA1AB1Eh</code> alone would be ambiguous — should the assembler store
+      1, 2, 4, or 8 bytes at that address? The immediate doesn't carry a size, and neither does a
+      bare memory operand. <code>dword ptr</code> pins it to 4 bytes, matching <code>int</code>.</p>
+      <p>And that's exactly why the upper half of the stack slot stays garbage: a dword store
+      touches <b>exactly 4 bytes</b>. Zero-extension is a <i>register-destination</i> rule only.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>What's 0x5CA1AB1E?</summary>
+    <div class="a">
+      <p>Hexspeak: <code>5CA1AB1E</code> ≈ <b>"SCALABLE"</b>. Same family as 0xBEEF and 0xF00D from
+      CallASubroutine1, or the classics 0xDEADBEEF and 0xCAFEBABE. Course tradition: if a constant
+      looks pronounceable, it probably is.</p>
+    </div>
+  </details>
+</div>
+
+<footer>
+  Recreated from OST2 Arch1001 "LocalVariables 01 SingleLocalVariable" (Xeno Kovah, CC-BY-SA) · interactive remake for study
+  · <a href="CallASubroutine1-stepper.html">← CallASubroutine1 stepper</a>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------- data ---------------- */
+
+const CSRC = [
+  {id:'c0', h:'<span class="kw">int</span> <span class="fn">func</span>(){'},
+  {id:'c1', h:'    <span class="kw">int</span> i = <span class="num">0x5ca1ab1e</span>;'},
+  {id:'c2', h:'    <span class="kw">return</span> i;'},
+  {id:'c3', h:'}'},
+  {id:'c4', h:'<span class="kw">int</span> <span class="fn">main</span>(){'},
+  {id:'c5', h:'    <span class="kw">return</span> <span class="fn">func</span>();'},
+  {id:'c6', h:'}'},
+];
+
+const LISTING = [
+  {label:'func:'},
+  {key:'1000', addr:'0000000140001000', mn:'sub',  ops:'rsp, 18h'},
+  {key:'1004', addr:'0000000140001004', mn:'mov',  ops:'dword ptr [rsp], 5CA1AB1Eh'},
+  {key:'100B', addr:'000000014000100B', mn:'mov',  ops:'eax, dword ptr [rsp]'},
+  {key:'100E', addr:'000000014000100E', mn:'add',  ops:'rsp, 18h'},
+  {key:'1012', addr:'0000000140001012', mn:'ret',  ops:''},
+  {label:'main:'},
+  {key:'1020', addr:'0000000140001020', mn:'sub',  ops:'rsp, 28h'},
+  {key:'1024', addr:'0000000140001024', mn:'call', ops:'func (0140001000h)'},
+  {key:'1029', addr:'0000000140001029', mn:'add',  ops:'rsp, 28h'},
+  {key:'102D', addr:'000000014000102D', mn:'ret',  ops:''},
+];
+
+const ADDRS = [
+  '00000000`0014FE08',
+  '…',
+  '00000000`0014FDE0',
+  '00000000`0014FDD8',
+  '00000000`0014FDD0',
+  '00000000`0014FDC8',
+  '00000000`0014FDC0',
+];
+
+/* frame overlay rows */
+const FRAMES = { caller:[0,1], main:[2,3], func:[4,5,6] };
+
+const RET_START = '00000001`40001349';
+const RET_FUNC  = '00000001`40001029';
+
+/* stack value shorthands.
+   split:'5CA1AB1E' renders as  undef`5CA1AB1E  (upper dword untouched garbage) */
+const U  = {v:'undef'};
+const UM = {v:'undef', tag:'mod'};
+const DOTS = {v:'…'};
+const R0 = {v:RET_START, tag:'start'};
+
+const STEPS = [
+  { // 0
+    rip:'00000001`40001020', ripCtx:'— no instruction yet executed',
+    executed:[], current:'1020', cline:'c4',
+    rax:{v:'00000000`00000001', tag:'start'},
+    rsp:{v:'00000000`0014FE08', tag:'start'},
+    rspRow:0,
+    stack:[ R0, DOTS, U, U, U, U, U ],
+    bubble:{row:0, text:'Belongs to the frame *before* main() is called'},
+    title:'Step 0 — Initial state',
+    note:`<p>Same starting picture as CallASubroutine1: RIP at main's first instruction, both
+      registers at their <span class="v-start">start values</span>, and the C runtime's return
+      address <code>00000001\`40001349</code> already on the stack.</p>
+      <p>What's new: func now has a local variable <code>int i</code> — so this time it will build
+      a real stack frame of its own. Watch for it at step 3.</p>`,
+  },
+  { // 1
+    rip:'00000001`40001024', ripCtx:'— after sub rsp, 28h',
+    executed:['1020'], current:'1024', justExec:'1020', cline:'c5',
+    rax:{v:'00000000`00000001', tag:'start'},
+    rsp:{v:'00000000`0014FDE0', tag:'mod'},
+    rspRow:2,
+    stack:[ R0, DOTS, U, U, U, U, U ],
+    title:'Step 1 — sub rsp, 28h (main opens its frame)',
+    note:`<p>main's prologue, identical to the last example: reserve 0x28 (40) bytes —
+      32 bytes of shadow space for the upcoming <code>call func</code>, plus 8 for 16-byte
+      alignment. rsp: <code>0014FE08 → 0014FDE0</code>.</p>
+      <p>main has no locals of its own; this space exists purely because it is a <i>caller</i>.</p>`,
+  },
+  { // 2
+    rip:'00000001`40001000', ripCtx:'— call jumped into func',
+    executed:['1020','1024'], current:'1000', justExec:'1024', cline:'c0',
+    rax:{v:'00000000`00000001', tag:'start'},
+    rsp:{v:'00000000`0014FDD8', tag:'mod'},
+    rspRow:3,
+    stack:[ R0, DOTS, U, {v:RET_FUNC, tag:'mod'}, U, U, U ],
+    bubble:{row:3, text:'Return address pushed by call — func’s ret will resume at 40001029'},
+    title:'Step 2 — call func (push return address + jump)',
+    note:`<p><code>call</code> pushes the address of the next instruction —
+      <code>00000001\`40001029</code>, the <code>add rsp,28h</code> after the call — and jumps
+      to func by loading RIP with <code>140001000</code>.</p>
+      <p>rsp: <code>0014FDE0 → 0014FDD8</code>. Exactly the same two-part dance as before.</p>`,
+  },
+  { // 3
+    rip:'00000001`40001004', ripCtx:'— func prologue done',
+    executed:['1020','1024','1000'], current:'1004', justExec:'1000', cline:'c1',
+    rax:{v:'00000000`00000001', tag:'start'},
+    rsp:{v:'00000000`0014FDC0', tag:'mod'},
+    rspRow:6,
+    stack:[ R0, DOTS, U, {v:RET_FUNC}, U, U, U ],
+    bubble:{row:6, text:'Bottom of func’s brand-new 0x18-byte frame — local i will live here'},
+    title:'Step 3 — sub rsp, 18h (func makes a frame this time!)',
+    note:`<p>The headline difference from CallASubroutine1: func now needs storage for
+      <code>int i</code>, so it reserves 0x18 (24) bytes. rsp: <code>0014FDD8 → 0014FDC0</code>.</p>
+      <p>24 bytes for one 4-byte int? Locals are allocated in 16-byte chunks, plus 8 to keep rsp
+      16-byte aligned — details in the Mystery Listery below. Press <b>Show stack frames</b> to see
+      all three frames at once.</p>`,
+  },
+  { // 4
+    rip:'00000001`4000100B', ripCtx:'— inside func',
+    executed:['1020','1024','1000','1004'], current:'100B', justExec:'1004', cline:'c2',
+    rax:{v:'00000000`00000001', tag:'start'},
+    rsp:{v:'00000000`0014FDC0'},
+    rspRow:6,
+    stack:[ R0, DOTS, U, {v:RET_FUNC}, U, U, {split:'5CA1AB1E', tag:'mod'} ],
+    bubble:{row:6, text:'Local variable i, at [rsp] — only the LOW 4 bytes were written!'},
+    title:'Step 4 — mov dword ptr [rsp], 5CA1AB1Eh (i = 0x5ca1ab1e)',
+    note:`<p>This is the C line <code>int i = 0x5ca1ab1e;</code> ("scalable" in hexspeak) —
+      a 4-byte immediate stored to memory at <code>[rsp]</code>.</p>
+      <div class="warn-box"><b>Memory writes do NOT zero-extend!</b> The dword store changed exactly
+      4 bytes. The upper half of that 8-byte stack slot still holds whatever garbage was there
+      before — shown as <span class="undef">undef</span>\`5CA1AB1E. The zero-extension rule from
+      Intel §3.4.1.1 applies to <i>register</i> destinations only.</div>`,
+  },
+  { // 5
+    rip:'00000001`4000100E', ripCtx:'— inside func',
+    executed:['1020','1024','1000','1004','100B'], current:'100E', justExec:'100B', cline:'c3',
+    rax:{v:'00000000`5CA1AB1E', tag:'mod', zx:true},
+    rsp:{v:'00000000`0014FDC0'},
+    rspRow:6,
+    stack:[ R0, DOTS, U, {v:RET_FUNC}, U, U, {split:'5CA1AB1E'} ],
+    title:'Step 5 — mov eax, dword ptr [rsp] (return i)',
+    note:`<p><code>return i</code> compiles to: load i from its stack slot into <code>eax</code>,
+      the register where return values travel.</p>
+      <p>Destination is a <i>register</i> this time, so the 32-bit load <b>is</b> zero-extended:
+      rax = <span class="zx">00000000</span>\`5CA1AB1E. Compare the highlighted upper half with the
+      still-garbage upper half of the memory slot below — same value, two different rules.</p>`,
+  },
+  { // 6
+    rip:'00000001`40001012', ripCtx:'— func epilogue',
+    executed:['1020','1024','1000','1004','100B','100E'], current:'1012', justExec:'100E', cline:'c3',
+    rax:{v:'00000000`5CA1AB1E'},
+    rsp:{v:'00000000`0014FDD8', tag:'mod'},
+    rspRow:3,
+    stack:[ R0, DOTS, U, {v:RET_FUNC}, U, U, {split:'5CA1AB1E', stale:true} ],
+    bubble:{row:6, text:'i is below rsp now — logically dead, but the bytes physically remain'},
+    title:'Step 6 — add rsp, 18h (func closes its frame)',
+    note:`<p>func's epilogue mirrors its prologue: give back the 24 bytes.
+      rsp: <code>0014FDC0 → 0014FDD8</code>, now pointing back at the return address.</p>
+      <p><code>i</code> just died — its slot is below rsp. But notice the bytes are still there.
+      This is exactly why an <i>uninitialized</i> local in some future call reads "garbage":
+      it's really the leftovers of whoever used that memory last.</p>`,
+  },
+  { // 7
+    rip:'00000001`40001029', ripCtx:'— ret popped us back into main',
+    executed:['1020','1024','1000','1004','100B','100E','1012'], current:'1029', justExec:'1012', cline:'c6',
+    rax:{v:'00000000`5CA1AB1E'},
+    rsp:{v:'00000000`0014FDE0', tag:'mod'},
+    rspRow:2,
+    stack:[ R0, DOTS, U, UM, U, U, {split:'5CA1AB1E', stale:true} ],
+    bubble:{row:3, text:'Popped by ret — logically dead below rsp'},
+    title:'Step 7 — ret (back to main)',
+    note:`<p><code>ret</code> pops <code>00000001\`40001029</code> into RIP and rsp moves up to
+      <code>0014FDE0</code>. We're back in main, right after the call, carrying func's return
+      value in eax.</p>
+      <p>The return-address slot joins <code>i</code> in the land of the logically dead.</p>`,
+  },
+  { // 8
+    rip:'00000001`4000102D', ripCtx:'— main epilogue',
+    executed:['1020','1024','1000','1004','100B','100E','1012','1029'], current:'102D', justExec:'1029', cline:'c6',
+    rax:{v:'00000000`5CA1AB1E'},
+    rsp:{v:'00000000`0014FE08', tag:'mod'},
+    rspRow:0,
+    stack:[ R0, DOTS, U, U, U, U, {split:'5CA1AB1E', stale:true} ],
+    title:'Step 8 — add rsp, 28h (main closes its frame)',
+    note:`<p>main tears down its 0x28-byte frame. rsp: <code>0014FDE0 → 0014FE08</code> —
+      pointing at the CRT's return address again, exactly like step 0.</p>
+      <p>Every <code>sub</code> met its <code>add</code>, every <code>call</code> met its
+      <code>ret</code>. Balanced books.</p>`,
+  },
+  { // 9
+    rip:'00000001`40001349', ripCtx:'— back in the code that called main()',
+    executed:['1020','1024','1000','1004','100B','100E','1012','1029','102D'], current:null, justExec:'102D', cline:null,
+    rax:{v:'00000000`5CA1AB1E'},
+    rsp:{v:'00000000`0014FE10', tag:'mod'},
+    rspRow:-1,
+    stack:[ UM, DOTS, U, U, U, U, {split:'5CA1AB1E', stale:true} ],
+    bubble:{row:0, text:'Popped — execution continues at the value ret removed: 00000001`40001349'},
+    title:'Step 9 — ret (main returns)',
+    note:`<p>main's <code>ret</code> pops <code>00000001\`40001349</code> into RIP; rsp lands at
+      <code>0014FE10</code>, above everything we watched.</p>
+      <p><code>return func();</code> means main returns whatever func left in eax — so the process
+      exit code becomes <b>0x5CA1AB1E</b>. And down at 0014FDC0, the corpse of <code>i</code> is
+      still lying in memory, waiting to be someone else's "uninitialized garbage".</p>`,
+  },
+];
+
+/* ---------------- build static DOM ---------------- */
+
+const $ = id => document.getElementById(id);
+const asmEl = $('asm'), stackEl = $('stack'), dotsEl = $('dots'), csrcEl = $('csrc');
+
+const clineEls = {};
+CSRC.forEach(l => {
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = l.h;
+  csrcEl.appendChild(d);
+  clineEls[l.id] = d;
+});
+
+const asmRows = {};
+LISTING.forEach(ins => {
+  if (ins.label){
+    const d = document.createElement('div');
+    d.className = 'lbl'; d.textContent = ins.label;
+    asmEl.appendChild(d);
+    return;
+  }
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.innerHTML = `<span class="rip-ptr">RIP▶</span>` +
+    `<span class="addr">${ins.addr}</span>` +
+    `<span class="mark">☒</span>` +
+    `<span class="mn">${ins.mn}</span>` +
+    `<span class="ops">${ins.ops}</span>`;
+  asmEl.appendChild(r);
+  asmRows[ins.key] = r;
+});
+
+const stackRows = [];
+ADDRS.forEach((a,i) => {
+  const r = document.createElement('div');
+  r.className = 'srow';
+  r.innerHTML = `<div class="cell addr">${a}</div><div class="cell val"></div>`;
+  if (FRAMES.caller[0] === i) r.insertAdjacentHTML('beforeend',
+      '<span class="frame-tag caller" hidden>"function-before-main"’s frame</span>');
+  if (FRAMES.main[0] === i) r.insertAdjacentHTML('beforeend',
+      '<span class="frame-tag main" hidden>main’s frame</span>');
+  if (FRAMES.func[1] === i) r.insertAdjacentHTML('beforeend',
+      '<span class="frame-tag func" hidden>func’s frame</span>');
+  stackEl.appendChild(r);
+  stackRows.push(r);
+});
+
+STEPS.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className='dot'; d.title = 'Step '+i;
+  d.addEventListener('click', ()=> go(i));
+  dotsEl.appendChild(d);
+});
+
+/* ---------------- rendering ---------------- */
+
+const BADGE_MOD   = '<span class="badge mod">♍</span>';
+const BADGE_START = '<span class="badge start">⌘</span>';
+
+function valKey(o){          // string used for change detection
+  if (!o) return '';
+  if (o.split) return 'undef`' + o.split;
+  return o.v;
+}
+
+function fmtVal(o){
+  if (!o) return '';
+  if (o.v === '…') return '<span class="v-plain">…</span>';
+  if (o.v === 'undef'){
+    return `<span class="undef">undef</span>` + (o.tag==='mod' ? BADGE_MOD : '');
+  }
+  let inner;
+  if (o.split){              // memory slot with only the low dword written
+    const loCls = o.tag==='mod' ? 'v-mod' : 'v-plain';
+    inner = `<span class="undef">undef</span>\`<span class="${loCls}">${o.split}</span>`;
+  } else {
+    const cls = o.tag==='mod' ? 'v-mod' : o.tag==='start' ? 'v-start' : 'v-plain';
+    let txt = o.v;
+    if (o.zx){               // highlight the zero-extended upper 32 bits
+      const [hi, lo] = o.v.split('`');
+      txt = `<span class="zx">${hi}</span>\`${lo}`;
+    }
+    inner = `<span class="${cls}">${txt}</span>`;
+  }
+  let html = inner + (o.tag==='mod' ? BADGE_MOD : o.tag==='start' ? BADGE_START : '');
+  if (o.stale) html = `<span class="stale">${html}</span>`;
+  return html;
+}
+
+let cur = 0, prevSnap = null, timer = null;
+
+function render(i, animate = true){
+  const s = STEPS[i];
+
+  // RIP chip
+  const ripEl = $('ripVal');
+  if (prevSnap && prevSnap.rip !== s.rip && animate){ ripEl.classList.remove('flash'); void ripEl.offsetWidth; ripEl.classList.add('flash'); }
+  ripEl.textContent = s.rip;
+  $('ripCtx').textContent = s.ripCtx;
+
+  // C source highlight
+  for (const id in clineEls) clineEls[id].classList.toggle('cur', s.cline === id);
+
+  // registers
+  for (const name of ['rax','rsp']){
+    const el = $(name);
+    el.innerHTML = fmtVal(s[name]);
+    if (animate && prevSnap && prevSnap[name] !== s[name].v){
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+
+  // asm rows
+  for (const key in asmRows){
+    const r = asmRows[key];
+    r.classList.toggle('executed', s.executed.includes(key));
+    r.classList.toggle('current',  s.current === key);
+    r.classList.remove('just-executed');
+  }
+  if (animate && s.justExec && prevSnap && prevSnap.step === i-1){
+    const r = asmRows[s.justExec];
+    void r.offsetWidth; r.classList.add('just-executed');
+  }
+  $('exitRow').classList.toggle('on', s.current === null);
+
+  // stack
+  s.stack.forEach((o, idx) => {
+    const cell = stackRows[idx].querySelector('.val');
+    cell.innerHTML = fmtVal(o);
+    if (animate && prevSnap && prevSnap.stack[idx] !== valKey(o)){
+      const span = cell.firstElementChild;
+      if (span) span.classList.add('pop-in');
+    }
+  });
+
+  // rsp arrow
+  const arrow = $('rspArrow');
+  let top;
+  if (s.rspRow < 0){
+    top = stackEl.offsetTop - 12; // above the table, like the final slide
+  } else {
+    const row = stackRows[s.rspRow];
+    top = stackEl.offsetTop + row.offsetTop + row.offsetHeight/2;
+  }
+  arrow.style.top = top + 'px';
+
+  // bubble
+  const bub = $('bubble');
+  if (s.bubble){
+    const row = stackRows[s.bubble.row];
+    bub.textContent = s.bubble.text;
+    bub.style.top = (stackEl.offsetTop + row.offsetTop + row.offsetHeight) + 'px';
+    bub.classList.add('on');
+  } else {
+    bub.classList.remove('on');
+  }
+
+  // note
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  // controls
+  $('stepInd').textContent = `Step ${i} / ${STEPS.length-1}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled   = (i === STEPS.length-1);
+  [...dotsEl.children].forEach((d,k)=>{
+    d.classList.toggle('now',  k === i);
+    d.classList.toggle('done', k <  i);
+  });
+
+  prevSnap = {
+    step: i, rip: s.rip,
+    rax: s.rax.v, rsp: s.rsp.v,
+    stack: s.stack.map(valKey),
+  };
+  cur = i;
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= STEPS.length) return;
+  render(i, animate);
+  if (i === STEPS.length-1) stopPlay();
+}
+
+/* ---------------- autoplay ---------------- */
+
+function startPlay(){
+  if (cur === STEPS.length-1) go(0,false);
+  timer = setInterval(()=>{
+    if (cur >= STEPS.length-1) stopPlay();
+    else go(cur+1);
+  }, 3200);
+  $('btnPlay').textContent = '⏸ Pause';
+  $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play';
+  $('btnPlay').classList.remove('active');
+}
+
+/* ---------------- frame overlay ---------------- */
+
+let framesOn = false;
+function toggleFrames(){
+  framesOn = !framesOn;
+  $('stackOuter').classList.toggle('show-frames', framesOn);
+  $('btnFrames').classList.toggle('active', framesOn);
+  $('btnFrames').textContent = framesOn ? 'Hide stack frames' : 'Show stack frames';
+  FRAMES.caller.forEach(i => stackRows[i].classList.toggle('frame-caller', framesOn));
+  FRAMES.main.forEach(i => stackRows[i].classList.toggle('frame-main', framesOn));
+  FRAMES.func.forEach(i => stackRows[i].classList.toggle('frame-func', framesOn));
+  document.querySelectorAll('.frame-tag').forEach(t => t.hidden = !framesOn);
+}
+
+/* ---------------- wiring ---------------- */
+
+$('btnNext').addEventListener('click', ()=>{ stopPlay(); go(cur+1); });
+$('btnPrev').addEventListener('click', ()=>{ stopPlay(); go(cur-1); });
+$('btnReset').addEventListener('click', ()=>{ stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', ()=>{ stopPlay(); go(STEPS.length-1); });
+$('btnPlay').addEventListener('click', ()=> timer ? stopPlay() : startPlay());
+$('btnFrames').addEventListener('click', toggleFrames);
+
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName === 'INPUT') return;
+  switch(e.key){
+    case 'ArrowRight': stopPlay(); go(cur+1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur-1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0);     e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STEPS.length-1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+    case 'f': case 'F': toggleFrames(); break;
+  }
+});
+
+window.addEventListener('resize', ()=> render(cur, false));
+window.addEventListener('load',   ()=> render(cur, false));
+render(0, false);
+
+/* ================================================================
+   Pop Quiz — full stack after stepping THROUGH 140001004
+   ================================================================ */
+(function(){
+
+  const QADDRS = [
+    '00000000`0014FE08','00000000`0014FE00','00000000`0014FDF8','00000000`0014FDF0',
+    '00000000`0014FDE8','00000000`0014FDE0','00000000`0014FDD8','00000000`0014FDD0',
+    '00000000`0014FDC8','00000000`0014FDC0',
+  ];
+  const OPTIONS = [
+    'undef',
+    '00000001`40001349',
+    '00000001`40001029',
+    '00000000`5CA1AB1E',
+    'undef`5CA1AB1E',
+    '5CA1AB1E`undef',
+  ];
+  const ANSWER = [
+    '00000001`40001349',  // FE08: CRT's return address into "function-before-main"
+    'undef','undef','undef','undef','undef',   // FE00..FDE0: main's 0x28 frame, never written
+    '00000001`40001029',  // FDD8: return address pushed by call func
+    'undef','undef',      // FDD0, FDC8: func's frame padding, never written
+    'undef`5CA1AB1E',     // FDC0: local i — dword store wrote only the low 4 bytes
+  ];
+  const WHY = [
+    'Return address pushed when the CRT called main() — untouched since before step 0.',
+    'Inside main’s 0x28-byte frame: reserved by sub rsp,28h but never written.',
+    'Inside main’s 0x28-byte frame: reserved but never written.',
+    'Inside main’s 0x28-byte frame: reserved but never written.',
+    'Inside main’s 0x28-byte frame: reserved but never written.',
+    'Inside main’s 0x28-byte frame: reserved but never written.',
+    'Return address pushed by call func — the address after the call, 40001029.',
+    'Inside func’s 0x18-byte frame: reserved by sub rsp,18h but never written.',
+    'Inside func’s 0x18-byte frame: reserved but never written.',
+    'Local i at [rsp]: the dword store wrote ONLY the low 4 bytes — no zero-extension to memory!',
+  ];
+  const RSP_ANSWER = '00000000`0014FDC0';
+  const PLACEHOLDER = '— choose —';
+
+  function fillSelect(sel, opts){
+    sel.innerHTML = '';
+    const p = document.createElement('option');
+    p.textContent = PLACEHOLDER; p.value = ''; p.disabled = true; p.selected = true;
+    sel.appendChild(p);
+    opts.forEach(o => {
+      const e = document.createElement('option');
+      e.value = e.textContent = o;
+      sel.appendChild(e);
+    });
+  }
+
+  const qTable = $('qTable'), rows = [];
+  QADDRS.forEach(a => {
+    const r = document.createElement('div');
+    r.className = 'q-row';
+    r.innerHTML = `<div class="q-addr">${a}</div>`;
+    const sel = document.createElement('select');
+    fillSelect(sel, OPTIONS);
+    const mark = document.createElement('span');
+    mark.className = 'q-mark';
+    r.appendChild(sel); r.appendChild(mark);
+    qTable.appendChild(r);
+    rows.push({sel, mark});
+  });
+  fillSelect($('qRsp'), QADDRS);
+
+  function clearMarks(){
+    rows.forEach(r => { r.mark.textContent=''; r.mark.className='q-mark'; r.mark.title=''; });
+    const m = $('qRspMark'); m.textContent=''; m.className='q-mark'; m.title='';
+    $('qVerdict').textContent=''; $('qVerdict').className='q-verdict';
+  }
+
+  function check(){
+    let score = 0, total = ANSWER.length + 1;
+    rows.forEach((r,i) => {
+      const ok = r.sel.value === ANSWER[i];
+      r.mark.textContent = ok ? '✓' : '✗';
+      r.mark.className = 'q-mark ' + (ok ? 'ok' : 'bad');
+      r.mark.title = ok ? '' : 'Hint: ' + WHY[i];
+      if (ok) score++;
+    });
+    const rspOk = $('qRsp').value === RSP_ANSWER;
+    const m = $('qRspMark');
+    m.textContent = rspOk ? '✓' : '✗';
+    m.className = 'q-mark ' + (rspOk ? 'ok' : 'bad');
+    m.title = rspOk ? '' : 'Hint: rsp ended at FDD8 after the call, then sub rsp,18h…';
+    if (rspOk) score++;
+    const v = $('qVerdict');
+    if (score === total){
+      v.textContent = '💯 ' + score + '/' + total + ' — perfect. You may now single-step with pride.';
+      v.className = 'q-verdict win';
+    } else {
+      v.textContent = score + '/' + total + ' — hover the ✗ marks for hints, or replay the stepper above.';
+      v.className = 'q-verdict try';
+    }
+  }
+
+  function reveal(){
+    rows.forEach((r,i) => {
+      r.sel.value = ANSWER[i];
+      r.mark.textContent = '✓'; r.mark.className = 'q-mark ok'; r.mark.title = WHY[i];
+    });
+    $('qRsp').value = RSP_ANSWER;
+    const m = $('qRspMark'); m.textContent='✓'; m.className='q-mark ok';
+    const v = $('qVerdict');
+    v.textContent = 'Revealed — hover any ✓ for the reasoning.';
+    v.className = 'q-verdict';
+  }
+
+  function reset(){
+    rows.forEach(r => fillSelect(r.sel, OPTIONS));
+    fillSelect($('qRsp'), QADDRS);
+    clearMarks();
+  }
+
+  $('qCheck').addEventListener('click', check);
+  $('qReveal').addEventListener('click', reveal);
+  $('qReset').addEventListener('click', reset);
+  $('qJump').addEventListener('click', ()=>{
+    stopPlay(); go(4);
+    $('stackOuter').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+})();
+</script>
+</body>
+</html>

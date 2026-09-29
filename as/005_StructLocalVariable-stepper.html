@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StructLocalVariable.c — Interactive Single-Stepper + Struct Alignment & Padding (OST2 Arch1001)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;
+    --red:       #ff6b6b;
+    --green:     #4ade80;
+    --purple:    #c084fc;
+    --amber:     #fbbf24;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    --rip:       #f472b6;
+    --row-h:     34px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--blue) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.8rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; height:1.25rem; border-radius:4px; font-size:.8rem; flex:none;
+  }
+  .badge.exec { color:var(--blue);   border:1px solid var(--blue) }
+  .badge.mod  { color:#fff; background:var(--purple) }
+  .badge.start{ color:var(--green);  border:1px solid var(--green) }
+  .legend .exec-t { color:var(--blue) }
+  .legend .mod-t  { color:var(--red) }
+  .legend .start-t{ color:var(--green); text-decoration:underline }
+  .d-chip{
+    font-size:.6rem; color:var(--amber); border:1px solid var(--amber);
+    border-radius:4px; padding:.05rem .3rem; letter-spacing:1px;
+  }
+
+  .layout{ display:grid; grid-template-columns: 1.08fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 940px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+
+  .csrc{ font-size:.82rem; line-height:1.5 }
+  .csrc .cl{ padding:.04rem .55rem; border-radius:6px; white-space:pre; transition:background .3s }
+  .csrc .cl.cur{ background:rgba(244,114,182,.14); box-shadow:inset 0 0 0 1px rgba(244,114,182,.45) }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .ty { color:var(--purple) }
+
+  .asm{ font-size:.78rem; line-height:1.1; padding-left:3rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.24rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s;
+    white-space:nowrap;
+  }
+  .asm .lbl{ color:var(--amber); padding-left:.5rem; margin-top:.2rem }
+  .asm .addr{ color:var(--dim); font-size:.7rem; width:12ch; flex:none }
+  .asm .mark{ width:1.2rem; flex:none; text-align:center; color:transparent }
+  .asm .mn  { width:6.2ch; flex:none }
+  .asm .row .dchip{ display:none }
+  .asm .row.diff .dchip{
+    display:inline-block; font-size:.55rem; color:var(--amber); border:1px solid var(--amber);
+    border-radius:3px; padding:0 .25rem; margin-left:.4rem; letter-spacing:1px;
+  }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.executed .mark{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.7rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  .regs table{ width:100%; border-collapse:collapse; font-size:.9rem }
+  .regs td{ border:1px solid var(--line); padding:.42rem .7rem }
+  .regs td.name{ width:4.5rem; color:var(--dim) }
+  .v-start{ color:var(--green); text-decoration:underline }
+  .v-mod  { color:var(--red) }
+  .v-plain{ color:var(--text) }
+  .zx{ background:rgba(251,191,36,.22); color:var(--amber); border-radius:3px; padding:0 2px }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+
+  .stack-outer{ position:relative; padding-left:4.6rem }
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack-grow .arr{ font-size:.95rem; display:block; line-height:1 }
+  .stack{ border:2px solid var(--line); border-radius:8px; overflow:visible }
+  .stack .srow{
+    display:grid; grid-template-columns: 1.12fr 1fr .92fr; height:var(--row-h);
+    border-bottom:1px solid var(--line); position:relative;
+    transition:background .35s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .cell{ display:flex; align-items:center; padding:0 .45rem; font-size:.72rem; overflow:hidden }
+  .stack .cell.addr{ color:var(--dim); border-right:1px solid var(--line); font-size:.68rem }
+  .stack .cell.val{ justify-content:center; gap:.25rem }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.6rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.2;
+  }
+  .who.w-ret{ background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-pad{ background:rgba(251,191,36,.06); color:var(--amber); font-style:italic }
+  .who.w-loc{ background:rgba(74,222,128,.10); color:var(--green) }
+  .stack .cell.val .badge{ width:1rem; height:1rem; font-size:.62rem }
+  .undef{ color:var(--dim); font-style:italic }
+  .stale{ opacity:.45 }
+  .sep{ color:var(--line); padding:0 .05rem }
+  .srow .pop-in{ animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  @keyframes popIn{ 0%{transform:translateY(-10px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  #rspArrow{
+    position:absolute; left:.2rem; display:flex; align-items:center; gap:.15rem;
+    color:var(--red); font-weight:bold; font-size:.85rem;
+    transition: top .55s cubic-bezier(.4,0,.2,1); z-index:5;
+    transform:translateY(-50%);
+  }
+  #rspArrow::after{ content:"⟶"; font-size:1rem }
+  #bubble{
+    position:absolute; left:42%; z-index:8; max-width:17rem;
+    background:#256b2f; color:#fff; border:2px solid #77c877; border-radius:9px;
+    padding:.4rem .55rem; font-size:.72rem; line-height:1.35;
+    transform:translateY(.3rem); opacity:0; transition:opacity .4s, top .4s;
+    pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  #bubble.on{ opacity:1 }
+  #bubble::before{
+    content:""; position:absolute; top:-.55rem; left:1.2rem;
+    border:.55rem solid transparent; border-bottom-color:#77c877; border-top:none;
+  }
+
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.55 }
+  .note p+p{ margin-top:.4rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .warn-box{
+    margin-top:.6rem; background:#3d1113; border:2px solid var(--red); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.5; color:#ffd9d9;
+  }
+  .math{
+    margin-top:.5rem; background:var(--panel2); border:1px solid var(--line); border-radius:8px;
+    padding:.5rem .8rem; font-size:.82rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+
+  .controls{
+    position:sticky; bottom:0; margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:rgba(14,17,23,.92); backdrop-filter:blur(6px);
+    border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.3rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.55rem; height:.55rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.55rem }
+  .sect p{ font-size:.86rem; line-height:1.6 }
+  .sect p+p{ margin-top:.45rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.3rem }
+  .sect a{ color:var(--blue) }
+  .al-table{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.6rem }
+  .al-table td, .al-table th{ border:1px solid var(--line); padding:.45rem .65rem; text-align:center }
+  .al-table th{ color:var(--dim); font-weight:normal; text-transform:uppercase; font-size:.64rem; letter-spacing:1px }
+  .al-table td:first-child{ color:var(--sky); text-align:left }
+  .cmp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem; align-items:start }
+  @media (max-width: 940px){ .cmp-grid{ grid-template-columns:1fr } }
+  .mini-title{ font-size:.74rem; color:var(--dim); margin-bottom:.45rem; line-height:1.45 }
+  .mini{ border:2px solid var(--line); border-radius:7px; overflow:hidden; font-size:.7rem }
+  .mini .mr{ display:grid; grid-template-columns:1fr 1.6fr; border-bottom:1px solid var(--line) }
+  .mini .mr:last-child{ border-bottom:none }
+  .mini .ma{ padding:.3rem .45rem; color:var(--dim); border-right:1px solid var(--line); font-size:.64rem; white-space:nowrap }
+  .mini .mv{ padding:.3rem .4rem; text-align:center }
+  .mini .mv.ret{ background:rgba(251,191,36,.16); color:var(--amber); font-size:.64rem }
+  .mini .mv.pad{ background:rgba(251,191,36,.08); color:var(--amber); font-style:italic; font-size:.62rem }
+  .mini .mv.loc{ background:rgba(74,222,128,.13); color:var(--green) }
+  /* flip gag */
+  .flipwrap{ display:flex; gap:1.4rem; align-items:center; flex-wrap:wrap; margin-top:.8rem }
+  .flipcard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.9rem 1.1rem; font-size:.85rem; line-height:1.55; white-space:pre;
+    transition: transform .8s cubic-bezier(.5,0,.2,1.2);
+  }
+  .flipcard.flipped{ transform:rotate(180deg) }
+  .flipcard .kw{color:var(--blue)} .flipcard .ty{color:var(--purple)} .flipcard .num{color:var(--green)}
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+  footer a{ color:var(--blue) }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>StructLocalVariable.c — <span>a struct on the stack</span></h1>
+  <div class="subtitle">OST2 Arch1001 · accessing a struct local variable · same program as 004, but the locals are caged in a struct — and this build <b style="color:var(--amber)">packs</b> it</div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span class="val" id="ripVal">00000001`40001000</span>
+    <span class="ctx" id="ripCtx">— no instruction yet executed</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="badge exec">☒</span><span class="exec-t">executed instruction</span></div>
+  <div class="item"><span class="badge mod">♍</span><span class="mod-t">modified value</span></div>
+  <div class="item"><span class="badge start">⌘</span><span class="start-t">start value</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▶</span><span style="color:var(--dim)">next instruction</span></div>
+  <div class="item"><span class="d-chip">Δ004</span><span style="color:var(--dim)">only the displacement differs from ArrayLocalVariable</span></div>
+</div>
+
+<div class="layout">
+
+  <div class="col">
+    <div class="panel">
+      <h2>C source</h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>Disassembly</h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">⤴ execution continues at 00000001`40001379 — the code that called main()</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>Registers</h2>
+      <table>
+        <tr><td class="name">rax</td><td><span class="val" id="rax"></span></td></tr>
+        <tr><td class="name">rcx</td><td><span class="val" id="rcx"></span></td></tr>
+        <tr><td class="name">rsp</td><td><span class="val" id="rsp"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Stack <span style="text-transform:none;letter-spacing:0">(4-byte granularity — values straddle the rows!)</span></h2>
+      <div class="stack-outer" id="stackOuter">
+        <div class="stack-grow"><span class="arr">↑</span>higher addresses</div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-grow">lower addresses (stack grows down)<span class="arr">↓</span></div>
+        <div id="rspArrow">rsp</div>
+        <div id="bubble"></div>
+      </div>
+      <p style="font-size:.68rem; color:var(--dim); margin-top:.5rem; line-height:1.5">
+        Packed layout: <code>foo.a</code> @ rsp+0 · <code>foo.b[i]</code> @ rsp+2+4i ·
+        <code>foo.c</code> @ rsp+1Ah. Nothing is 4- or 8-byte aligned, so every value spills
+        across row boundaries.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump</div>
+</div>
+
+<!-- ===== takeaways + the upside-down gag ===== -->
+<div class="sect">
+  <h2 style="color:var(--green)">StructLocalVariable.c takeaways</h2>
+  <ul>
+    <li><b>Struct members keep their declaration order in memory.</b> Compare with 004: the bare
+      locals <code>a, b, c</code> got shuffled to <code>a, c, b</code>. Wrap the same three in a
+      struct and the C standard pins them: <code>a</code>, then <code>b</code>, then <code>c</code>,
+      at increasing offsets. Structs are a <i>contract</i> about layout; loose locals are not.</li>
+    <li>The access code is byte-for-byte the same skeleton as ArrayLocalVariable — same imul
+      index math, same movsx/movsxd/movzx, same values — only the <b>displacements</b> changed
+      (rows marked <span class="d-chip">Δ004</span> above).</li>
+    <li>And the course's rotated-slide gag: in a stack diagram drawn with high addresses on top,
+      offset 0 sits at the <i>bottom</i> — so the struct reads bottom-up. Flip the declaration and
+      it lines up with the diagram:</li>
+  </ul>
+  <div class="flipwrap">
+    <div class="flipcard" id="flipcard"><span class="kw">typedef struct</span> <span class="ty">mystruct</span>{
+    <span class="kw">short</span> a;
+    <span class="kw">int</span> b[<span class="num">6</span>];
+    <span class="kw">long long</span> c;
+} <span class="ty">mystruct_t</span>;</div>
+    <div>
+      <button id="btnFlip" style="background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:.5rem .9rem; font:inherit; font-size:.85rem; cursor:pointer">🙃 flip it like the slide</button>
+      <p style="font-size:.74rem; color:var(--dim); margin-top:.5rem; max-width:16rem; line-height:1.5">
+        Upside down, the declaration reads c → b → a top-to-bottom — exactly the order the stack
+        diagram shows them.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== expected vs actual ===== -->
+<div class="sect">
+  <h2 style="color:var(--amber)">The plot twist — expected layout vs. what the disassembly says</h2>
+  <p>Draw the struct by <a href="https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=msvc-160"
+     target="_blank" rel="noopener">MS' documented alignment &amp; padding rules</a> and you get the
+     left diagram. But the disassembly stores <code>c</code> at <code>[rsp+<b>1Ah</b>]</code> and
+     bases <code>b</code> at <code>+<b>2</b></code> — this build used <b>1-byte structure packing</b>
+     (<code>#pragma pack(1)</code> / <code>/Zp1</code>), so the real layout is the right diagram:
+     no padding anywhere, nothing aligned, values straddling the 4-byte rows.</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>Expected</b> — default alignment (/Zp8): members aligned to their
+        size, struct padded out. <code>sizeof = 0x28</code>.</div>
+      <div class="mini">
+        <div class="mr"><div class="ma">0014FE08</div><div class="mv ret">return address = 00000001`40001379</div></div>
+        <div class="mr"><div class="ma">0014FE00</div><div class="mv pad">16-byte-stack-alignment padding</div></div>
+        <div class="mr"><div class="ma">0014FDFC</div><div class="mv pad">undef (alignment padding)</div></div>
+        <div class="mr"><div class="ma">0014FDF8</div><div class="mv pad">undef (alignment padding)</div></div>
+        <div class="mr"><div class="ma">0014FDF4</div><div class="mv loc">c (MSBs) = 0ba1b0ab</div></div>
+        <div class="mr"><div class="ma">0014FDF0</div><div class="mv loc">c (LSBs) = 1edb100d</div></div>
+        <div class="mr"><div class="ma">0014FDEC</div><div class="mv pad">undef (struct alignment padding)</div></div>
+        <div class="mr"><div class="ma">0014FDE8</div><div class="mv loc">b[5] = undef</div></div>
+        <div class="mr"><div class="ma">0014FDE4</div><div class="mv loc">b[4] = 1edacacb</div></div>
+        <div class="mr"><div class="ma">0014FDE0</div><div class="mv loc">b[3] = undef</div></div>
+        <div class="mr"><div class="ma">0014FDDC</div><div class="mv loc">b[2] = undef</div></div>
+        <div class="mr"><div class="ma">0014FDD8</div><div class="mv loc">b[1] = ffffbabe</div></div>
+        <div class="mr"><div class="ma">0014FDD4</div><div class="mv loc">b[0] = undef</div></div>
+        <div class="mr"><div class="ma">0014FDD0</div><div class="mv loc">padding, a = babe (2 bytes)</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="mini-title"><b>Actual</b> — packed (/Zp1): zero padding inside the struct.
+        <code>sizeof = 0x22</code> (2 + 24 + 8). Members split across rows.</div>
+      <div class="mini">
+        <div class="mr"><div class="ma">0014FE08</div><div class="mv ret">return address = 00000001`40001379</div></div>
+        <div class="mr"><div class="ma">0014FE00</div><div class="mv pad">16-byte-stack-alignment padding</div></div>
+        <div class="mr"><div class="ma">0014FDFC</div><div class="mv pad">undef (16 byte alignment padding)</div></div>
+        <div class="mr"><div class="ma">0014FDF8</div><div class="mv pad">undef (16 byte alignment padding)</div></div>
+        <div class="mr"><div class="ma">0014FDF4</div><div class="mv pad">undef (16 byte alignment padding)</div></div>
+        <div class="mr"><div class="ma">0014FDF0</div><div class="mv loc">pad · c 2 MSBs = 0ba1</div></div>
+        <div class="mr"><div class="ma">0014FDEC</div><div class="mv loc">c 4 middle bytes = b0ab1edb</div></div>
+        <div class="mr"><div class="ma">0014FDE8</div><div class="mv loc">c 2 LSBs = 100d · b[5] MSBs</div></div>
+        <div class="mr"><div class="ma">0014FDE4</div><div class="mv loc">b[5] LSBs · b[4] 2 MSBs = 1eda</div></div>
+        <div class="mr"><div class="ma">0014FDE0</div><div class="mv loc">b[4] 2 LSBs = cacb · b[3] MSBs</div></div>
+        <div class="mr"><div class="ma">0014FDDC</div><div class="mv loc">b[3] LSBs · b[2] MSBs</div></div>
+        <div class="mr"><div class="ma">0014FDD8</div><div class="mv loc">b[2] LSBs · b[1] 2 MSBs = ffff</div></div>
+        <div class="mr"><div class="ma">0014FDD4</div><div class="mv loc">b[1] 2 LSBs = babe · b[0] MSBs</div></div>
+        <div class="mr"><div class="ma">0014FDD0</div><div class="mv loc">b[0] LSBs · a = babe</div></div>
+      </div>
+    </div>
+  </div>
+  <ul>
+    <li><b>How to spot packing from asm alone:</b> the displacements. Default rules put
+      <code>b</code> at +4 and <code>c</code> at +20h; this binary uses +2 and +1Ah. Odd/unrounded
+      struct offsets in disassembly ⇒ somebody set <code>#pragma pack</code>.</li>
+    <li><b>The misaligned qword:</b> <code>mov qword ptr [rsp+1Ah], rax</code> writes 8 bytes at an
+      address ≡ 2 (mod 8), spanning <i>three</i> of our 4-byte rows. x86 shrugs and does it
+      (slower, possibly split across cache lines, no atomicity guarantee) — plenty of other CPUs
+      would raise an alignment fault instead.</li>
+    <li><b>Why pack at all?</b> Wire formats, file formats, and protocol structs where every byte's
+      position is law — the same reason reverse engineers care: a packed struct in a binary usually
+      means "this memory is an external data format".</li>
+  </ul>
+</div>
+
+<!-- ===== MS rules recap ===== -->
+<div class="sect">
+  <h2 style="color:var(--sky)">MS' struct alignment &amp; padding rules — the 60-second version</h2>
+  <p>From the
+    <a href="https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=msvc-160"
+    target="_blank" rel="noopener">x64 software conventions</a> doc: scalar types align to their own
+    size; each member is placed at the next multiple of min(its alignment, the packing level); the
+    whole struct's size is rounded up to a multiple of its strictest member's alignment.</p>
+  <table class="al-table">
+    <tr><th>member</th><th>size</th><th>natural align</th><th>offset @ /Zp8 (default)</th><th>offset @ /Zp1 (this binary)</th></tr>
+    <tr><td>short a</td><td>2</td><td>2</td><td>0x00</td><td>0x00</td></tr>
+    <tr><td>int b[6]</td><td>24</td><td>4 (per element)</td><td>0x04 <span style="color:var(--dim)">(2 pad bytes)</span></td><td>0x02</td></tr>
+    <tr><td>long long c</td><td>8</td><td>8</td><td>0x20 <span style="color:var(--dim)">(4 pad bytes)</span></td><td>0x1A</td></tr>
+    <tr><td><b>sizeof(mystruct_t)</b></td><td colspan="2"></td><td><b>0x28</b> (40)</td><td><b>0x22</b> (34)</td></tr>
+  </table>
+  <p style="margin-top:.6rem">Frame-size coincidence: 0x28 and 0x22 both round up to 0x30 in
+    16-byte chunks, + 8 alignment = <code>sub rsp, 38h</code> either way — you can't tell the
+    packing from the prologue, only from the member displacements.</p>
+</div>
+
+<footer>
+  Recreated from OST2 Arch1001 "LocalVariables 04 StructLocalVariable" (Xeno Kovah, CC-BY-SA) · interactive remake for study<br>
+  <a href="001_CallASubroutine1-stepper.html">001 CallASubroutine1</a> ·
+  <a href="002_SingleLocalVariable-stepper.html">002 SingleLocalVariable</a> ·
+  <a href="003_SingleLocalVariable2-stepper.html">003 SingleLocalVariable2</a> ·
+  <a href="004_ArrayLocalVariable-stepper.html">004 ArrayLocalVariable</a>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------- data ---------------- */
+
+const CSRC = [
+  {id:'c0',  h:'<span class="kw">typedef struct</span> <span class="ty">mystruct</span>{'},
+  {id:'c1',  h:'    <span class="kw">short</span> a;'},
+  {id:'c2',  h:'    <span class="kw">int</span> b[<span class="num">6</span>];'},
+  {id:'c3',  h:'    <span class="kw">long long</span> c;'},
+  {id:'c4',  h:'} <span class="ty">mystruct_t</span>;'},
+  {id:'c5',  h:' '},
+  {id:'c6',  h:'<span class="kw">short</span> <span class="fn">main</span>(){'},
+  {id:'c7',  h:'    <span class="ty">mystruct_t</span> foo;'},
+  {id:'c8',  h:'    foo.a = <span class="num">0xbabe</span>;'},
+  {id:'c9',  h:'    foo.c = <span class="num">0xba1b0ab1edb100d</span>;'},
+  {id:'c10', h:'    foo.b[<span class="num">1</span>] = foo.a;'},
+  {id:'c11', h:'    foo.b[<span class="num">4</span>] = foo.b[<span class="num">1</span>] + foo.c;'},
+  {id:'c12', h:'    <span class="kw">return</span> foo.b[<span class="num">4</span>];'},
+  {id:'c13', h:'}'},
+];
+
+const LISTING = [
+  {label:'main:'},
+  {key:'1000', addr:'0000000140001000', mn:'sub',    ops:'rsp, 38h'},
+  {key:'1004', addr:'0000000140001004', mn:'mov',    ops:'eax, 0FFFFBABEh'},
+  {key:'1009', addr:'0000000140001009', mn:'mov',    ops:'word ptr [rsp], ax'},
+  {key:'100D', addr:'000000014000100D', mn:'mov',    ops:'rax, 0BA1B0AB1EDB100Dh'},
+  {key:'1017', addr:'0000000140001017', mn:'mov',    ops:'qword ptr [rsp+1Ah], rax', diff:true},
+  {key:'101C', addr:'000000014000101C', mn:'mov',    ops:'eax, 4'},
+  {key:'1021', addr:'0000000140001021', mn:'imul',   ops:'rax, rax, 1'},
+  {key:'1025', addr:'0000000140001025', mn:'movsx',  ops:'ecx, word ptr [rsp]'},
+  {key:'1029', addr:'0000000140001029', mn:'mov',    ops:'dword ptr [rsp+rax+2], ecx', diff:true},
+  {key:'102D', addr:'000000014000102D', mn:'mov',    ops:'eax, 4'},
+  {key:'1032', addr:'0000000140001032', mn:'imul',   ops:'rax, rax, 1'},
+  {key:'1036', addr:'0000000140001036', mn:'movsxd', ops:'rax, dword ptr [rsp+rax+2]', diff:true},
+  {key:'103B', addr:'000000014000103B', mn:'add',    ops:'rax, qword ptr [rsp+1Ah]', diff:true},
+  {key:'1040', addr:'0000000140001040', mn:'mov',    ops:'ecx, 4'},
+  {key:'1045', addr:'0000000140001045', mn:'imul',   ops:'rcx, rcx, 4'},
+  {key:'1049', addr:'0000000140001049', mn:'mov',    ops:'dword ptr [rsp+rcx+2], eax', diff:true},
+  {key:'104D', addr:'000000014000104D', mn:'mov',    ops:'eax, 4'},
+  {key:'1052', addr:'0000000140001052', mn:'imul',   ops:'rax, rax, 4'},
+  {key:'1056', addr:'0000000140001056', mn:'movzx',  ops:'eax, word ptr [rsp+rax+2]', diff:true},
+  {key:'105B', addr:'000000014000105B', mn:'add',    ops:'rsp, 38h'},
+  {key:'105F', addr:'000000014000105F', mn:'ret',    ops:''},
+];
+
+/* stack rows, high→low. Packed struct: values straddle 4-byte rows.
+   who label reads high-half · low-half (display order). */
+const ROWS = [
+  {addr:'00000000`0014FE08', who:'return addr',       wcls:'w-ret'},
+  {addr:'00000000`0014FE00', who:'16B-align pad',     wcls:'w-pad'},
+  {addr:'00000000`0014FDFC', who:'chunk pad',         wcls:'w-pad'},
+  {addr:'00000000`0014FDF8', who:'chunk pad',         wcls:'w-pad'},
+  {addr:'00000000`0014FDF4', who:'chunk pad',         wcls:'w-pad'},
+  {addr:'00000000`0014FDF0', who:'pad · c hi',        wcls:'w-loc'},
+  {addr:'00000000`0014FDEC', who:'c middle',          wcls:'w-loc'},
+  {addr:'00000000`0014FDE8', who:'c lo · b[5]hi',     wcls:'w-loc'},
+  {addr:'00000000`0014FDE4', who:'b[5]lo · b[4]hi',   wcls:'w-loc'},
+  {addr:'00000000`0014FDE0', who:'b[4]lo · b[3]hi',   wcls:'w-loc'},
+  {addr:'00000000`0014FDDC', who:'b[3]lo · b[2]hi',   wcls:'w-loc'},
+  {addr:'00000000`0014FDD8', who:'b[2]lo · b[1]hi',   wcls:'w-loc'},
+  {addr:'00000000`0014FDD4', who:'b[1]lo · b[0]hi',   wcls:'w-loc'},
+  {addr:'00000000`0014FDD0', who:'b[0]lo · a',        wcls:'w-loc'},
+];
+
+const RA0 = '00000001`40001379';
+
+function ST(over){
+  const a = ROWS.map(()=>({v:'undef'}));
+  a[0] = {v:RA0, tag:'start'};
+  for (const k in over) a[k] = over[k];
+  return a;
+}
+/* half-cells: {hi, lo} with optional hiTag/loTag='mod', row-level tag for the badge */
+const A_M  = {hi:'undef', lo:'BABE', loTag:'mod', tag:'mod'};
+const A_P  = {hi:'undef', lo:'BABE'};
+const A_S  = {hi:'undef', lo:'BABE', stale:true};
+const C1_M = {hi:'100D', hiTag:'mod', lo:'undef', tag:'mod'};   // FDE8: c LSBs
+const C1_P = {hi:'100D', lo:'undef'};
+const C1_S = {hi:'100D', lo:'undef', stale:true};
+const C2_M = {v:'B0AB1EDB', tag:'mod'};                          // FDEC: c middle
+const C2_P = {v:'B0AB1EDB'};
+const C2_S = {v:'B0AB1EDB', stale:true};
+const C3_M = {hi:'undef', lo:'0BA1', loTag:'mod', tag:'mod'};   // FDF0: c MSBs
+const C3_P = {hi:'undef', lo:'0BA1'};
+const C3_S = {hi:'undef', lo:'0BA1', stale:true};
+const B1L_M= {hi:'BABE', hiTag:'mod', lo:'undef', tag:'mod'};   // FDD4
+const B1L_P= {hi:'BABE', lo:'undef'};
+const B1L_S= {hi:'BABE', lo:'undef', stale:true};
+const B1H_M= {hi:'undef', lo:'FFFF', loTag:'mod', tag:'mod'};   // FDD8
+const B1H_P= {hi:'undef', lo:'FFFF'};
+const B1H_S= {hi:'undef', lo:'FFFF', stale:true};
+const B4L_M= {hi:'CACB', hiTag:'mod', lo:'undef', tag:'mod'};   // FDE0
+const B4L_P= {hi:'CACB', lo:'undef'};
+const B4L_S= {hi:'CACB', lo:'undef', stale:true};
+const B4H_M= {hi:'undef', lo:'1EDA', loTag:'mod', tag:'mod'};   // FDE4
+const B4H_P= {hi:'undef', lo:'1EDA'};
+const B4H_S= {hi:'undef', lo:'1EDA', stale:true};
+
+const R1 = '00000000`00000001';
+
+const STEPS = [
+  { // 0
+    rip:'00000001`40001000', ripCtx:'— no instruction yet executed',
+    executed:[], current:'1000', cline:'c6',
+    rax:{v:R1, tag:'start'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FE08', tag:'start'}, rspRow:0,
+    stack:ST({}),
+    bubble:{row:0, text:'Belongs to the frame *before* main() is called'},
+    title:'Step 0 — Initial state',
+    note:`<p>Same three variables as ArrayLocalVariable — but now wrapped in
+      <code>mystruct_t foo</code>. Two things will change: the members must keep their
+      <b>declaration order</b> (a, then b, then c — no more compiler shuffling), and this build
+      <b>packs</b> the struct, so nothing gets alignment padding.</p>
+      <p>The instruction skeleton is identical to 004; every difference is a displacement, marked
+      <span class="d-chip">Δ004</span>.</p>`,
+  },
+  { // 1
+    rip:'00000001`40001004', ripCtx:'— after sub rsp, 38h',
+    executed:['1000'], current:'1004', justExec:'1000', cline:'c8',
+    rax:{v:R1, tag:'start'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0', tag:'mod'}, rspRow:13,
+    stack:ST({}),
+    title:'Step 1 — sub rsp, 38h',
+    note:`<p>Packed <code>sizeof(mystruct_t)</code> = 2 + 24 + 8 = 0x22 → rounds to 0x30 in
+      16-byte chunks, + 8 alignment = <b>0x38</b>. (Funny enough, the padded 0x28 layout would
+      round to the very same frame — the prologue can't tell you whether a struct is packed.
+      The displacements can.)</p>
+      <p>foo lives at <code>[rsp]</code>: a @ +0, b @ +2, c @ +1Ah.</p>`,
+  },
+  { // 2
+    rip:'00000001`40001009', ripCtx:'— inside main',
+    executed:['1000','1004'], current:'1009', justExec:'1004', cline:'c8',
+    rax:{v:'00000000`FFFFBABE', tag:'mod', zx:true}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({}),
+    title:'Step 2 — mov eax, 0FFFFBABEh',
+    note:`<p>Same as 004: <code>foo.a</code> is a signed short, so 0xbabe is folded to the
+      sign-extended constant 0xFFFFBABE at compile time; the 32-bit register write zero-extends
+      rax's upper half.</p>`,
+  },
+  { // 3
+    rip:'00000001`4000100D', ripCtx:'— inside main',
+    executed:['1000','1004','1009'], current:'100D', justExec:'1009', cline:'c9',
+    rax:{v:'00000000`FFFFBABE'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_M}),
+    bubble:{row:13, text:'a = BABE in bytes 0-1 — and b[0] starts at byte 2, no padding between!'},
+    title:'Step 3 — mov word ptr [rsp], ax (foo.a stored)',
+    note:`<p>2-byte store at +0. In the default-aligned layout, bytes 2-3 would be padding before
+      b; here they're already <b>b[0]'s low half</b>. The packed struct wastes nothing — and
+      aligns nothing.</p>`,
+  },
+  { // 4
+    rip:'00000001`40001017', ripCtx:'— inside main',
+    executed:['1000','1004','1009','100D'], current:'1017', justExec:'100D', cline:'c9',
+    rax:{v:'0BA1B0AB`1EDB100D', tag:'mod'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P}),
+    title:'Step 4 — mov rax, 0BA1B0AB1EDB100Dh',
+    note:`<p>"Balboa bled blood" boards rax via the mandatory <code>mov rax, imm64</code> detour.
+      Now look at where it's headed: <code>[rsp+1Ah]</code>. 0x1A = 26 — not a multiple of 8,
+      not even of 4. A <b>misaligned qword store</b> is coming.</p>`,
+  },
+  { // 5
+    rip:'00000001`4000101C', ripCtx:'— inside main',
+    executed:['1000','1004','1009','100D','1017'], current:'101C', justExec:'1017', cline:'c10',
+    rax:{v:'0BA1B0AB`1EDB100D'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_M, 6:C2_M, 5:C3_M}),
+    bubble:{row:6, text:'one unaligned qword store — THREE rows touched: c spans FDEA…FDF1'},
+    title:'Step 5 — mov qword ptr [rsp+1Ah], rax (foo.c, gloriously misaligned)',
+    note:`<p>Eight bytes starting at FDEA: the LSBs <code>100D</code> land in FDE8's top half, four
+      middle bytes <code>B0AB1EDB</code> fill FDEC, and the MSBs <code>0BA1</code> spill into
+      FDF0's bottom half. One store, three rows — little-endian, off-grid.</p>
+      <div class="warn-box">x86 permits misaligned access (potentially slower: it may split cache
+      lines, and it loses atomicity guarantees). Many other architectures would fault right here —
+      one reason packed structs are for <i>data formats</i>, not working variables.</div>`,
+  },
+  { // 6
+    rip:'00000001`40001021', ripCtx:'— computing &foo.b[1]',
+    executed:['1000','1004','1009','100D','1017','101C'], current:'1021', justExec:'101C', cline:'c10',
+    rax:{v:'00000000`00000004', tag:'mod'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P}),
+    title:'Step 6 — mov eax, 4',
+    note:`<p>The familiar array recipe starts: load sizeof(int). Structs don't change how member
+      arrays are indexed — offset = size × index, added to the member's base displacement.</p>`,
+  },
+  { // 7
+    rip:'00000001`40001025', ripCtx:'— computing &foo.b[1]',
+    executed:['1000','1004','1009','100D','1017','101C','1021'], current:'1025', justExec:'1021', cline:'c10',
+    rax:{v:'00000000`00000004', tag:'mod'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P}),
+    title:'Step 7 — imul rax, rax, 1',
+    note:`<p>4 × 1 = 4, computed at runtime as ever at /Od. The base displacement will be
+      <b>+2</b> this time (b's packed offset), not +10h.</p>`,
+  },
+  { // 8
+    rip:'00000001`40001029', ripCtx:'— loading foo.a',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025'], current:'1029', justExec:'1025', cline:'c10',
+    rax:{v:'00000000`00000004'}, rcx:{v:'00000000`FFFFBABE', tag:'mod', zx:true}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P}),
+    title:'Step 8 — movsx ecx, word ptr [rsp]',
+    note:`<p>foo.a (signed short, −17,730) sign-extends into ecx: FFFFBABE. Same dance as 004 —
+      the struct wrapper changes addresses, never semantics.</p>`,
+  },
+  { // 9
+    rip:'00000001`4000102D', ripCtx:'— foo.b[1] = foo.a done',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029'], current:'102D', justExec:'1029', cline:'c11',
+    rax:{v:'00000000`00000004'}, rcx:{v:'00000000`FFFFBABE'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_M, 11:B1H_M}),
+    bubble:{row:12, text:'[rsp+4+2] = FDD6 = &b[1] — a dword write splitting across FDD4/FDD8'},
+    title:'Step 9 — mov dword ptr [rsp+rax+2], ecx',
+    note:`<p>Address: <code>FDD0 + 4 + 2 = FDD6</code>. A 4-byte value at an address ≡ 2 (mod 4):
+      the LSBs <code>BABE</code> land in FDD4's top half, the MSBs <code>FFFF</code> in FDD8's
+      bottom half. b[1] now exists — in two pieces.</p>
+      <p>This is the course's second diagram in action: read any member by gluing its halves
+      back together, LSBs from the lower address.</p>`,
+  },
+  { // 10
+    rip:'00000001`40001032', ripCtx:'— recomputing &foo.b[1]',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D'], current:'1032', justExec:'102D', cline:'c11',
+    rax:{v:'00000000`00000004', tag:'mod'}, rcx:{v:'00000000`FFFFBABE'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P}),
+    title:'Step 10 — mov eax, 4 (again)',
+    note:`<p><code>foo.b[4] = foo.b[1] + foo.c</code> re-reads b[1], and /Od rebuilds the offset
+      from scratch. Nothing cached, ever.</p>`,
+  },
+  { // 11
+    rip:'00000001`40001036', ripCtx:'— recomputing &foo.b[1]',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032'], current:'1036', justExec:'1032', cline:'c11',
+    rax:{v:'00000000`00000004', tag:'mod'}, rcx:{v:'00000000`FFFFBABE'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P}),
+    title:'Step 11 — imul rax, rax, 1',
+    note:`<p>4 × 1 = 4. One more misaligned load coming up.</p>`,
+  },
+  { // 12
+    rip:'00000001`4000103B', ripCtx:'— b[1] loaded and sign-extended',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036'], current:'103B', justExec:'1036', cline:'c11',
+    rax:{v:'FFFFFFFF`FFFFBABE', tag:'mod'}, rcx:{v:'00000000`FFFFBABE'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P}),
+    title:'Step 12 — movsxd rax, dword ptr [rsp+rax+2]',
+    note:`<p>The CPU reassembles b[1] from its two halves (FFFF|BABE → FFFFBABE) in one misaligned
+      dword read, then <code>movsxd</code> sign-extends it to 64 bits for the upcoming
+      <code>long long</code> addition: rax = FFFFFFFF\`FFFFBABE.</p>`,
+  },
+  { // 13
+    rip:'00000001`40001040', ripCtx:'— the addition',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B'], current:'1040', justExec:'103B', cline:'c11',
+    rax:{v:'0BA1B0AB`1EDACACB', tag:'mod'}, rcx:{v:'00000000`FFFFBABE'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P}),
+    title:'Step 13 — add rax, qword ptr [rsp+1Ah]',
+    note:`<p>foo.c is read back — another misaligned qword, glued from three rows — and added:</p>
+      <div class="math">  FFFFFFFF\`FFFFBABE   b[1] sign-extended (−0x4542)
++ 0BA1B0AB\`1EDB100D   foo.c
+= 0BA1B0AB\`1EDACACB</div>
+      <p>Identical arithmetic to 004 — the values never knew they moved.</p>`,
+  },
+  { // 14
+    rip:'00000001`40001045', ripCtx:'— computing &foo.b[4]',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040'], current:'1045', justExec:'1040', cline:'c11',
+    rax:{v:'0BA1B0AB`1EDACACB'}, rcx:{v:'00000000`00000004', tag:'mod'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P}),
+    title:'Step 14 — mov ecx, 4',
+    note:`<p>rax holds the sum, so rcx takes over the offset arithmetic.</p>`,
+  },
+  { // 15
+    rip:'00000001`40001049', ripCtx:'— computing &foo.b[4]',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045'], current:'1049', justExec:'1045', cline:'c11',
+    rax:{v:'0BA1B0AB`1EDACACB'}, rcx:{v:'00000000`00000010', tag:'mod'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P}),
+    title:'Step 15 — imul rcx, rcx, 4',
+    note:`<p>4 × 4 = 0x10 → target <code>rsp + 10h + 2 = FDE2</code> = &amp;foo.b[4].
+      Misaligned again, naturally.</p>`,
+  },
+  { // 16
+    rip:'00000001`4000104D', ripCtx:'— foo.b[4] stored (truncated)',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045','1049'], current:'104D', justExec:'1049', cline:'c12',
+    rax:{v:'0BA1B0AB`1EDACACB'}, rcx:{v:'00000000`00000010'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P, 9:B4L_M, 8:B4H_M}),
+    bubble:{row:9, text:'b[4] = 1EDA|CACB, straddling FDE0/FDE4 — "balboa" truncated away as before'},
+    title:'Step 16 — mov dword ptr [rsp+rcx+2], eax',
+    note:`<p>Only eax (the sum's low half, <code>1EDACACB</code>) is stored — the long long → int
+      truncation from 004, now also split mid-value across two rows: LSBs <code>CACB</code> into
+      FDE0's top half, MSBs <code>1EDA</code> into FDE4's bottom half.</p>`,
+  },
+  { // 17
+    rip:'00000001`40001052', ripCtx:'— computing &foo.b[4] for the return',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045','1049','104D'], current:'1052', justExec:'104D', cline:'c12',
+    rax:{v:'00000000`00000004', tag:'mod', zx:true}, rcx:{v:'00000000`00000010'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P, 9:B4L_P, 8:B4H_P}),
+    title:'Step 17 — mov eax, 4',
+    note:`<p>Third rebuild of the offset — and the 32-bit write wipes the big sum out of rax:
+      <span class="zx">00000000</span>\`00000004.</p>`,
+  },
+  { // 18
+    rip:'00000001`40001056', ripCtx:'— computing &foo.b[4]',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045','1049','104D','1052'], current:'1056', justExec:'1052', cline:'c12',
+    rax:{v:'00000000`00000010', tag:'mod'}, rcx:{v:'00000000`00000010'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P, 9:B4L_P, 8:B4H_P}),
+    title:'Step 18 — imul rax, rax, 4',
+    note:`<p>0x10 once more. The last load is a word — which, at these offsets, happens to be
+      the one access in the whole program that <i>doesn't</i> cross a row boundary.</p>`,
+  },
+  { // 19
+    rip:'00000001`4000105B', ripCtx:'— return value staged',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045','1049','104D','1052','1056'], current:'105B', justExec:'1056', cline:'c13',
+    rax:{v:'00000000`0000CACB', tag:'mod', zx:true}, rcx:{v:'00000000`00000010'}, rsp:{v:'00000000`0014FDD0'}, rspRow:13,
+    stack:ST({13:A_P, 7:C1_P, 6:C2_P, 5:C3_P, 12:B1L_P, 11:B1H_P, 9:B4L_P, 8:B4H_P}),
+    title:'Step 19 — movzx eax, word ptr [rsp+rax+2]',
+    note:`<p>Load b[4]'s low word from FDE2 — <code>CACB</code> — zero-extended for the short
+      return: rax = 00000000\`0000CACB. Same answer as ArrayLocalVariable, delivered from a
+      completely different memory picture.</p>`,
+  },
+  { // 20
+    rip:'00000001`4000105F', ripCtx:'— main epilogue',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045','1049','104D','1052','1056','105B'], current:'105F', justExec:'105B', cline:'c13',
+    rax:{v:'00000000`0000CACB'}, rcx:{v:'00000000`00000010'}, rsp:{v:'00000000`0014FE08', tag:'mod'}, rspRow:0,
+    stack:ST({13:A_S, 7:C1_S, 6:C2_S, 5:C3_S, 12:B1L_S, 11:B1H_S, 9:B4L_S, 8:B4H_S}),
+    title:'Step 20 — add rsp, 38h',
+    note:`<p>foo dies whole: a, the array, c and all their scattered halves drop below rsp
+      together. rsp: <code>0014FDD0 → 0014FE08</code>.</p>`,
+  },
+  { // 21
+    rip:'00000001`40001379', ripCtx:'— back in the code that called main()',
+    executed:['1000','1004','1009','100D','1017','101C','1021','1025','1029','102D','1032','1036','103B','1040','1045','1049','104D','1052','1056','105B','105F'], current:null, justExec:'105F', cline:null,
+    rax:{v:'00000000`0000CACB'}, rcx:{v:'00000000`00000010'}, rsp:{v:'00000000`0014FE10', tag:'mod'}, rspRow:-1,
+    stack:ST({0:{v:'undef', tag:'mod'}, 13:A_S, 7:C1_S, 6:C2_S, 5:C3_S, 12:B1L_S, 11:B1H_S, 9:B4L_S, 8:B4H_S}),
+    bubble:{row:0, text:'Popped — execution continues at 00000001`40001379'},
+    title:'Step 21 — ret (program done)',
+    note:`<p>AX = <b>0xCACB</b> (−13,621), identical to 004 — proof that the struct changed the
+      <i>map</i>, not the <i>territory</i>. What did change: member order became a guarantee
+      (a → b → c at rising offsets), and packing traded every alignment nicety for zero wasted
+      bytes.</p>
+      <p>Scroll down for the expected-vs-actual layouts and MS' alignment rules.</p>`,
+  },
+];
+
+/* ---------------- build static DOM ---------------- */
+
+const $ = id => document.getElementById(id);
+const asmEl = $('asm'), stackEl = $('stack'), dotsEl = $('dots'), csrcEl = $('csrc');
+
+const clineEls = {};
+CSRC.forEach(l => {
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = l.h;
+  csrcEl.appendChild(d);
+  clineEls[l.id] = d;
+});
+
+const asmRows = {};
+LISTING.forEach(ins => {
+  if (ins.label){
+    const d = document.createElement('div');
+    d.className = 'lbl'; d.textContent = ins.label;
+    asmEl.appendChild(d);
+    return;
+  }
+  const r = document.createElement('div');
+  r.className = 'row' + (ins.diff ? ' diff' : '');
+  r.innerHTML = `<span class="rip-ptr">RIP▶</span>` +
+    `<span class="addr">${ins.addr}</span>` +
+    `<span class="mark">☒</span>` +
+    `<span class="mn">${ins.mn}</span>` +
+    `<span class="ops">${ins.ops}</span>` +
+    `<span class="dchip">Δ004</span>`;
+  asmEl.appendChild(r);
+  asmRows[ins.key] = r;
+});
+
+const stackRows = [];
+ROWS.forEach(rw => {
+  const r = document.createElement('div');
+  r.className = 'srow';
+  r.innerHTML = `<div class="cell addr">${rw.addr}</div><div class="cell val"></div>` +
+                `<div class="cell who ${rw.wcls}">${rw.who}</div>`;
+  stackEl.appendChild(r);
+  stackRows.push(r);
+});
+
+STEPS.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className='dot'; d.title = 'Step '+i;
+  d.addEventListener('click', ()=> go(i));
+  dotsEl.appendChild(d);
+});
+
+/* ---------------- rendering ---------------- */
+
+const BADGE_MOD   = '<span class="badge mod">♍</span>';
+const BADGE_START = '<span class="badge start">⌘</span>';
+
+function valKey(o){
+  if (!o) return '';
+  if (o.hi !== undefined) return o.hi + '|' + o.lo + (o.stale ? '·s' : '');
+  return o.v + (o.stale ? '·s' : '');
+}
+
+function halfHTML(t, tag){
+  if (t === 'undef') return '<span class="undef">undef</span>';
+  const cls = tag === 'mod' ? 'v-mod' : 'v-plain';
+  return `<span class="${cls}">${t}</span>`;
+}
+
+function fmtVal(o){
+  if (!o) return '';
+  if (o.hi !== undefined){   // split row: two 2-byte halves (display order: high · low)
+    let html = halfHTML(o.hi, o.hiTag) + '<span class="sep">·</span>' + halfHTML(o.lo, o.loTag) +
+               (o.tag === 'mod' ? BADGE_MOD : '');
+    if (o.stale) html = `<span class="stale">${html}</span>`;
+    return html;
+  }
+  if (o.v === 'undef'){
+    return `<span class="undef">undef</span>` + (o.tag==='mod' ? BADGE_MOD : '');
+  }
+  const cls = o.tag==='mod' ? 'v-mod' : o.tag==='start' ? 'v-start' : 'v-plain';
+  let txt = o.v;
+  if (o.zx){
+    const [hi, lo] = o.v.split('`');
+    txt = `<span class="zx">${hi}</span>\`${lo}`;
+  }
+  let html = `<span class="${cls}">${txt}</span>` +
+             (o.tag==='mod' ? BADGE_MOD : o.tag==='start' ? BADGE_START : '');
+  if (o.stale) html = `<span class="stale">${html}</span>`;
+  return html;
+}
+
+let cur = 0, prevSnap = null, timer = null;
+
+function render(i, animate = true){
+  const s = STEPS[i];
+
+  const ripEl = $('ripVal');
+  if (prevSnap && prevSnap.rip !== s.rip && animate){ ripEl.classList.remove('flash'); void ripEl.offsetWidth; ripEl.classList.add('flash'); }
+  ripEl.textContent = s.rip;
+  $('ripCtx').textContent = s.ripCtx;
+
+  for (const id in clineEls) clineEls[id].classList.toggle('cur', s.cline === id);
+
+  for (const name of ['rax','rcx','rsp']){
+    const el = $(name);
+    el.innerHTML = fmtVal(s[name]);
+    if (animate && prevSnap && prevSnap[name] !== s[name].v){
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+
+  for (const key in asmRows){
+    const r = asmRows[key];
+    r.classList.toggle('executed', s.executed.includes(key));
+    r.classList.toggle('current',  s.current === key);
+    r.classList.remove('just-executed');
+  }
+  if (animate && s.justExec && prevSnap && prevSnap.step === i-1){
+    const r = asmRows[s.justExec];
+    void r.offsetWidth; r.classList.add('just-executed');
+  }
+  $('exitRow').classList.toggle('on', s.current === null);
+
+  s.stack.forEach((o, idx) => {
+    const cell = stackRows[idx].querySelector('.val');
+    cell.innerHTML = fmtVal(o);
+    if (animate && prevSnap && prevSnap.stack[idx] !== valKey(o)){
+      const span = cell.firstElementChild;
+      if (span) span.classList.add('pop-in');
+    }
+  });
+
+  const arrow = $('rspArrow');
+  let top;
+  if (s.rspRow < 0){
+    top = stackEl.offsetTop - 10;
+  } else {
+    const row = stackRows[s.rspRow];
+    top = stackEl.offsetTop + row.offsetTop + row.offsetHeight/2;
+  }
+  arrow.style.top = top + 'px';
+
+  const bub = $('bubble');
+  if (s.bubble){
+    const row = stackRows[s.bubble.row];
+    bub.textContent = s.bubble.text;
+    bub.style.top = (stackEl.offsetTop + row.offsetTop + row.offsetHeight) + 'px';
+    bub.classList.add('on');
+  } else {
+    bub.classList.remove('on');
+  }
+
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  $('stepInd').textContent = `Step ${i} / ${STEPS.length-1}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled   = (i === STEPS.length-1);
+  [...dotsEl.children].forEach((d,k)=>{
+    d.classList.toggle('now',  k === i);
+    d.classList.toggle('done', k <  i);
+  });
+
+  prevSnap = {
+    step: i, rip: s.rip,
+    rax: s.rax.v, rcx: s.rcx.v, rsp: s.rsp.v,
+    stack: s.stack.map(valKey),
+  };
+  cur = i;
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= STEPS.length) return;
+  render(i, animate);
+  if (i === STEPS.length-1) stopPlay();
+}
+
+function startPlay(){
+  if (cur === STEPS.length-1) go(0,false);
+  timer = setInterval(()=>{
+    if (cur >= STEPS.length-1) stopPlay();
+    else go(cur+1);
+  }, 3000);
+  $('btnPlay').textContent = '⏸ Pause';
+  $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play';
+  $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', ()=>{ stopPlay(); go(cur+1); });
+$('btnPrev').addEventListener('click', ()=>{ stopPlay(); go(cur-1); });
+$('btnReset').addEventListener('click', ()=>{ stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', ()=>{ stopPlay(); go(STEPS.length-1); });
+$('btnPlay').addEventListener('click', ()=> timer ? stopPlay() : startPlay());
+$('btnFlip').addEventListener('click', ()=> $('flipcard').classList.toggle('flipped'));
+
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName === 'INPUT') return;
+  switch(e.key){
+    case 'ArrowRight': stopPlay(); go(cur+1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur-1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0);     e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STEPS.length-1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+  }
+});
+
+window.addEventListener('resize', ()=> render(cur, false));
+window.addEventListener('load',   ()=> render(cur, false));
+render(0, false);
+</script>
+</body>
+</html>
