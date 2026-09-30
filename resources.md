@@ -45,6 +45,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Game RE, decompilation & modding](#game-re-decompilation--modding)
 - [Newsletters & aggregators](#newsletters--aggregators)
 - [Hidden gems — the "unknowns"](#hidden-gems--the-unknowns)
+- [External links — unsorted drop-box](#external-links--unsorted-drop-box)
 
 ---
 
@@ -240,6 +241,7 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - rappel (asm REPL) — https://github.com/yrp604/rappel
 - x64 software conventions (MSVC) — https://learn.microsoft.com/en-us/cpp/build/x64-software-conventions?view=msvc-160
 - felixcloutier.com/x86 (instruction reference) · agner.org/optimize (calling conventions PDF)
+- x86 assembly opcode reference (mathemainzel) — https://www.mathemainzel.info/files/x86asmref.html
 - dsohowto.pdf (Drepper, "How To Write Shared Libraries") — https://www.akkadia.org/drepper/dsohowto.pdf
 
 ## ELF & process loading
@@ -567,7 +569,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 ## Communities
 - pwn.college Discord · Reverse Engineering Discord (~14k) · OALabs Discord · vx-underground · 0x00sec · OpenToAll · Tuts4You
 - CTF & bug-bounty Discords · local CTF team · HTB/THM Discords
-- r/netsec · r/ReverseEngineering · r/Malware · r/ExploitDev
+- r/netsec · [r/ReverseEngineering](https://www.reddit.com/r/ReverseEngineering/) · r/Malware · r/ExploitDev
 - UnknownCheats · Guided Hacking (game hacking) · OpenMined (privacy)
 - Mailing lists: Dailydave · Full Disclosure · oss-security
 
@@ -713,6 +715,13 @@ Resources most people never find (from `known pwn.md`):
 - tmp.0ut — modern ELF internals zine
 - InfoconDB / media.ccc.de — find and watch almost any con talk ever
 - #100DaysOfYARA — community challenge that levels up detection fast
+
+## External links — unsorted drop-box
+Raw links parked here for later sorting.
+- https://github.com/hummanta/awesome-compilers
+- https://github.com/HACKE-RC/awesome-reversing
+- https://gist.github.com/DtxdF/9c9297945bd7165c53b264ec597a9c39
+- https://github.com/wtsxdev/reverse-engineering
 
 ---
 
