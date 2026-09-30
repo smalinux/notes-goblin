@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pass1Parameter.c on Linux — push rbp, the Frame Pointer &amp; the SysV Red Zone (OST2 Arch1001)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;
+    --red:       #ff6b6b;
+    --green:     #4ade80;
+    --purple:    #c084fc;
+    --amber:     #fbbf24;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    --slate:     #94a3b8;
+    --rip:       #f472b6;
+    --row-h:     34px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--blue) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.8rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; height:1.25rem; border-radius:4px; font-size:.8rem; flex:none;
+  }
+  .badge.exec { color:var(--blue);   border:1px solid var(--blue) }
+  .badge.mod  { color:#fff; background:var(--purple) }
+  .badge.start{ color:var(--green);  border:1px solid var(--green) }
+  .legend .exec-t { color:var(--blue) }
+  .legend .mod-t  { color:var(--red) }
+  .legend .start-t{ color:var(--green); text-decoration:underline }
+  .rz-swatch{
+    width:1.25rem; height:1.25rem; border-radius:4px; flex:none;
+    background:rgba(255,107,107,.12); border:1px dashed var(--red);
+  }
+
+  .layout{ display:grid; grid-template-columns: 1.08fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 940px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+
+  .csrc{ font-size:.82rem; line-height:1.5 }
+  .csrc .cl{ padding:.04rem .55rem; border-radius:6px; white-space:pre; transition:background .3s }
+  .csrc .cl.cur{ background:rgba(244,114,182,.14); box-shadow:inset 0 0 0 1px rgba(244,114,182,.45) }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .ty { color:var(--purple) }
+
+  .asm{ font-size:.78rem; line-height:1.1; padding-left:3rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.24rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s;
+    white-space:nowrap;
+  }
+  .asm .lbl{ color:var(--amber); padding-left:.5rem; margin-top:.2rem }
+  .asm .addr{ color:var(--dim); font-size:.7rem; width:12ch; flex:none }
+  .asm .mark{ width:1.2rem; flex:none; text-align:center; color:transparent }
+  .asm .mn  { width:7.5ch; flex:none }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.executed .mark{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.7rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  .regs table{ width:100%; border-collapse:collapse; font-size:.9rem }
+  .regs td{ border:1px solid var(--line); padding:.42rem .7rem }
+  .regs td.name{ width:4.5rem; color:var(--dim) }
+  .v-start{ color:var(--green); text-decoration:underline }
+  .v-mod  { color:var(--red) }
+  .v-plain{ color:var(--text) }
+  .zx{ background:rgba(251,191,36,.22); color:var(--amber); border-radius:3px; padding:0 2px }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+
+  .stack-outer{ position:relative; padding-left:7.6rem }
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack-grow .arr{ font-size:.95rem; display:block; line-height:1 }
+  .stack{ border:2px solid var(--line); border-radius:8px; overflow:visible }
+  .stack .srow{
+    display:grid; grid-template-columns: 1.12fr 1fr .92fr; height:var(--row-h);
+    border-bottom:1px solid var(--line); position:relative;
+    transition:background .35s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .srow.rz{ background:rgba(255,107,107,.05) }
+  .stack .cell{ display:flex; align-items:center; padding:0 .45rem; font-size:.72rem; overflow:hidden }
+  .stack .cell.addr{ color:var(--dim); border-right:1px solid var(--line); font-size:.68rem }
+  .stack .cell.val{ justify-content:center; gap:.25rem }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.6rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.2;
+  }
+  .who.w-ret{ background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-sav{ background:rgba(56,189,248,.14); color:var(--sky) }
+  .who.w-loc{ background:rgba(74,222,128,.10); color:var(--green) }
+  .who.w-sh { background:rgba(148,163,184,.14); color:var(--slate) }
+  .who.w-rz { background:rgba(255,107,107,.10); color:var(--red); font-style:italic }
+  .stack .cell.val .badge{ width:1rem; height:1rem; font-size:.62rem }
+  .undef{ color:var(--dim); font-style:italic }
+  .stale{ opacity:.45 }
+  .sep{ color:var(--dim); padding:0 .05rem }
+  .srow .pop-in{ animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  @keyframes popIn{ 0%{transform:translateY(-10px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  #rspArrow{
+    position:absolute; left:3.9rem; display:flex; align-items:center; gap:.15rem;
+    color:var(--red); font-weight:bold; font-size:.85rem;
+    transition: top .55s cubic-bezier(.4,0,.2,1); z-index:5;
+    transform:translateY(-50%);
+  }
+  #rspArrow::after{ content:"⟶"; font-size:1rem }
+  #rbpArrow{
+    position:absolute; left:.5rem; display:flex; align-items:center; gap:.15rem;
+    color:var(--sky); font-weight:bold; font-size:.85rem;
+    transition: top .55s cubic-bezier(.4,0,.2,1); z-index:5;
+    transform:translateY(-50%);
+  }
+  #rbpArrow::after{ content:"⟶"; font-size:1rem }
+  #bubble{
+    position:absolute; left:42%; z-index:8; max-width:17rem;
+    background:#256b2f; color:#fff; border:2px solid #77c877; border-radius:9px;
+    padding:.4rem .55rem; font-size:.72rem; line-height:1.35;
+    transform:translateY(.3rem); opacity:0; transition:opacity .4s, top .4s;
+    pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  #bubble.on{ opacity:1 }
+  #bubble::before{
+    content:""; position:absolute; top:-.55rem; left:1.2rem;
+    border:.55rem solid transparent; border-bottom-color:#77c877; border-top:none;
+  }
+
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.55 }
+  .note p+p{ margin-top:.4rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .warn-box{
+    margin-top:.6rem; background:#3d1113; border:2px solid var(--red); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.5; color:#ffd9d9;
+  }
+  .att-box{
+    margin-top:.6rem; background:#11253d; border:2px solid var(--sky); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.5; color:#d9ecff;
+  }
+  .math{
+    margin-top:.5rem; background:var(--panel2); border:1px solid var(--line); border-radius:8px;
+    padding:.5rem .8rem; font-size:.82rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+
+  .controls{
+    position:sticky; bottom:0; margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:rgba(14,17,23,.92); backdrop-filter:blur(6px);
+    border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.3rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.55rem; height:.55rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.55rem }
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .sect p{ font-size:.86rem; line-height:1.6 }
+  .sect p+p{ margin-top:.45rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.3rem }
+  .sect a{ color:var(--blue) }
+  .al-table{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.6rem }
+  .al-table td, .al-table th{ border:1px solid var(--line); padding:.45rem .65rem; text-align:center }
+  .al-table th{ color:var(--dim); font-weight:normal; text-transform:uppercase; font-size:.64rem; letter-spacing:1px }
+  .al-table td:first-child{ color:var(--sky); text-align:left }
+  .cmp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem; align-items:start }
+  @media (max-width: 940px){ .cmp-grid{ grid-template-columns:1fr } }
+  .mini-title{ font-size:.74rem; color:var(--dim); margin-bottom:.45rem; line-height:1.45 }
+  .mini{ border:2px solid var(--line); border-radius:7px; overflow:hidden; font-size:.7rem }
+  .mini .mr{ display:grid; grid-template-columns:1fr 1.6fr; border-bottom:1px solid var(--line) }
+  .mini .mr:last-child{ border-bottom:none }
+  .mini .ma{ padding:.3rem .45rem; color:var(--dim); border-right:1px solid var(--line); font-size:.64rem; white-space:nowrap }
+  .mini .mv{ padding:.3rem .4rem; text-align:center }
+  .mini .mv.ret{ background:rgba(251,191,36,.16); color:var(--amber); font-size:.64rem }
+  .mini .mv.pad{ background:rgba(251,191,36,.08); color:var(--amber); font-style:italic; font-size:.62rem }
+  .mini .mv.loc{ background:rgba(74,222,128,.13); color:var(--green) }
+  .mini .mv.sh { background:rgba(148,163,184,.16); color:var(--slate) }
+  .mini .mv.st { background:rgba(56,189,248,.12);  color:var(--sky) }
+  .mini .mv.sav{ background:rgba(56,189,248,.16);  color:var(--sky) }
+  .mini .mv.rz { background:rgba(255,107,107,.10); color:var(--red); font-style:italic }
+  .mini .mv.dimv{ color:var(--dim); font-style:italic }
+  .mini.wide .mr{ grid-template-columns:1fr }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.55; white-space:pre; overflow-x:auto;
+  }
+  .codecard .kw{color:var(--blue)} .codecard .ty{color:var(--purple)}
+  .codecard .num{color:var(--green)} .codecard .fn{color:var(--amber)}
+  .codecard .cm{color:var(--dim)} .codecard .lb{color:var(--amber)}
+  .codecard .hl{
+    display:inline-block; border:1px solid var(--red); border-radius:4px;
+    background:rgba(255,107,107,.08); padding:0 .2rem; margin:0 -.2rem;
+  }
+  .codecard .hlb{
+    display:inline-block; border:1px solid var(--sky); border-radius:4px;
+    background:rgba(56,189,248,.08); padding:0 .2rem; margin:0 -.2rem;
+  }
+  .quote{
+    margin-top:.7rem; border-left:3px solid var(--sky); background:var(--panel2);
+    border-radius:0 8px 8px 0; padding:.6rem .9rem; font-size:.85rem; line-height:1.6;
+    font-style:italic; color:#cfe6f5;
+  }
+  .quote b{ color:var(--sky); font-style:normal }
+  .spec-cards{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:.7rem }
+  @media (max-width: 940px){ .spec-cards{ grid-template-columns:1fr } }
+  .spec-card{
+    display:block; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; text-decoration:none; transition:border-color .15s, transform .15s;
+  }
+  .spec-card:hover{ border-color:var(--teal); transform:translateY(-2px) }
+  .spec-card .sc-name{ color:var(--text); font-size:.9rem; font-weight:bold }
+  .spec-card .sc-who{ color:var(--dim); font-size:.72rem; margin-top:.25rem }
+  .spec-card .sc-link{ color:var(--blue); font-size:.72rem; margin-top:.35rem; word-break:break-all }
+
+  .ret-chips{ display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:.9rem }
+  .ret-chip{
+    border:1px solid var(--teal); border-radius:999px; padding:.4rem 1rem; font-size:.8rem;
+    color:var(--teal); background:rgba(45,212,191,.07);
+  }
+  .ret-chip b{ color:var(--text) }
+  .mnem{
+    margin-top:.9rem; background:var(--panel2); border:1px dashed var(--teal); border-radius:10px;
+    padding:.7rem 1rem; font-size:.84rem; line-height:1.8;
+  }
+  .mnem .M{ color:var(--teal); font-weight:bold }
+  .mnem b{ color:var(--amber) }
+
+  .rz-gag{
+    margin:1.6rem auto 0; max-width:36rem; text-align:center;
+    background:linear-gradient(180deg, #1a0d0d, #2b0f10); border:2px solid #7a1c1e;
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .rz-gag .q{ font-size:.9rem; line-height:1.6; color:#e8d5d5 }
+  .rz-gag .q b{ color:var(--red) }
+  .rz-gag .big{
+    margin-top:.6rem; font-size:1.6rem; letter-spacing:4px; font-weight:bold;
+    color:var(--red); text-shadow:0 0 18px rgba(255,107,107,.45);
+  }
+
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+  footer a{ color:var(--blue) }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pass1Parameter.c — <span>take two, on Linux</span></h1>
+  <div class="subtitle">OST2 Arch1001 · same C as <a href="006_Pass1Parameter-stepper.html" style="color:var(--blue)">006</a>, now GCC 9.3 / Ubuntu 20.04 / -O0 · SysV ABI · Intel syntax throughout — enter <b style="color:var(--sky)">push rbp</b></div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span class="val" id="ripVal">00005555`5555513f</span>
+    <span class="ctx" id="ripCtx">— no instruction yet executed</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="badge exec">☒</span><span class="exec-t">executed instruction</span></div>
+  <div class="item"><span class="badge mod">♍</span><span class="mod-t">modified value</span></div>
+  <div class="item"><span class="badge start">⌘</span><span class="start-t">start value</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▶</span><span style="color:var(--dim)">next instruction</span></div>
+  <div class="item"><span style="color:var(--sky);font-weight:bold">rbp⟶</span><span style="color:var(--dim)">frame pointer (new!)</span></div>
+  <div class="item"><span class="rz-swatch"></span><span style="color:var(--red)">red-zone row (below rsp, yours anyway)</span></div>
+</div>
+
+<div class="layout">
+
+  <div class="col">
+    <div class="panel">
+      <h2>C source <span style="text-transform:none;letter-spacing:0">(identical to 006 — only the compiler changed)</span></h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>Disassembly <span style="text-transform:none;letter-spacing:0">(objdump -M intel — execution starts at main)</span></h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">⤴ execution continues at 00007fff`f7d90d90 — __libc_start_call_main hands eax to exit(); <b>echo $? → 17</b></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>Registers <span style="text-transform:none;letter-spacing:0">(rbp joins the table — that's the lesson)</span></h2>
+      <table>
+        <tr><td class="name">rax</td><td><span class="val" id="rax"></span></td></tr>
+        <tr><td class="name">rdi</td><td><span class="val" id="rdi"></span></td></tr>
+        <tr><td class="name">rsp</td><td><span class="val" id="rsp"></span></td></tr>
+        <tr><td class="name">rbp</td><td><span class="val" id="rbp"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Stack <span style="text-transform:none;letter-spacing:0">(8-byte rows — watch BOTH arrows)</span></h2>
+      <div class="stack-outer" id="stackOuter">
+        <div class="stack-grow"><span class="arr">↑</span>higher addresses</div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-grow">lower addresses (stack grows down)<span class="arr">↓</span></div>
+        <div id="rspArrow">rsp</div>
+        <div id="rbpArrow">rbp</div>
+        <div id="bubble"></div>
+      </div>
+      <p style="font-size:.68rem; color:var(--dim); margin-top:.5rem; line-height:1.5">
+        main's frame = <b>one slot</b>: its saved rbp. func's frame = saved rbp +
+        <b style="color:var(--red)">red-zone</b> usage: <code>i</code> @ rbp−4 = E1FC
+        (high half of the E1F8 row), homed <code>a</code> @ rbp−14h = E1EC (high half of E1E8).
+        <b>No sub rsp anywhere</b> — the same C needed 0x28 + 0x18 of explicit frame in 006.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump</div>
+</div>
+
+<!-- ===== takeaways ===== -->
+<div class="sect">
+  <h2 style="color:var(--green)">Pass1Parameter-on-Linux takeaways</h2>
+  <ul>
+    <li><b>Same C, completely different skeleton.</b> Gone: <code>sub rsp / add rsp</code>, the
+      shadow store, rsp-relative everything. Instead: <code>push rbp</code> ·
+      <code>mov rbp, rsp</code> · body · <code>pop rbp</code> · <code>ret</code>, with every
+      variable addressed as <code>[rbp−disp]</code>. That two-instruction prologue is the
+      highlighted pair in the course's Hello.c slide.</li>
+    <li><b>Why push rbp at all?</b> Because rbp is <b>callee-saved in both ABIs</b> — any function
+      that wants to use it as a frame pointer must first preserve the caller's copy. The push is
+      the save; the <code>pop rbp</code> in the epilogue is the matching restore. It has nothing
+      to do with parameter passing.</li>
+    <li><b>Two sanctioned trespasses, one per ABI.</b> In 006 the MS callee wrote <i>up</i>, above
+      its return address, into the caller's 0x20-byte <b>shadow store</b>. Today the SysV leaf
+      callee wrote <i>down</i>, below rsp, into its 128-byte <b>red zone</b>. Neither is a bug —
+      recognizing them is half of reading a listing.</li>
+    <li><b>The RE pattern:</b> see <code>push rbp / mov rbp, rsp</code> → you're in rbp-world:
+      <code>[rbp−X]</code> = locals &amp; homed params, <code>[rbp]</code> = saved rbp,
+      <code>[rbp+8]</code> = return address, <code>[rbp+10h]</code> and up = stack-passed args
+      (7th onward in SysV). A run of <code>mov [rbp−X], edi/esi/edx…</code> at the top is SysV
+      parameter homing — count = arity, registers = order.</li>
+    <li><b>endbr64 is noise.</b> Intel CET landing pads — Ubuntu compiles everything with
+      <code>-fcf-protection</code>, so every function entry gets one. Computationally a no-op;
+      filter them out mentally.</li>
+    <li>The full caller-/callee-saved <b>team sheet</b> (both ABIs, hover-able) lives in
+      <a href="006_Pass1Parameter-stepper.html">006</a> — everything there still applies here.</li>
+  </ul>
+</div>
+
+<!-- ===== two prologues side by side ===== -->
+<div class="sect">
+  <h2 style="color:var(--amber)">The same function, two prologues</h2>
+  <p>func() from Pass1Parameter.c, compiled by both planets. Red boxes = parameter homing,
+     blue boxes = frame management:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>MSVC x64 /Od</b> (006) — no frame pointer, rsp does everything:</div>
+      <div class="codecard"><span class="lb">func:</span>
+<span class="cm">0140001000</span> <span class="hl">mov  dword ptr [rsp+8], ecx</span> <span class="cm">; home a ↑ shadow store</span>
+<span class="cm">0140001004</span> <span class="hlb">sub  rsp, 18h</span>               <span class="cm">; explicit frame</span>
+<span class="cm">0140001008</span> mov  eax, dword ptr [rsp+20h]
+<span class="cm">014000100C</span> mov  dword ptr [rsp], eax   <span class="cm">; i</span>
+<span class="cm">014000100F</span> mov  eax, dword ptr [rsp]
+<span class="cm">0140001012</span> <span class="hlb">add  rsp, 18h</span>               <span class="cm">; frame release</span>
+<span class="cm">0140001016</span> ret</div>
+    </div>
+    <div>
+      <div class="mini-title"><b>GCC 9.3 -O0</b> (this page) — rbp anchors, rsp never moves:</div>
+      <div class="codecard"><span class="lb">func:</span>
+<span class="cm">1129</span> endbr64                     <span class="cm">; CET pad</span>
+<span class="cm">112d</span> <span class="hlb">push rbp</span>                    <span class="cm">; save caller's anchor</span>
+<span class="cm">112e</span> <span class="hlb">mov  rbp, rsp</span>               <span class="cm">; drop ours</span>
+<span class="cm">1131</span> <span class="hl">mov  dword ptr [rbp-14h], edi</span> <span class="cm">; home a ↓ red zone</span>
+<span class="cm">1134</span> mov  eax, dword ptr [rbp-14h]
+<span class="cm">1137</span> mov  dword ptr [rbp-4], eax <span class="cm">; i</span>
+<span class="cm">113a</span> mov  eax, dword ptr [rbp-4]
+<span class="cm">113d</span> <span class="hlb">pop  rbp</span>                    <span class="cm">; restore anchor</span>
+<span class="cm">113e</span> ret</div>
+    </div>
+  </div>
+  <ul>
+    <li><b>Anchor:</b> MSVC measures everything from <b>rsp</b> (which moves exactly once, in the
+      prologue); GCC -O0 freezes <b>rbp</b> at frame-birth and measures from it. Same memory,
+      different ruler.</li>
+    <li><b>Offsets change sign:</b> MSVC's are positive from rsp; GCC's locals are <i>negative</i>
+      from rbp, with the return address and any stack args at <i>positive</i> rbp offsets.</li>
+    <li><b>Where a gets homed:</b> MSVC writes <i>upward</i> into the caller's shadow store
+      (<code>[rsp+8]</code> = above the return address); GCC writes <i>downward</i> into its own
+      red zone (<code>[rbp−14h]</code> = below rsp). SysV has no shadow store; Windows has no red
+      zone — each ABI's magic area is the other's illegal move.</li>
+    <li><b>Arg register:</b> <code>ecx</code> vs <code>edi</code> — arg1 differs per ABI. Return
+      value: <code>eax</code> on both, the one thing everyone agrees on.</li>
+    <li><b>Epilogue:</b> MSVC undoes its arithmetic (<code>add rsp, 18h</code>); GCC just
+      <code>pop rbp</code> — rsp never moved, so there's nothing to add back. When rsp <i>has</i>
+      moved (non-leaf functions), GCC emits <code>leave</code> ≡
+      <code>mov rsp, rbp</code> + <code>pop rbp</code> — you'll meet it constantly.</li>
+  </ul>
+</div>
+
+<!-- ===== the saved-rbp chain ===== -->
+<div class="sect">
+  <h2 style="color:var(--purple)">The saved-rbp chain — a linked list of stack frames</h2>
+  <p>Look at what the prologue pair builds, call after call: each frame's <code>[rbp]</code> slot
+     holds the <i>address of the previous frame's</i> saved-rbp slot. A singly-linked list,
+     threaded through the stack:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini">
+        <div class="mr"><div class="ma">00007fff`ffffe218</div><div class="mv ret">ret addr → libc &nbsp;<b>← [rbp]+8 hop 2</b></div></div>
+        <div class="mr"><div class="ma">00007fff`ffffe210</div><div class="mv sav">saved rbp = e250 (libc's) ── chain end</div></div>
+        <div class="mr"><div class="ma">00007fff`ffffe208</div><div class="mv ret">ret addr → main &nbsp;<b>← [rbp]+8 hop 1</b></div></div>
+        <div class="mr"><div class="ma">00007fff`ffffe200</div><div class="mv sav">saved rbp = e210 ──→ points one row up² &nbsp;<b>← rbp</b></div></div>
+      </div>
+      <div class="mini-title" style="margin-top:.4rem">² not literally one row — it points at
+        wherever the previous frame parked <i>its</i> rbp.</div>
+    </div>
+    <div>
+      <ul style="margin-top:0">
+        <li><b>Two loads per frame</b> walk the whole stack: <code>[rbp]</code> → caller's frame,
+          <code>[rbp+8]</code> → where you were called from. That is a <b>backtrace</b> — gdb's
+          <code>bt</code> can do exactly this on -O0 code.</li>
+        <li><b>The price:</b> one register out of 16 permanently occupied, plus
+          push/mov/pop on every call. That's why <i>optimized</i> code on <b>both</b> OSes drops
+          the frame pointer…</li>
+        <li>…and still backtraces fine, via <b>metadata</b> instead: Windows keeps static
+          <code>UNWIND_INFO</code> tables in <code>.pdata</code>; Linux keeps DWARF CFI in
+          <code>.eh_frame</code>. Moral for RE: <b>never trust an rbp chain in a release
+          binary</b> — rbp is usually just another scratch variable there.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== when does VS use a frame pointer ===== -->
+<div class="sect">
+  <h2 style="color:var(--sky)">"When Does VS Use a Frame Pointer?"</h2>
+  <p>Six steppers of MSVC output — 001 through 006, all at /Od — and rbp never once appeared.
+     That's the default answer: <b>it doesn't</b>. Fixed-size frame → pure rsp-relative
+     addressing, frame pointer omitted. The docs (the slide's two references) give the
+     exceptions:</p>
+  <ul>
+    <li>A frame pointer becomes <b>mandatory when the frame's size isn't a compile-time
+      constant</b> — <code>alloca()</code> / dynamic stack allocation, or dynamic stack alignment
+      beyond 16 bytes. rsp wanders unpredictably then, so <i>something</i> stable must anchor the
+      fixed part of the frame.</li>
+    <li>When one is used, it <b>doesn't have to be rbp</b> — any nonvolatile register qualifies;
+      the prolog example in the docs establishes <code>R13</code> as the frame pointer.</li>
+    <li>And it's typically parked <b>mid-frame</b> (e.g. <code>lea r13, [rsp+80h]</code> after the
+      allocation), not at a saved-rbp slot — that way one-byte displacements (−80h…+7Fh) reach
+      twice as much frame. No Linux-style saved-rbp chain is ever built; x64 Windows unwinds via
+      <code>UNWIND_INFO</code> tables instead.</li>
+  </ul>
+  <p>One more doc line that explains a 006-vs-007 difference you just watched:</p>
+  <div class="quote">"All memory beyond the current address of <b>RSP</b> is considered
+    volatile: the OS, or a debugger, may overwrite this memory during a user debug session, or an
+    interrupt handler."</div>
+  <p>Windows has <b>no red zone</b>. That's why 006's func had to <code>sub rsp, 18h</code> for a
+     single int, while today's GCC func — same C! — allocated nothing and lived below rsp
+     rent-free.</p>
+  <div class="spec-cards">
+    <a class="spec-card" href="https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=msvc-160" target="_blank" rel="noopener">
+      <div class="sc-name">[1] x64 stack usage</div>
+      <div class="sc-who">the MS maximum-stack diagram · "optional frame pointer"</div>
+      <div class="sc-link">docs.microsoft.com → build/stack-usage ↗</div>
+    </a>
+    <a class="spec-card" href="https://docs.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=msvc-160" target="_blank" rel="noopener">
+      <div class="sc-name">[2] x64 prolog and epilog</div>
+      <div class="sc-who">legal prologue/epilogue forms · the R13 frame-pointer example</div>
+      <div class="sc-link">docs.microsoft.com → build/prolog-and-epilog ↗</div>
+    </a>
+    <a class="spec-card" href="https://raw.githubusercontent.com/wiki/hjl-tools/x86-psABI/x86-64-psABI-1.0.pdf" target="_blank" rel="noopener">
+      <div class="sc-name">System V x86-64 psABI</div>
+      <div class="sc-who">§3.2.2 — the red zone's birth certificate</div>
+      <div class="sc-link">x86-64-psABI-1.0.pdf ↗</div>
+    </a>
+  </div>
+</div>
+
+<!-- ===== maximum stack diagrams ===== -->
+<div class="sect">
+  <h2 style="color:var(--teal)">Two "maximum stack" diagrams — SysV vs Microsoft</h2>
+  <p>The course's SysV maximum diagram (main → foo → bar), rebuilt next to the Microsoft one from
+     the stack-usage doc. "(if any)" everywhere — a real frame uses only the rows it needs:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>SysV / Linux</b> — every frame the same shape, saved rbp on top:</div>
+      <div class="mini wide">
+        <div class="mr"><div class="mv ret">"return address" from main() to whoever called main()</div></div>
+        <div class="mr"><div class="mv sav">main: "saved rbp"</div></div>
+        <div class="mr"><div class="mv loc">main: local variables (if any)</div></div>
+        <div class="mr"><div class="mv sh">main: callee-save regs (if any)</div></div>
+        <div class="mr"><div class="mv sh">main: caller-save regs (if any, around the call)</div></div>
+        <div class="mr"><div class="mv st">main: stack args for foo — 7th onward (if any)</div></div>
+        <div class="mr"><div class="mv ret">"return address" foo() to main()</div></div>
+        <div class="mr"><div class="mv dimv">— foo() frame: same shape —</div></div>
+        <div class="mr"><div class="mv ret">"return address" bar() to foo()</div></div>
+        <div class="mr"><div class="mv sav">bar: "saved rbp" &nbsp;<b>← rbp</b></div></div>
+        <div class="mr"><div class="mv loc">bar: locals · callee-save regs &nbsp;<b>← rsp</b></div></div>
+        <div class="mr"><div class="mv rz">red zone: rsp−1 … rsp−128 (ours, by contract)</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="mini-title"><b>Microsoft x64</b> — note the <i>optional</i> saved rbp and the
+        shadow store replacing the red zone:</div>
+      <div class="mini wide">
+        <div class="mr"><div class="mv st">caller: stack args — 5th onward (if any)</div></div>
+        <div class="mr"><div class="mv sh">caller: shadow store — 4 × 8, always</div></div>
+        <div class="mr"><div class="mv ret">"return address" into the caller</div></div>
+        <div class="mr"><div class="mv sav">saved rbp — <i>optional!</i> only with alloca &amp; co.</div></div>
+        <div class="mr"><div class="mv sh">callee-save regs (if any)</div></div>
+        <div class="mr"><div class="mv loc">local variables (if any)</div></div>
+        <div class="mr"><div class="mv dimv">alloca space (if any — this is what forces rbp)</div></div>
+        <div class="mr"><div class="mv sh">outgoing: shadow store + args for the next call &nbsp;<b>← rsp</b></div></div>
+        <div class="mr"><div class="mv rz" style="text-decoration:line-through">red zone — DOES NOT EXIST: "beyond rsp is volatile"</div></div>
+      </div>
+    </div>
+  </div>
+  <ul>
+    <li>Structural differences, in one breath: SysV homes into its <b>own</b> frame (or red
+      zone); MS homes into the <b>caller's</b> shadow store. SysV spills at arg 7; MS at arg 5.
+      SysV saves rbp at every -O0 frame; MS almost never.</li>
+    <li>Both diagrams agree on the constants: stack grows <b>down</b>, <code>call</code> pushes
+      8 bytes, rsp is <b>16-byte aligned at every call</b> — which is why misalignment crashes in
+      library code (movaps!) are the classic hand-written-asm bug on both OSes.</li>
+  </ul>
+</div>
+
+<!-- ===== Hello.c slide in Intel ===== -->
+<div class="sect">
+  <h2 style="color:var(--blue)">The "As seen in Hello.c" slide — translated to Intel</h2>
+  <p>The course showed it in AT&amp;T (objdump's default). Same bytes, our syntax:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="codecard"><span class="cm">0000000000001149</span> <span class="lb">&lt;main&gt;:</span>
+<span class="cm">1149</span> endbr64
+<span class="cm">114d</span> <span class="hlb">push rbp</span>                  <span class="cm">; the pair, again</span>
+<span class="cm">114e</span> <span class="hlb">mov  rbp, rsp</span>
+<span class="cm">1151</span> lea  rdi, [rip+0xeac]     <span class="cm">; arg1 = &amp;"Hello World!"</span>
+<span class="cm">1158</span> call 1050 <span class="lb">&lt;puts@plt&gt;</span>
+<span class="cm">115d</span> mov  eax, 1234h           <span class="cm">; return 0x1234</span>
+<span class="cm">1162</span> <span class="hlb">pop  rbp</span>
+<span class="cm">1163</span> ret
+<span class="cm">1164</span> nop  word ptr cs:[rax+rax] <span class="cm">; padding, never runs</span>
+<span class="cm">116e</span> xchg ax, ax               <span class="cm">; more padding</span></div>
+    </div>
+    <div>
+      <ul style="margin-top:0">
+        <li><code>lea rdi, [rip+0xeac]</code> — the string's address lands in <b>rdi</b>:
+          SysV arg1, exactly like our <code>edi</code> carried 0x11. RIP-relative addressing =
+          position-independent code; the string sits 0xeac bytes past the next instruction.</li>
+        <li>No <code>sub rsp</code> — main has no locals. And alignment works out by itself:
+          main entered with rsp ≡ 8 (mod 16); <code>push rbp</code> → ≡ 0; so the
+          <code>call puts</code> happens perfectly 16-aligned. The mandatory rbp save doubles as
+          re-alignment.</li>
+        <li><code>mov eax, 1234h</code> → main returns 0x1234. But exit codes keep only the low
+          byte: <code>$?</code> = 0x34 = <b>52</b>. (Ours returns 0x11 → <code>$?</code> = 17.)</li>
+      </ul>
+    </div>
+  </div>
+  <h3>AT&amp;T → Intel decoder ring (for watching the slides)</h3>
+  <table class="al-table">
+    <tr><th>AT&amp;T (the slides)</th><th>Intel (these pages)</th><th>rule</th></tr>
+    <tr><td>push %rbp</td><td>push rbp</td><td>% sigils vanish</td></tr>
+    <tr><td>mov %rsp, %rbp</td><td>mov rbp, rsp</td><td><b>operand order flips</b> — AT&amp;T is src, dst</td></tr>
+    <tr><td>mov $0x1234, %eax</td><td>mov eax, 1234h</td><td>$ marks immediates</td></tr>
+    <tr><td>lea 0xeac(%rip), %rdi</td><td>lea rdi, [rip+0xeac]</td><td>disp(base) → [base+disp]</td></tr>
+    <tr><td>movl / movq / retq</td><td>mov dword ptr … / mov … / ret</td><td>size lives in a suffix, not "dword ptr"</td></tr>
+  </table>
+  <p style="font-size:.78rem; margin-top:.5rem">The <code>mov %rsp,%rbp</code> ↔
+    <code>mov rbp, rsp</code> flip is the one that bites: same three bytes
+    (<code>48 89 e5</code>), opposite reading direction. When in doubt, remember what the
+    prologue <i>must</i> do — copy rsp <b>into</b> rbp.</p>
+</div>
+
+<!-- ===== 32-bit ===== -->
+<div class="sect">
+  <h2 style="color:var(--amber)">32-bit — where the frame pointer was born</h2>
+  <p>Everything above is the <i>modern</i> era. In 32-bit x86 (cdecl, both Windows and Linux),
+     there are <b>no register arguments at all</b> — every parameter is <b>pushed</b> onto the
+     stack, right-to-left — and the ebp frame isn't a debug-build quirk, it's the culture:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="codecard"><span class="lb">func:</span>
+    <span class="hlb">push ebp</span>              <span class="cm">; the same dance, 1985 edition</span>
+    <span class="hlb">mov  ebp, esp</span>
+    sub  esp, 4           <span class="cm">; room for i</span>
+    mov  eax, [ebp+8]     <span class="cm">; a — args live ABOVE ebp</span>
+    mov  [ebp-4], eax     <span class="cm">; i = a</span>
+    mov  eax, [ebp-4]     <span class="cm">; return i</span>
+    <span class="hlb">mov  esp, ebp</span>         <span class="cm">; ≡ leave</span>
+    <span class="hlb">pop  ebp</span>
+    ret
+<span class="lb">main:</span>
+    push ebp
+    mov  ebp, esp
+    <span class="hl">push 11h</span>              <span class="cm">; the argument — pushed, no register!</span>
+    call func
+    <span class="hl">add  esp, 4</span>           <span class="cm">; cdecl: CALLER cleans up</span>
+    pop  ebp
+    ret</div>
+    </div>
+    <div>
+      <div class="mini-title"><b>The universal 32-bit compass</b> — burn this in; every ebp frame
+        on earth reads the same way:</div>
+      <div class="mini">
+        <div class="mr"><div class="ma">[ebp+0Ch]</div><div class="mv st">arg2 (if any)</div></div>
+        <div class="mr"><div class="ma">[ebp+8]</div><div class="mv st">arg1 = a = 0x11</div></div>
+        <div class="mr"><div class="ma">[ebp+4]</div><div class="mv ret">return address</div></div>
+        <div class="mr"><div class="ma">[ebp]</div><div class="mv sav">saved ebp &nbsp;<b>← ebp</b></div></div>
+        <div class="mr"><div class="ma">[ebp−4]</div><div class="mv loc">local i &nbsp;<b>← esp</b></div></div>
+      </div>
+      <ul>
+        <li><b>+8 first arg · +4 return · 0 saved ebp · − locals.</b> This offset map made the
+          frame pointer king: with args <i>and</i> locals both measured from one anchor, debuggers
+          and humans could read any frame cold.</li>
+        <li>With only 8 registers, burning ebp hurt — hence MSVC's famous <b>/Oy frame-pointer
+          omission</b> optimization, the historical seed of x64's "no rbp by default".</li>
+        <li>No shadow store, no red zone, esp only 4-byte aligned (16 on modern Linux). Simpler
+          world, slower calls: every argument = a memory write.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>The 32-bit convention zoo (spot them in the epilogue)</h3>
+  <table class="al-table">
+    <tr><th>convention</th><th>arguments</th><th>who cleans the stack</th><th>typical sighting</th></tr>
+    <tr><td>cdecl</td><td>all on stack, right→left</td><td>caller: <code>add esp, N</code></td><td>default C · varargs (printf)</td></tr>
+    <tr><td>stdcall</td><td>all on stack, right→left</td><td>callee: <code>ret N</code></td><td>Win32 API (MessageBoxA)</td></tr>
+    <tr><td>fastcall (MS)</td><td>ecx, edx, rest on stack</td><td>callee: <code>ret N</code></td><td>scattered Win32 internals</td></tr>
+    <tr><td>thiscall</td><td>ecx = this, rest on stack</td><td>callee: <code>ret N</code></td><td>MSVC C++ member functions</td></tr>
+    <tr><td>SysV i386</td><td>all on stack, right→left</td><td>caller: <code>add esp, N</code></td><td>32-bit Linux — cdecl in a trench coat</td></tr>
+  </table>
+  <p style="font-size:.78rem; margin-top:.5rem">Epilogue tell: <code>ret 8</code> → callee-cleaning
+    (stdcall family, and the 8 = argument bytes → arity!); bare <code>ret</code> +
+    <code>add esp, N</code> back at the call site → cdecl.</p>
+</div>
+
+<!-- ===== grand comparison ===== -->
+<div class="sect">
+  <h2 style="color:var(--green)">The whole map — four ABIs, one table</h2>
+  <table class="al-table">
+    <tr><th></th><th>MS x64</th><th>SysV x86-64</th><th>Win32 x86 (cdecl)</th><th>Linux i386</th></tr>
+    <tr><td>integer args</td><td>rcx, rdx, r8, r9</td><td>rdi, rsi, rdx, rcx, r8, r9</td><td>stack only</td><td>stack only</td></tr>
+    <tr><td>float args</td><td>xmm0–3</td><td>xmm0–7</td><td>stack</td><td>stack</td></tr>
+    <tr><td>overflow args</td><td>stack, past the 0x20 shadow</td><td>stack, from arg 7</td><td>all of them</td><td>all of them</td></tr>
+    <tr><td>stack cleanup</td><td>caller</td><td>caller</td><td>caller (stdcall: callee)</td><td>caller</td></tr>
+    <tr><td>return value</td><td>rax</td><td>rax (rdx:rax for 128-bit)</td><td>eax (edx:eax)</td><td>eax (edx:eax)</td></tr>
+    <tr><td>frame pointer</td><td>only for alloca / dynamic frames</td><td>-O0: always · optimized: omitted</td><td>customary (/Oy omits)</td><td>customary at -O0</td></tr>
+    <tr><td>magic zone</td><td>shadow store: 0x20 <b>above</b> the ret addr</td><td>red zone: 0x80 <b>below</b> rsp</td><td>none</td><td>none</td></tr>
+    <tr><td>rsp/esp at call</td><td>16-byte aligned</td><td>16-byte aligned</td><td>4</td><td>16 (modern GCC)</td></tr>
+  </table>
+  <div class="ret-chips">
+    <span class="ret-chip">prologue pair → <b>push rbp · mov rbp, rsp</b></span>
+    <span class="ret-chip">epilogue → <b>leave (or pop rbp) · ret</b></span>
+    <span class="ret-chip">rbp = callee-saved in <b>every</b> x86 ABI — that's why it's pushed</span>
+  </div>
+  <div class="mnem">
+    <span class="M">Stick it:</span>
+    Prologue chant — <b>push rbp</b> · <b>mov rbp, rsp</b>: "save the old anchor, drop a new
+    one." Epilogue: <b>pop rbp</b> (or <b>leave</b>) · <b>ret</b>: "weigh anchor, sail home."<br>
+    Geography — Windows callers <b>pay it forward</b>: 0x20 of shadow above the return address.
+    Linux callees <b>live on credit</b>: 0x80 of red zone below rsp.<br>
+    -O0 compass — <b>[rbp+8]</b> whence you came · <b>[rbp]</b> the caller's anchor ·
+    <b>[rbp−X]</b> what you own.
+  </div>
+</div>
+
+<div class="rz-gag">
+  <div class="q">"Who knows what evil lies <i>beneath</i> the stack pointer?"<br>
+    Windows: interrupts, debuggers, the OS — <b>"all memory beyond RSP is volatile."</b><br>
+    Linux: nothing — 128 bytes held clear in your name, by contract.</div>
+  <div class="big">MIND THE RED ZONE</div>
+</div>
+
+<div class="sect">
+  <h2 style="color:var(--dim)">References — the "When Does VS Use a Frame Pointer?" slide</h2>
+  <ul style="margin-top:.4rem">
+    <li>[1] Microsoft stack diagram w/ optional frame pointer usage — x64 stack usage:<br>
+      <a href="https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=msvc-160" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=msvc-160</a></li>
+    <li>[2] x64 prolog and epilog:<br>
+      <a href="https://docs.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=msvc-160" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=msvc-160</a></li>
+  </ul>
+</div>
+
+<footer>
+  Recreated from OST2 Arch1001 "Calling Conventions / Hello.c on Linux / When Does VS Use a Frame Pointer?" (Xeno Kovah, CC-BY-SA) · AT&amp;T slides translated to Intel syntax · interactive remake for study<br>
+  <a href="001_CallASubroutine1-stepper.html">001 CallASubroutine1</a> ·
+  <a href="002_SingleLocalVariable-stepper.html">002 SingleLocalVariable</a> ·
+  <a href="003_SingleLocalVariable2-stepper.html">003 SingleLocalVariable2</a> ·
+  <a href="004_ArrayLocalVariable-stepper.html">004 ArrayLocalVariable</a> ·
+  <a href="005_StructLocalVariable-stepper.html">005 StructLocalVariable</a> ·
+  <a href="006_Pass1Parameter-stepper.html">006 Pass1Parameter (Windows)</a>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------- data ---------------- */
+
+const CSRC = [
+  {id:'c0', h:'<span class="kw">int</span> <span class="fn">func</span>(<span class="kw">int</span> a){'},
+  {id:'c1', h:'    <span class="kw">int</span> i = a;'},
+  {id:'c2', h:'    <span class="kw">return</span> i;'},
+  {id:'c3', h:'}'},
+  {id:'c4', h:' '},
+  {id:'c5', h:'<span class="kw">int</span> <span class="fn">main</span>(){'},
+  {id:'c6', h:'    <span class="kw">return</span> <span class="fn">func</span>(<span class="num">0x11</span>);'},
+  {id:'c7', h:'}'},
+];
+
+const LISTING = [
+  {label:'func:'},
+  {key:'5129', addr:'555555555129', mn:'endbr64', ops:''},
+  {key:'512d', addr:'55555555512d', mn:'push', ops:'rbp'},
+  {key:'512e', addr:'55555555512e', mn:'mov',  ops:'rbp, rsp'},
+  {key:'5131', addr:'555555555131', mn:'mov',  ops:'dword ptr [rbp-14h], edi'},
+  {key:'5134', addr:'555555555134', mn:'mov',  ops:'eax, dword ptr [rbp-14h]'},
+  {key:'5137', addr:'555555555137', mn:'mov',  ops:'dword ptr [rbp-4], eax'},
+  {key:'513a', addr:'55555555513a', mn:'mov',  ops:'eax, dword ptr [rbp-4]'},
+  {key:'513d', addr:'55555555513d', mn:'pop',  ops:'rbp'},
+  {key:'513e', addr:'55555555513e', mn:'ret',  ops:''},
+  {label:'main:'},
+  {key:'513f', addr:'55555555513f', mn:'endbr64', ops:''},
+  {key:'5143', addr:'555555555143', mn:'push', ops:'rbp'},
+  {key:'5144', addr:'555555555144', mn:'mov',  ops:'rbp, rsp'},
+  {key:'5147', addr:'555555555147', mn:'mov',  ops:'edi, 11h'},
+  {key:'514c', addr:'55555555514c', mn:'call', ops:'func (555555555129h)'},
+  {key:'5151', addr:'555555555151', mn:'pop',  ops:'rbp'},
+  {key:'5152', addr:'555555555152', mn:'ret',  ops:''},
+];
+
+/* stack rows, high→low, 8-byte granularity */
+const ROWS = [
+  {addr:'00007fff`ffffe218', who:'return addr → libc', wcls:'w-ret'},
+  {addr:'00007fff`ffffe210', who:'saved rbp (libc’s)', wcls:'w-sav'},
+  {addr:'00007fff`ffffe208', who:'return addr → main', wcls:'w-ret'},
+  {addr:'00007fff`ffffe200', who:'saved rbp (main’s)', wcls:'w-sav'},
+  {addr:'00007fff`ffffe1f8', who:'i @ rbp−4',          wcls:'w-loc', rz:true},
+  {addr:'00007fff`ffffe1f0', who:'red zone (unused)',  wcls:'w-rz',  rz:true},
+  {addr:'00007fff`ffffe1e8', who:'a homed @ rbp−14h',  wcls:'w-sh',  rz:true},
+];
+
+const RA0  = '00007fff`f7d90d90';   // return address out of main (into __libc_start_call_main)
+const RAF  = '00005555`55555151';   // return address out of func
+const RBP0 = '00007fff`ffffe250';   // libc's rbp at main entry
+const RBPM = '00007fff`ffffe210';   // main's rbp
+const RBPF = '00007fff`ffffe200';   // func's rbp
+
+function ST(over){
+  const a = ROWS.map(()=>({v:'undef'}));
+  a[0] = {v:RA0, tag:'start'};
+  for (const k in over) a[k] = over[k];
+  return a;
+}
+/* 8-byte rows split as two dwords: display "high`low" — i and a live in the HIGH halves */
+const SAV_M  = {v:RBP0, tag:'mod'};
+const SAV_P  = {v:RBP0};
+const SAV_S  = {v:RBP0, stale:true};
+const SAV2_M = {v:RBPM, tag:'mod'};
+const SAV2_P = {v:RBPM};
+const SAV2_S = {v:RBPM, stale:true};
+const RF_M   = {v:RAF, tag:'mod'};
+const RF_P   = {v:RAF};
+const RF_S   = {v:RAF, stale:true};
+const A_M = {hi:'00000011', lo:'undef', hiTag:'mod', tag:'mod'};   // E1EC: a homed
+const A_P = {hi:'00000011', lo:'undef'};
+const A_S = {hi:'00000011', lo:'undef', stale:true};
+const I_M = {hi:'00000011', lo:'undef', hiTag:'mod', tag:'mod'};   // E1FC: i
+const I_P = {hi:'00000011', lo:'undef'};
+const I_S = {hi:'00000011', lo:'undef', stale:true};
+
+const RAXST = '00005555`5555513f';
+const V1    = '00000000`00000001';
+const V11   = '00000000`00000011';
+const E218  = '00007fff`ffffe218';
+const E210  = '00007fff`ffffe210';
+const E208  = '00007fff`ffffe208';
+const E200  = '00007fff`ffffe200';
+const E220  = '00007fff`ffffe220';
+
+const STEPS = [
+  { // 0
+    rip:'00005555`5555513f', ripCtx:'— no instruction yet executed',
+    executed:[], current:'513f', cline:'c5',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V1, tag:'start'},
+    rsp:{v:E218, tag:'start'}, rbp:{v:RBP0, tag:'start'}, rspRow:0, rbpRow:-1,
+    stack:ST({}),
+    bubble:{row:0, text:'The stack as libc handed it over — and rdi already holds 1: that’s argc!'},
+    title:'Step 0 — Initial state (Linux says hello)',
+    note:`<p>Same Pass1Parameter.c as 006 — but compiled by GCC 9.3 on Ubuntu 20.04 at -O0, so
+      we're in <b>System V ABI</b> territory now. Two newcomers in the panels:
+      <b>rbp</b> in the register table (with its own <b style="color:var(--sky)">blue arrow</b>),
+      and red-tinted <b>red zone</b> rows at the bottom of the stack.</p>
+      <p>The start values already teach: <code>rdi = 1</code> is <b>argc</b> — main(argc, argv,
+      envp) received its arguments in <code>rdi, rsi, rdx</code>, SysV-style, before we ran a
+      single instruction. (And rax holds main's own address — glibc's startup dispatched us with
+      <code>call rax</code>.)</p>`,
+  },
+  { // 1
+    rip:'00005555`55555143', ripCtx:'— CET landing pad cleared',
+    executed:['513f'], current:'5143', justExec:'513f', cline:'c5',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V1, tag:'start'},
+    rsp:{v:E218, tag:'start'}, rbp:{v:RBP0, tag:'start'}, rspRow:0, rbpRow:-1,
+    stack:ST({}),
+    title:'Step 1 — endbr64 (say nothing, change nothing)',
+    note:`<p>New on Linux listings: <code>endbr64</code>. It's an Intel <b>CET</b> landing pad —
+      indirect calls and jumps are only allowed to land on one. Ubuntu builds everything with
+      <code>-fcf-protection</code>, so every function entry gets one.</p>
+      <p>It computes nothing, moves nothing. When reading disassembly, mentally delete it —
+      but recognize it instantly, because it marks <b>function entry points</b> for free.</p>`,
+  },
+  { // 2
+    rip:'00005555`55555144', ripCtx:'— caller’s rbp saved',
+    executed:['513f','5143'], current:'5144', justExec:'5143', cline:'c5',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V1, tag:'start'},
+    rsp:{v:E210, tag:'mod'}, rbp:{v:RBP0, tag:'start'}, rspRow:1, rbpRow:-1,
+    stack:ST({1:SAV_M}),
+    bubble:{row:1, text:'push rbp = 8 bytes: libc’s frame anchor, kept safe'},
+    title:'Step 2 — push rbp (THE instruction)',
+    note:`<p>The one you asked about. <code>push rbp</code> = <code>sub rsp, 8</code> +
+      <code>mov [rsp], rbp</code>: libc's rbp value (<code>…e250</code>) is now parked on the
+      stack at E210.</p>
+      <p><b>Why?</b> rbp is <b>callee-saved</b> in every x86 ABI — whoever wants to use it must
+      first preserve the caller's copy and restore it before returning. GCC at -O0 wants it
+      badly: it's about to become main's <b>frame pointer</b>.</p>
+      <p>Compare 006: the MSVC build of this very function never touched rbp at all.</p>`,
+  },
+  { // 3
+    rip:'00005555`55555147', ripCtx:'— main’s frame anchored',
+    executed:['513f','5143','5144'], current:'5147', justExec:'5144', cline:'c5',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V1, tag:'start'},
+    rsp:{v:E210}, rbp:{v:RBPM, tag:'mod'}, rspRow:1, rbpRow:1,
+    stack:ST({1:SAV_P}),
+    title:'Step 3 — mov rbp, rsp (drop the anchor)',
+    note:`<p>rbp := rsp = E210. The blue arrow joins the red one — and from here on, rbp is
+      <b>frozen</b> for the rest of main. rsp may wander; rbp won't. Every variable in the
+      function is now a fixed offset from this anchor.</p>
+      <p>Bonus structure: <code>[rbp]</code> is the <i>saved caller rbp</i> and
+      <code>[rbp+8]</code> the return address — every frame carries a pointer to the previous
+      one. A linked list of frames (more on that below the stepper).</p>
+      <div class="att-box">The course slide writes this instruction as
+      <code>mov %rsp, %rbp</code> — that's <b>AT&amp;T</b> order (src, dst). In Intel it flips:
+      <code>mov rbp, rsp</code>. Same three bytes (<code>48 89 e5</code>), opposite reading
+      direction.</div>`,
+  },
+  { // 4
+    rip:'00005555`5555514c', ripCtx:'— argument staged in edi',
+    executed:['513f','5143','5144','5147'], current:'514c', justExec:'5147', cline:'c6',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V11, tag:'mod', zx:true},
+    rsp:{v:E210}, rbp:{v:RBPM}, rspRow:1, rbpRow:1,
+    stack:ST({1:SAV_P}),
+    title:'Step 4 — mov edi, 11h (arg1 boards… a different register)',
+    note:`<p>In 006 the argument rode <b>ecx</b>. Here it's <b>edi</b> — SysV passes the first six
+      integer/pointer args in <code>rdi, rsi, rdx, rcx, r8, r9</code>. Same 32-bit
+      zero-extension trick: writing edi clears rdi's top half →
+      <span class="zx">00000000</span>\`00000011.</p>
+      <p>The ABI trap from 006's table, now live: <b>the same C argument lands in a different
+      register on each OS</b>. Know the ABI before you trust a register. (argc's 1 just got
+      overwritten — rdi is caller-saved, main may clobber it freely.)</p>`,
+  },
+  { // 5
+    rip:'00005555`55555129', ripCtx:'— jumped into func()',
+    executed:['513f','5143','5144','5147','514c'], current:'5129', justExec:'514c', cline:'c0',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V11},
+    rsp:{v:E208, tag:'mod'}, rbp:{v:RBPM}, rspRow:2, rbpRow:1,
+    stack:ST({1:SAV_P, 2:RF_M}),
+    bubble:{row:2, text:'call = push + jmp — identical on every OS, every ABI'},
+    title:'Step 5 — call func (555555555129h)',
+    note:`<p><code>call</code> pushes the return address (<code>5555\`55555151</code>) at E208 and
+      jumps. This part is ABI-independent — the hardware doesn't care which OS you run.</p>
+      <p>But note what the caller did <i>not</i> do: no <code>sub rsp, 28h</code>, no shadow
+      store. SysV callers owe the callee <b>nothing</b> on the stack (until arg 7). main's entire
+      frame is one slot: its saved rbp.</p>`,
+  },
+  { // 6
+    rip:'00005555`5555512d', ripCtx:'— func’s landing pad cleared',
+    executed:['513f','5143','5144','5147','514c','5129'], current:'512d', justExec:'5129', cline:'c0',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V11},
+    rsp:{v:E208}, rbp:{v:RBPM}, rspRow:2, rbpRow:1,
+    stack:ST({1:SAV_P, 2:RF_P}),
+    title:'Step 6 — endbr64 (func’s turn)',
+    note:`<p>Every function entry gets its landing pad — func too. Nothing changes; onward.</p>
+      <p>Worth noticing while we idle: rsp entered func at E208 ≡ 8 (mod 16). The ABI guarantees
+      this "8 off" state at every function entry — the push of the return address broke the
+      16-byte alignment the caller maintained. Watch the next instruction fix it as a
+      side effect.</p>`,
+  },
+  { // 7
+    rip:'00005555`5555512e', ripCtx:'— main’s rbp saved: the chain grows',
+    executed:['513f','5143','5144','5147','514c','5129','512d'], current:'512e', justExec:'512d', cline:'c0',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V11},
+    rsp:{v:E200, tag:'mod'}, rbp:{v:RBPM}, rspRow:3, rbpRow:1,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_M}),
+    bubble:{row:3, text:'This slot holds E210 — the ADDRESS of main’s own saved-rbp slot. Linked list!'},
+    title:'Step 7 — push rbp (second verse, same as the first)',
+    note:`<p>func saves <i>main's</i> rbp (E210) at E200. Look at the value: it's the address of
+      the slot two rows up — <b>each saved rbp points at the previous saved rbp</b>. That chain
+      is what a debugger walks to print a backtrace.</p>
+      <p>And the alignment bookkeeping: rsp E208 → E200, back to ≡ 0 (mod 16). The mandatory
+      callee-save <i>is</i> the re-alignment. Two birds, one push.</p>`,
+  },
+  { // 8
+    rip:'00005555`55555131', ripCtx:'— func’s frame anchored',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e'], current:'5131', justExec:'512e', cline:'c0',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V11},
+    rsp:{v:E200}, rbp:{v:RBPF, tag:'mod'}, rspRow:3, rbpRow:3,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_P}),
+    title:'Step 8 — mov rbp, rsp (prologue pair complete)',
+    note:`<p>rbp := E200. The classic two-instruction prologue —
+      <code>push rbp / mov rbp, rsp</code> — is exactly the pair highlighted in the course's
+      Hello.c slide. Every -O0 GCC function on Earth opens this way.</p>
+      <p>Now the dog that didn't bark: <b>where is sub rsp?</b> func has a parameter to home
+      <i>and</i> a local <code>i</code> — in 006 that cost <code>sub rsp, 18h</code>. Here:
+      nothing. rsp will not move again until ret. The next step explains how func gets away
+      with it.</p>`,
+  },
+  { // 9
+    rip:'00005555`55555134', ripCtx:'— a homed… below rsp?!',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131'], current:'5134', justExec:'5131', cline:'c0',
+    rax:{v:RAXST, tag:'start'}, rdi:{v:V11},
+    rsp:{v:E200}, rbp:{v:RBPF}, rspRow:3, rbpRow:3,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_P, 6:A_M}),
+    bubble:{row:6, text:'func wrote BELOW rsp — outside its allocated stack?! Welcome to the red zone'},
+    title:'Step 9 — mov dword ptr [rbp-14h], edi (the star of the show)',
+    note:`<p>func homes its argument: 0x11 goes to <code>[rbp−14h]</code> = E200 − 0x14 =
+      <b>E1EC</b>. That address is <i>below rsp</i>. In 006 this moment went the other direction —
+      func wrote <i>above</i> its return address, into the caller's shadow store.</p>
+      <p>This is the <b>red zone</b>: the SysV ABI (§3.2.2) reserves the <b>128 bytes below
+      rsp</b> — signal handlers and interrupt frames are pushed <i>beyond</i> it, never into it.
+      A <b>leaf function</b> (calls nobody) can therefore keep its entire frame there without
+      ever moving rsp. That's why there's no <code>sub rsp</code>.</p>
+      <div class="warn-box">006's shock: "func wrote <b>above</b> the return address?!" —
+      caller-allocated shadow store. 007's shock: "func wrote <b>below</b> rsp?!" — ABI-reserved
+      red zone. Each OS's sanctioned move is the other's memory-corruption bug: Windows
+      declares everything beyond rsp <i>volatile</i>.</div>`,
+  },
+  { // 10
+    rip:'00005555`55555137', ripCtx:'— a fetched back from memory',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134'], current:'5137', justExec:'5134', cline:'c1',
+    rax:{v:V11, tag:'mod', zx:true}, rdi:{v:V11},
+    rsp:{v:E200}, rbp:{v:RBPF}, rspRow:3, rbpRow:3,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_P, 6:A_P}),
+    title:'Step 10 — mov eax, dword ptr [rbp-14h] (int i = a begins)',
+    note:`<p><code>a</code> comes back <i>from memory</i> — even though edi still holds 0x11 right
+      now. The same unoptimized ritual as MSVC /Od: at -O0, <b>memory is the single source of
+      truth</b>; every C statement loads its operands fresh.</p>
+      <p>Why offset −14h and not −8? GCC's -O0 layout packs declared locals just under rbp
+      (<code>i</code> will land at −4) and parks homed parameters below the locals block. The
+      exact offsets are the compiler's private business — only the <i>pattern</i> matters for
+      RE: <code>mov [rbp−X], edi</code> at function top = "arg1 lives at rbp−X now".</p>`,
+  },
+  { // 11
+    rip:'00005555`5555513a', ripCtx:'— i materializes at rbp−4',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134','5137'], current:'513a', justExec:'5137', cline:'c1',
+    rax:{v:V11}, rdi:{v:V11},
+    rsp:{v:E200}, rbp:{v:RBPF}, rspRow:3, rbpRow:3,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_P, 6:A_P, 4:I_M}),
+    bubble:{row:4, text:'i = 0x11 at rbp−4 — also below rsp, also perfectly legal'},
+    title:'Step 11 — mov dword ptr [rbp-4], eax (i = a)',
+    note:`<p><code>i</code> is born at <code>[rbp−4]</code> = E1FC — the first slot under the
+      saved rbp, and still inside the red zone. The 0x11 now exists three times: homed
+      <code>a</code> at E1EC, <code>i</code> at E1FC, and the copy riding in eax/edi.</p>
+      <p>The -O0 compass, confirmed live: <code>[rbp+8]</code> return address ·
+      <code>[rbp]</code> saved rbp · <code>[rbp−small]</code> locals ·
+      <code>[rbp−bigger]</code> homed params.</p>`,
+  },
+  { // 12
+    rip:'00005555`5555513d', ripCtx:'— return value staged',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134','5137','513a'], current:'513d', justExec:'513a', cline:'c2',
+    rax:{v:V11, tag:'mod', zx:true}, rdi:{v:V11},
+    rsp:{v:E200}, rbp:{v:RBPF}, rspRow:3, rbpRow:3,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_P, 6:A_P, 4:I_P}),
+    title:'Step 12 — mov eax, dword ptr [rbp-4] (return i)',
+    note:`<p>The return value is staged in eax — which already held 0x11, naturally. Both ABIs
+      agree on this one: <b>integer returns travel in rax</b>, on Windows and Linux alike.</p>
+      <p>func's work is done; all that's left is to dismantle the frame — and watch how little
+      dismantling there is to do.</p>`,
+  },
+  { // 13
+    rip:'00005555`5555513e', ripCtx:'— func’s frame gone in ONE instruction',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134','5137','513a','513d'], current:'513e', justExec:'513d', cline:'c3',
+    rax:{v:V11}, rdi:{v:V11},
+    rsp:{v:E208, tag:'mod'}, rbp:{v:RBPM, tag:'mod'}, rspRow:2, rbpRow:1,
+    stack:ST({1:SAV_P, 2:RF_P, 3:SAV2_S, 6:A_P, 4:I_P}),
+    bubble:{row:3, text:'popped — the rbp chain unwinds one link; blue arrow jumps back to main’s frame'},
+    title:'Step 13 — pop rbp (the entire epilogue)',
+    note:`<p>One instruction and the frame is gone: rbp gets main's anchor (E210) back, rsp climbs
+      to E208. No <code>add rsp</code> needed — rsp never moved, so there's nothing to undo.
+      Compare 006's <code>add rsp, 18h / ret</code>.</p>
+      <p>When rsp <i>has</i> moved (any non-leaf function), GCC closes with
+      <code>leave</code> ≡ <code>mov rsp, rbp</code> + <code>pop rbp</code> — the frame
+      pointer's other superpower: rsp can be restored from rbp no matter how lost it got.</p>`,
+  },
+  { // 14
+    rip:'00005555`55555151', ripCtx:'— back in main()',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134','5137','513a','513d','513e'], current:'5151', justExec:'513e', cline:'c7',
+    rax:{v:V11}, rdi:{v:V11},
+    rsp:{v:E210, tag:'mod'}, rbp:{v:RBPM}, rspRow:1, rbpRow:1,
+    stack:ST({1:SAV_P, 2:RF_S, 3:SAV2_S, 6:A_S, 4:I_S}),
+    bubble:{row:2, text:'popped — execution resumes at 5555`55555151 in main()'},
+    title:'Step 14 — ret (eax rides home)',
+    note:`<p><code>ret</code> pops E208 into RIP and rsp returns to E210 — where rbp already
+      points, since main's prologue made them equal and main allocated nothing since.</p>
+      <p><code>i</code> and homed <code>a</code> (grayed) are now semantically dead — though
+      physically they linger, and amusingly they're <i>still inside the red zone</i>, which
+      follows rsp around like a shadow. Dead variables, protected memory: the red zone protects
+      <b>space</b>, not <b>meaning</b>.</p>`,
+  },
+  { // 15
+    rip:'00005555`55555152', ripCtx:'— main’s epilogue',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134','5137','513a','513d','513e','5151'], current:'5152', justExec:'5151', cline:'c7',
+    rax:{v:V11}, rdi:{v:V11},
+    rsp:{v:E218, tag:'mod'}, rbp:{v:RBP0, tag:'mod'}, rspRow:0, rbpRow:-1,
+    stack:ST({1:SAV_S, 2:RF_S, 3:SAV2_S, 6:A_S, 4:I_S}),
+    title:'Step 15 — pop rbp (the chain fully unwinds)',
+    note:`<p>main restores libc's rbp (<code>…e250</code>) — the blue arrow retires off-diagram.
+      Every push matched by a pop, every link of the chain given back in reverse order. The
+      balance rule from 006 holds on both OSes.</p>`,
+  },
+  { // 16
+    rip:'00007fff`f7d90d90', ripCtx:'— back in __libc_start_call_main',
+    executed:['513f','5143','5144','5147','514c','5129','512d','512e','5131','5134','5137','513a','513d','513e','5151','5152'], current:null, justExec:'5152', cline:null,
+    rax:{v:V11}, rdi:{v:V11},
+    rsp:{v:E220, tag:'mod'}, rbp:{v:RBP0}, rspRow:-1, rbpRow:-1,
+    stack:ST({0:{v:RA0, stale:true}, 1:SAV_S, 2:RF_S, 3:SAV2_S, 6:A_S, 4:I_S}),
+    bubble:{row:0, text:'popped — main returns 0x11; libc passes it to exit()'},
+    title:'Step 16 — ret (program done: $? = 17)',
+    note:`<p>main returns with <b>EAX = 0x11</b>; glibc's startup code hands that to
+      <code>exit()</code>. Run this program and <code>echo $?</code> prints <b>17</b> — the
+      whole stepper, verifiable in one shell command.</p>
+      <p>Scroll down for the two prologues side by side, the saved-rbp chain, the "When does VS
+      use a frame pointer?" answer, both maximum-stack diagrams, the Hello.c slide in Intel —
+      and the 32-bit world where all of this began.</p>`,
+  },
+];
+
+/* ---------------- build static DOM ---------------- */
+
+const $ = id => document.getElementById(id);
+const asmEl = $('asm'), stackEl = $('stack'), dotsEl = $('dots'), csrcEl = $('csrc');
+
+const clineEls = {};
+CSRC.forEach(l => {
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = l.h;
+  csrcEl.appendChild(d);
+  clineEls[l.id] = d;
+});
+
+const asmRows = {};
+LISTING.forEach(ins => {
+  if (ins.label){
+    const d = document.createElement('div');
+    d.className = 'lbl'; d.textContent = ins.label;
+    asmEl.appendChild(d);
+    return;
+  }
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.innerHTML = `<span class="rip-ptr">RIP▶</span>` +
+    `<span class="addr">${ins.addr}</span>` +
+    `<span class="mark">☒</span>` +
+    `<span class="mn">${ins.mn}</span>` +
+    `<span class="ops">${ins.ops}</span>`;
+  asmEl.appendChild(r);
+  asmRows[ins.key] = r;
+});
+
+const stackRows = [];
+ROWS.forEach(rw => {
+  const r = document.createElement('div');
+  r.className = 'srow' + (rw.rz ? ' rz' : '');
+  r.innerHTML = `<div class="cell addr">${rw.addr}</div><div class="cell val"></div>` +
+                `<div class="cell who ${rw.wcls}">${rw.who}</div>`;
+  stackEl.appendChild(r);
+  stackRows.push(r);
+});
+
+STEPS.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className='dot'; d.title = 'Step '+i;
+  d.addEventListener('click', ()=> go(i));
+  dotsEl.appendChild(d);
+});
+
+/* ---------------- rendering ---------------- */
+
+const BADGE_MOD   = '<span class="badge mod">♍</span>';
+const BADGE_START = '<span class="badge start">⌘</span>';
+
+function valKey(o){
+  if (!o) return '';
+  if (o.hi !== undefined) return o.hi + '|' + o.lo + (o.stale ? '·s' : '');
+  return o.v + (o.stale ? '·s' : '');
+}
+
+function halfHTML(t, tag){
+  if (t === 'undef') return '<span class="undef">undef</span>';
+  const cls = tag === 'mod' ? 'v-mod' : 'v-plain';
+  return `<span class="${cls}">${t}</span>`;
+}
+
+function fmtVal(o){
+  if (!o) return '';
+  if (o.hi !== undefined){   // split row: two dword halves (display order: high ` low)
+    let html = halfHTML(o.hi, o.hiTag) + '<span class="sep">`</span>' + halfHTML(o.lo, o.loTag) +
+               (o.tag === 'mod' ? BADGE_MOD : '');
+    if (o.stale) html = `<span class="stale">${html}</span>`;
+    return html;
+  }
+  if (o.v === 'undef'){
+    return `<span class="undef">undef</span>` + (o.tag==='mod' ? BADGE_MOD : '');
+  }
+  const cls = o.tag==='mod' ? 'v-mod' : o.tag==='start' ? 'v-start' : 'v-plain';
+  let txt = o.v;
+  if (o.zx){
+    const [hi, lo] = o.v.split('`');
+    txt = `<span class="zx">${hi}</span>\`${lo}`;
+  }
+  let html = `<span class="${cls}">${txt}</span>` +
+             (o.tag==='mod' ? BADGE_MOD : o.tag==='start' ? BADGE_START : '');
+  if (o.stale) html = `<span class="stale">${html}</span>`;
+  return html;
+}
+
+let cur = 0, prevSnap = null, timer = null;
+
+function render(i, animate = true){
+  const s = STEPS[i];
+
+  const ripEl = $('ripVal');
+  if (prevSnap && prevSnap.rip !== s.rip && animate){ ripEl.classList.remove('flash'); void ripEl.offsetWidth; ripEl.classList.add('flash'); }
+  ripEl.textContent = s.rip;
+  $('ripCtx').textContent = s.ripCtx;
+
+  for (const id in clineEls) clineEls[id].classList.toggle('cur', s.cline === id);
+
+  for (const name of ['rax','rdi','rsp','rbp']){
+    const el = $(name);
+    el.innerHTML = fmtVal(s[name]);
+    if (animate && prevSnap && prevSnap[name] !== s[name].v){
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+
+  for (const key in asmRows){
+    const r = asmRows[key];
+    r.classList.toggle('executed', s.executed.includes(key));
+    r.classList.toggle('current',  s.current === key);
+    r.classList.remove('just-executed');
+  }
+  if (animate && s.justExec && prevSnap && prevSnap.step === i-1){
+    const r = asmRows[s.justExec];
+    void r.offsetWidth; r.classList.add('just-executed');
+  }
+  $('exitRow').classList.toggle('on', s.current === null);
+
+  s.stack.forEach((o, idx) => {
+    const cell = stackRows[idx].querySelector('.val');
+    cell.innerHTML = fmtVal(o);
+    if (animate && prevSnap && prevSnap.stack[idx] !== valKey(o)){
+      const span = cell.firstElementChild;
+      if (span) span.classList.add('pop-in');
+    }
+  });
+
+  placeArrow($('rspArrow'), s.rspRow);
+  placeArrow($('rbpArrow'), s.rbpRow);
+
+  const bub = $('bubble');
+  if (s.bubble){
+    const row = stackRows[s.bubble.row];
+    bub.textContent = s.bubble.text;
+    bub.style.top = (stackEl.offsetTop + row.offsetTop + row.offsetHeight) + 'px';
+    bub.classList.add('on');
+  } else {
+    bub.classList.remove('on');
+  }
+
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  $('stepInd').textContent = `Step ${i} / ${STEPS.length-1}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled   = (i === STEPS.length-1);
+  [...dotsEl.children].forEach((d,k)=>{
+    d.classList.toggle('now',  k === i);
+    d.classList.toggle('done', k <  i);
+  });
+
+  prevSnap = {
+    step: i, rip: s.rip,
+    rax: s.rax.v, rdi: s.rdi.v, rsp: s.rsp.v, rbp: s.rbp.v,
+    stack: s.stack.map(valKey),
+  };
+  cur = i;
+}
+
+function placeArrow(arrow, rowIdx){
+  let top;
+  if (rowIdx < 0){
+    top = stackEl.offsetTop - 10;
+  } else {
+    const row = stackRows[rowIdx];
+    top = stackEl.offsetTop + row.offsetTop + row.offsetHeight/2;
+  }
+  arrow.style.top = top + 'px';
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= STEPS.length) return;
+  render(i, animate);
+  if (i === STEPS.length-1) stopPlay();
+}
+
+function startPlay(){
+  if (cur === STEPS.length-1) go(0,false);
+  timer = setInterval(()=>{
+    if (cur >= STEPS.length-1) stopPlay();
+    else go(cur+1);
+  }, 3000);
+  $('btnPlay').textContent = '⏸ Pause';
+  $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play';
+  $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', ()=>{ stopPlay(); go(cur+1); });
+$('btnPrev').addEventListener('click', ()=>{ stopPlay(); go(cur-1); });
+$('btnReset').addEventListener('click', ()=>{ stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', ()=>{ stopPlay(); go(STEPS.length-1); });
+$('btnPlay').addEventListener('click', ()=> timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName === 'INPUT') return;
+  switch(e.key){
+    case 'ArrowRight': stopPlay(); go(cur+1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur-1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0);     e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STEPS.length-1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+  }
+});
+
+window.addEventListener('resize', ()=> render(cur, false));
+window.addEventListener('load',   ()=> render(cur, false));
+render(0, false);
+</script>
+</body>
+</html>

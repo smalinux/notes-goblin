@@ -18,6 +18,8 @@
 - [003_SingleLocalVariable2-stepper.html](https://smalinux.github.io/notes-goblin/as/003_SingleLocalVariable2-stepper.html)
 - [004_ArrayLocalVariable-stepper.html](https://smalinux.github.io/notes-goblin/as/004_ArrayLocalVariable-stepper.html)
 - [005_StructLocalVariable-stepper.html](https://smalinux.github.io/notes-goblin/as/005_StructLocalVariable-stepper.html)
+- [006_Pass1Parameter-stepper.html](https://smalinux.github.io/notes-goblin/as/006_Pass1Parameter-stepper.html)
+- [007_Pass1Parameter_Linux-stepper.html](https://smalinux.github.io/notes-goblin/as/007_Pass1Parameter_Linux-stepper.html)
 - [x86-64-mastery.html](https://smalinux.github.io/notes-goblin/as/x86-64-mastery.html) — x86-64 deep-dive lessons
 - [x86-64-cheatsheet.html](https://smalinux.github.io/notes-goblin/as/x86-64-cheatsheet.html) — quick reference
 - [stack-visualizer.html](https://smalinux.github.io/notes-goblin/as/stack-visualizer.html) — interactive stack frames

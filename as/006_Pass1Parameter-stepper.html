@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pass1Parameter.c — Interactive Single-Stepper + the Microsoft "Shadow Store" (OST2 Arch1001)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;
+    --red:       #ff6b6b;
+    --green:     #4ade80;
+    --purple:    #c084fc;
+    --amber:     #fbbf24;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    --slate:     #94a3b8;
+    --rip:       #f472b6;
+    --row-h:     34px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--blue) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.8rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; height:1.25rem; border-radius:4px; font-size:.8rem; flex:none;
+  }
+  .badge.exec { color:var(--blue);   border:1px solid var(--blue) }
+  .badge.mod  { color:#fff; background:var(--purple) }
+  .badge.start{ color:var(--green);  border:1px solid var(--green) }
+  .legend .exec-t { color:var(--blue) }
+  .legend .mod-t  { color:var(--red) }
+  .legend .start-t{ color:var(--green); text-decoration:underline }
+  .sh-swatch{
+    width:1.25rem; height:1.25rem; border-radius:4px; flex:none;
+    background:rgba(148,163,184,.18); border:1px solid var(--slate);
+  }
+
+  .layout{ display:grid; grid-template-columns: 1.08fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 940px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+
+  .csrc{ font-size:.82rem; line-height:1.5 }
+  .csrc .cl{ padding:.04rem .55rem; border-radius:6px; white-space:pre; transition:background .3s }
+  .csrc .cl.cur{ background:rgba(244,114,182,.14); box-shadow:inset 0 0 0 1px rgba(244,114,182,.45) }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .ty { color:var(--purple) }
+
+  .asm{ font-size:.78rem; line-height:1.1; padding-left:3rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.24rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s;
+    white-space:nowrap;
+  }
+  .asm .lbl{ color:var(--amber); padding-left:.5rem; margin-top:.2rem }
+  .asm .addr{ color:var(--dim); font-size:.7rem; width:12ch; flex:none }
+  .asm .mark{ width:1.2rem; flex:none; text-align:center; color:transparent }
+  .asm .mn  { width:6.2ch; flex:none }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.executed .mark{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.7rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  .regs table{ width:100%; border-collapse:collapse; font-size:.9rem }
+  .regs td{ border:1px solid var(--line); padding:.42rem .7rem }
+  .regs td.name{ width:4.5rem; color:var(--dim) }
+  .v-start{ color:var(--green); text-decoration:underline }
+  .v-mod  { color:var(--red) }
+  .v-plain{ color:var(--text) }
+  .zx{ background:rgba(251,191,36,.22); color:var(--amber); border-radius:3px; padding:0 2px }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+
+  .stack-outer{ position:relative; padding-left:4.6rem }
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack-grow .arr{ font-size:.95rem; display:block; line-height:1 }
+  .stack{ border:2px solid var(--line); border-radius:8px; overflow:visible }
+  .stack .srow{
+    display:grid; grid-template-columns: 1.12fr 1fr .92fr; height:var(--row-h);
+    border-bottom:1px solid var(--line); position:relative;
+    transition:background .35s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .cell{ display:flex; align-items:center; padding:0 .45rem; font-size:.72rem; overflow:hidden }
+  .stack .cell.addr{ color:var(--dim); border-right:1px solid var(--line); font-size:.68rem }
+  .stack .cell.val{ justify-content:center; gap:.25rem }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.6rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.2;
+  }
+  .who.w-ret{ background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-pad{ background:rgba(251,191,36,.06); color:var(--amber); font-style:italic }
+  .who.w-loc{ background:rgba(74,222,128,.10); color:var(--green) }
+  .who.w-sh { background:rgba(148,163,184,.14); color:var(--slate) }
+  .stack .cell.val .badge{ width:1rem; height:1rem; font-size:.62rem }
+  .undef{ color:var(--dim); font-style:italic }
+  .stale{ opacity:.45 }
+  .sep{ color:var(--dim); padding:0 .05rem }
+  .srow .pop-in{ animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  @keyframes popIn{ 0%{transform:translateY(-10px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  #rspArrow{
+    position:absolute; left:.2rem; display:flex; align-items:center; gap:.15rem;
+    color:var(--red); font-weight:bold; font-size:.85rem;
+    transition: top .55s cubic-bezier(.4,0,.2,1); z-index:5;
+    transform:translateY(-50%);
+  }
+  #rspArrow::after{ content:"⟶"; font-size:1rem }
+  #bubble{
+    position:absolute; left:42%; z-index:8; max-width:17rem;
+    background:#256b2f; color:#fff; border:2px solid #77c877; border-radius:9px;
+    padding:.4rem .55rem; font-size:.72rem; line-height:1.35;
+    transform:translateY(.3rem); opacity:0; transition:opacity .4s, top .4s;
+    pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  #bubble.on{ opacity:1 }
+  #bubble::before{
+    content:""; position:absolute; top:-.55rem; left:1.2rem;
+    border:.55rem solid transparent; border-bottom-color:#77c877; border-top:none;
+  }
+
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.55 }
+  .note p+p{ margin-top:.4rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .warn-box{
+    margin-top:.6rem; background:#3d1113; border:2px solid var(--red); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.5; color:#ffd9d9;
+  }
+  .math{
+    margin-top:.5rem; background:var(--panel2); border:1px solid var(--line); border-radius:8px;
+    padding:.5rem .8rem; font-size:.82rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+
+  .controls{
+    position:sticky; bottom:0; margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:rgba(14,17,23,.92); backdrop-filter:blur(6px);
+    border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.3rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.55rem; height:.55rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.55rem }
+  .sect p{ font-size:.86rem; line-height:1.6 }
+  .sect p+p{ margin-top:.45rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.3rem }
+  .sect a{ color:var(--blue) }
+  .al-table{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.6rem }
+  .al-table td, .al-table th{ border:1px solid var(--line); padding:.45rem .65rem; text-align:center }
+  .al-table th{ color:var(--dim); font-weight:normal; text-transform:uppercase; font-size:.64rem; letter-spacing:1px }
+  .al-table td:first-child{ color:var(--sky); text-align:left }
+  .cmp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem; align-items:start }
+  @media (max-width: 940px){ .cmp-grid{ grid-template-columns:1fr } }
+  .mini-title{ font-size:.74rem; color:var(--dim); margin-bottom:.45rem; line-height:1.45 }
+  .mini{ border:2px solid var(--line); border-radius:7px; overflow:hidden; font-size:.7rem }
+  .mini .mr{ display:grid; grid-template-columns:1fr 1.6fr; border-bottom:1px solid var(--line) }
+  .mini .mr:last-child{ border-bottom:none }
+  .mini .ma{ padding:.3rem .45rem; color:var(--dim); border-right:1px solid var(--line); font-size:.64rem; white-space:nowrap }
+  .mini .mv{ padding:.3rem .4rem; text-align:center }
+  .mini .mv.ret{ background:rgba(251,191,36,.16); color:var(--amber); font-size:.64rem }
+  .mini .mv.pad{ background:rgba(251,191,36,.08); color:var(--amber); font-style:italic; font-size:.62rem }
+  .mini .mv.loc{ background:rgba(74,222,128,.13); color:var(--green) }
+  .mini .mv.sh { background:rgba(148,163,184,.16); color:var(--slate) }
+  .mini .mv.st { background:rgba(56,189,248,.12);  color:var(--sky) }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.55; white-space:pre; overflow-x:auto;
+  }
+  .codecard .kw{color:var(--blue)} .codecard .ty{color:var(--purple)}
+  .codecard .num{color:var(--green)} .codecard .fn{color:var(--amber)}
+  .codecard .cm{color:var(--dim)} .codecard .lb{color:var(--amber)}
+  .codecard .hl{
+    display:inline-block; border:1px solid var(--red); border-radius:4px;
+    background:rgba(255,107,107,.08); padding:0 .2rem; margin:0 -.2rem;
+  }
+  .quote{
+    margin-top:.7rem; border-left:3px solid var(--sky); background:var(--panel2);
+    border-radius:0 8px 8px 0; padding:.6rem .9rem; font-size:.85rem; line-height:1.6;
+    font-style:italic; color:#cfe6f5;
+  }
+  .quote b{ color:var(--sky); font-style:normal }
+  .shadow-gag{
+    margin:1.6rem auto 0; max-width:34rem; text-align:center;
+    background:linear-gradient(180deg, #1a0d0d, #2b0f10); border:2px solid #7a1c1e;
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .shadow-gag .q{ font-size:.9rem; line-height:1.6; color:#e8d5d5 }
+  .shadow-gag .q s{ color:var(--dim) }
+  .shadow-gag .big{
+    margin-top:.6rem; font-size:1.6rem; letter-spacing:4px; font-weight:bold;
+    color:var(--red); text-shadow:0 0 18px rgba(255,107,107,.45);
+  }
+  /* ===== 64-bit calling conventions ===== */
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .spec-cards{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem }
+  @media (max-width: 940px){ .spec-cards{ grid-template-columns:1fr } }
+  .spec-card{
+    display:block; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; text-decoration:none; transition:border-color .15s, transform .15s;
+  }
+  .spec-card:hover{ border-color:var(--teal); transform:translateY(-2px) }
+  .spec-card .sc-name{ color:var(--text); font-size:.9rem; font-weight:bold }
+  .spec-card .sc-who{ color:var(--dim); font-size:.72rem; margin-top:.25rem }
+  .spec-card .sc-link{ color:var(--blue); font-size:.72rem; margin-top:.35rem; word-break:break-all }
+
+  .pmap-t{ width:100%; border-collapse:collapse; margin-top:.6rem; font-size:.76rem }
+  .pmap-t td{ border:1px solid var(--line); padding:.45rem .4rem; text-align:center }
+  .pmap-t .rl{ text-align:left; color:var(--dim); font-size:.68rem; line-height:1.35; white-space:nowrap }
+  .pchip{
+    display:inline-block; border-radius:6px; padding:.12rem .5rem; font-weight:bold; font-size:.95em;
+    border:1px solid; white-space:nowrap;
+  }
+  .pchip.pa{ color:var(--green);  background:rgba(74,222,128,.10);  border-color:var(--green) }
+  .pchip.pb{ color:var(--sky);    background:rgba(56,189,248,.10);  border-color:var(--sky) }
+  .pchip.pc{ color:var(--amber);  background:rgba(251,191,36,.10);  border-color:var(--amber) }
+  .pchip.pd{ color:var(--purple); background:rgba(192,132,252,.10); border-color:var(--purple) }
+  .pchip.pe{ color:var(--red);    background:rgba(255,107,107,.10); border-color:var(--red) }
+
+  .abi2{ width:100%; border-collapse:collapse; font-size:.72rem; margin-top:.7rem }
+  .abi2 td{ border:1px solid var(--line); padding:.45rem .25rem; text-align:center; transition:background .15s }
+  .abi2 .rl{ text-align:left; color:var(--dim); font-size:.66rem; line-height:1.35; padding:.45rem .5rem; white-space:nowrap }
+  .abi2 td.vol{ background:rgba(255,107,107,.09); color:var(--red) }
+  .abi2 td.nv { background:rgba(74,222,128,.09);  color:var(--green) }
+  .abi2 td.sw { background:rgba(244,114,182,.22) !important; color:var(--rip) }
+  .abi2 td .ord{ color:var(--amber); font-weight:bold; margin-left:.15rem }
+  .abi2 td.colhl{ box-shadow:inset 0 0 0 2px var(--blue) }
+  .abi-legend{ display:flex; flex-wrap:wrap; gap:1rem; margin-top:.55rem; font-size:.7rem; color:var(--dim) }
+  .abi-legend .sw-b{ display:inline-block; width:.9rem; height:.9rem; border-radius:3px; vertical-align:-2px; margin-right:.3rem }
+
+  .own-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.3rem }
+  @media (max-width: 940px){ .own-grid{ grid-template-columns:1fr } }
+  .own{ border-radius:10px; padding:.8rem .95rem; border:2px solid }
+  .own.volb{ border-color:var(--red);   background:rgba(255,107,107,.04) }
+  .own.nvb { border-color:var(--green); background:rgba(74,222,128,.04) }
+  .own h3{ font-size:.92rem; margin:0 0 .15rem }
+  .own.volb h3{ color:var(--red) } .own.nvb h3{ color:var(--green) }
+  .own .sub{ color:var(--dim); font-size:.7rem; line-height:1.45 }
+  .own .regs-line{ margin-top:.55rem; font-size:.74rem; line-height:1.7 }
+  .own .regs-line b{ color:var(--sky) }
+  .tl{ display:flex; margin-top:.6rem; border:1px solid var(--line); border-radius:7px; overflow:hidden;
+       font-size:.6rem; text-align:center; line-height:1.3 }
+  .tl .seg{ padding:.4rem .25rem; border-right:1px solid var(--line); flex:1;
+       display:flex; align-items:center; justify-content:center }
+  .tl .seg:last-child{ border-right:none }
+  .tl .seg.save{ background:rgba(251,191,36,.16); color:var(--amber); flex:1.2 }
+  .tl .seg.hot { background:rgba(255,107,107,.14); color:var(--red); flex:1.6 }
+  .tl .seg.body{ background:rgba(74,222,128,.12);  color:var(--green); flex:1.6 }
+  .tl .seg.dim { color:var(--dim) }
+
+  .ret-chips{ display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:.9rem }
+  .ret-chip{
+    border:1px solid var(--teal); border-radius:999px; padding:.4rem 1rem; font-size:.8rem;
+    color:var(--teal); background:rgba(45,212,191,.07);
+  }
+  .ret-chip b{ color:var(--text) }
+  .mnem{
+    margin-top:.9rem; background:var(--panel2); border:1px dashed var(--teal); border-radius:10px;
+    padding:.7rem 1rem; font-size:.84rem; line-height:1.8;
+  }
+  .mnem .M{ color:var(--teal); font-weight:bold }
+  .mnem b{ color:var(--amber) }
+
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+  footer a{ color:var(--blue) }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pass1Parameter.c — <span>adding a single argument</span></h1>
+  <div class="subtitle">OST2 Arch1001 · first function parameter · 0x11 rides <b style="color:var(--amber)">ecx</b> into func() — which immediately writes it back to the stack, <b style="color:var(--amber)">above its own frame</b></div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span class="val" id="ripVal">00000001`40001020</span>
+    <span class="ctx" id="ripCtx">— no instruction yet executed</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="badge exec">☒</span><span class="exec-t">executed instruction</span></div>
+  <div class="item"><span class="badge mod">♍</span><span class="mod-t">modified value</span></div>
+  <div class="item"><span class="badge start">⌘</span><span class="start-t">start value</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▶</span><span style="color:var(--dim)">next instruction</span></div>
+  <div class="item"><span class="sh-swatch"></span><span style="color:var(--slate)">shadow-store row (caller-allocated, callee-owned)</span></div>
+</div>
+
+<div class="layout">
+
+  <div class="col">
+    <div class="panel">
+      <h2>C source</h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>Disassembly <span style="text-transform:none;letter-spacing:0">(execution starts at main, not at the top!)</span></h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">⤴ execution continues at 00000001`40001359 — the code that called main()</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>Registers</h2>
+      <table>
+        <tr><td class="name">rax</td><td><span class="val" id="rax"></span></td></tr>
+        <tr><td class="name">rcx</td><td><span class="val" id="rcx"></span></td></tr>
+        <tr><td class="name">rsp</td><td><span class="val" id="rsp"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Stack <span style="text-transform:none;letter-spacing:0">(8-byte rows — two frames this time)</span></h2>
+      <div class="stack-outer" id="stackOuter">
+        <div class="stack-grow"><span class="arr">↑</span>higher addresses</div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-grow">lower addresses (stack grows down)<span class="arr">↓</span></div>
+        <div id="rspArrow">rsp</div>
+        <div id="bubble"></div>
+      </div>
+      <p style="font-size:.68rem; color:var(--dim); margin-top:.5rem; line-height:1.5">
+        main's frame = 0x28: the four gray <b style="color:var(--slate)">shadow-store</b> slots
+        (FDE0–FDF8) + 8 alignment bytes. func's frame = 0x18 with <code>i</code> @ FDC0.
+        <code>a</code>'s home slot lives in <i>main's</i> frame: main sees it as
+        <code>[rsp]</code>, func as <code>[rsp+8]</code> then <code>[rsp+20h]</code>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump</div>
+</div>
+
+<!-- ===== takeaways ===== -->
+<div class="sect">
+  <h2 style="color:var(--green)">Pass1Parameter.c takeaways</h2>
+  <ul>
+    <li><b>Something very interesting is going on with the stack!</b> The value passed in a
+      register is <i>still</i> stored on the stack — doesn't that kind of defeat the speed benefit
+      of passing arguments in registers? At <code>/Od</code>, honestly, yes: the compiler
+      unconditionally <b>homes</b> every register parameter to memory so each variable has a
+      stable address (which is exactly what a debugger wants). Optimized builds skip the store
+      when they can — but the <i>space</i> is reserved either way.</li>
+    <li><b>func() wrote above its own return address — legally.</b>
+      <code>mov dword ptr [rsp+8], ecx</code> lands in <i>main's</i> frame because the x64
+      convention makes the caller pre-allocate 0x20 bytes of <b>shadow store</b> that belong to
+      the callee by contract.</li>
+    <li><b>An RE pattern worth memorizing:</b> a run of
+      <code>mov [rsp+8], ecx</code> / <code>mov [rsp+10h], edx</code> / … at the very top of a
+      function is the callee homing its parameters — the count tells you the arity, the
+      registers tell you the order.</li>
+    <li>After homing, a parameter behaves exactly like the locals from 002–005: plain
+      rsp-relative displacements, no special instructions. The only novelty is <i>whose frame</i>
+      the slot is in.</li>
+  </ul>
+</div>
+
+<!-- ===== the experiment continues: TooManyParameters ===== -->
+<div class="sect">
+  <h2 style="color:var(--amber)">The experiment continues — TooManyParameters.c</h2>
+  <p>One parameter told us "arg1 → ecx, homed at [rsp+8]". To find the full pattern, the course
+     throws <b>five</b> parameters at the compiler and watches what falls out:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>Source</b> — five uint64 parameters, int arithmetic.</div>
+      <div class="codecard"><span class="cm">#define</span> <span class="ty">uint64</span> <span class="kw">unsigned long long</span>
+
+<span class="kw">int</span> <span class="fn">func</span>(<span class="ty">uint64</span> a, <span class="ty">uint64</span> b, <span class="ty">uint64</span> c,
+         <span class="ty">uint64</span> d, <span class="ty">uint64</span> e){
+    <span class="kw">int</span> i = a+b-c+d-e;
+    <span class="kw">return</span> i;
+}
+<span class="kw">int</span> <span class="fn">main</span>(){
+    <span class="kw">return</span> <span class="fn">func</span>(<span class="num">0x11</span>,<span class="num">0x22</span>,<span class="num">0x33</span>,<span class="num">0x44</span>,<span class="num">0x55</span>);
+}</div>
+      <div class="mini-title" style="margin-top:.8rem"><b>The stack at line 1031</b> — the pattern
+        from our stepper, ×4, plus a fifth argument that never saw a register:</div>
+      <div class="mini">
+        <div class="mr"><div class="ma">00000000`0014FE08</div><div class="mv ret">return address = 00000001`40001399</div></div>
+        <div class="mr"><div class="ma">00000000`0014FE00</div><div class="mv pad">16-byte-stack-alignment padding</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDF8</div><div class="mv pad">undef (chunk round-up)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDF0</div><div class="mv st">arg5 = 0x55 (stack-passed)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDE8</div><div class="mv sh">arg4 = r9 = 0x44 (homed)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDE0</div><div class="mv sh">arg3 = r8 = 0x33 (homed)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDD8</div><div class="mv sh">arg2 = edx = 0x22 (homed)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDD0</div><div class="mv sh">arg1 = ecx = 0x11 (homed)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDC8</div><div class="mv ret">return address = 00000001`40001078</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDC0</div><div class="mv pad">16-byte-stack-alignment padding</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDB8</div><div class="mv pad">16-byte-stack-alignment padding</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDB0</div><div class="mv loc">i = undef`ffffffef</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="mini-title"><b>Disassembly</b> — the four red-boxed homing stores are the
+        "say hello to the shadow store" moment:</div>
+      <div class="codecard"><span class="lb">func:</span>
+<span class="cm">0000000140001000</span> <span class="hl">mov  dword ptr [rsp+20h], r9d</span>   <span class="cm">; home arg4</span>
+<span class="cm">0000000140001005</span> <span class="hl">mov  dword ptr [rsp+18h], r8d</span>   <span class="cm">; home arg3</span>
+<span class="cm">000000014000100A</span> <span class="hl">mov  dword ptr [rsp+10h], edx</span>   <span class="cm">; home arg2</span>
+<span class="cm">000000014000100E</span> <span class="hl">mov  dword ptr [rsp+8],  ecx</span>    <span class="cm">; home arg1</span>
+<span class="cm">0000000140001012</span> sub  rsp, 18h
+<span class="cm">0000000140001016</span> mov  eax, dword ptr [rsp+28h]   <span class="cm">; b</span>
+<span class="cm">000000014000101A</span> mov  ecx, dword ptr [rsp+20h]   <span class="cm">; a</span>
+<span class="cm">000000014000101E</span> add  ecx, eax                   <span class="cm">; a+b</span>
+<span class="cm">0000000140001020</span> mov  eax, ecx
+<span class="cm">0000000140001022</span> sub  eax, dword ptr [rsp+30h]   <span class="cm">; -c</span>
+<span class="cm">0000000140001026</span> add  eax, dword ptr [rsp+38h]   <span class="cm">; +d</span>
+<span class="cm">000000014000102A</span> sub  eax, dword ptr [rsp+40h]   <span class="cm">; -e</span>
+<span class="cm">000000014000102E</span> mov  dword ptr [rsp], eax       <span class="cm">; i =</span>
+<span class="cm">0000000140001031</span> mov  eax, dword ptr [rsp]       <span class="cm">; ret i</span>
+<span class="cm">0000000140001034</span> add  rsp, 18h
+<span class="cm">0000000140001038</span> ret
+<span class="lb">main:</span>
+<span class="cm">0000000140001040</span> sub  rsp, 38h
+<span class="cm">0000000140001044</span> mov  dword ptr [rsp+20h], 55h   <span class="cm">; arg5 → stack!</span>
+<span class="cm">000000014000104C</span> mov  r9d, 44h                   <span class="cm">; arg4</span>
+<span class="cm">0000000140001052</span> mov  r8d, 33h                   <span class="cm">; arg3</span>
+<span class="cm">0000000140001058</span> mov  edx, 22h                   <span class="cm">; arg2</span>
+<span class="cm">000000014000105D</span> mov  ecx, 11h                   <span class="cm">; arg1</span>
+<span class="cm">0000000140001062</span> call 0000000140001000
+<span class="cm">0000000140001067</span> add  rsp, 38h
+<span class="cm">000000014000106B</span> ret</div>
+    </div>
+  </div>
+  <ul>
+    <li><b>A pattern emerges:</b> args 1–4 go in <code>rcx, rdx, r8, r9</code> and get homed into
+      the caller's shadow store; <b>arg5 has no register</b> — main stores <code>55h</code>
+      straight to <code>[rsp+20h]</code>, the first slot <i>past</i> the 0x20 shadow area,
+      <i>before</i> the call.</li>
+    <li>After func's <code>sub rsp, 18h</code>, all five params line up as plain displacements:
+      a @ <code>+20h</code>, b @ <code>+28h</code>, c @ <code>+30h</code>, d @ <code>+38h</code>,
+      e @ <code>+40h</code> — register-passed or stack-passed, they're indistinguishable in the
+      body.</li>
+    <li>main's frame math: shadow 0x20 + 8 for arg5 = 0x28 → rounded up to 0x30 in 16-byte
+      chunks → + 8 alignment = <code>sub rsp, 38h</code> (that's the extra
+      <code>undef</code> row at FDF8).</li>
+    <li>The arithmetic: 0x11 + 0x22 − 0x33 + 0x44 − 0x55 = <b>−0x11</b> →
+      <code>i = FFFFFFEF</code>. (Also note this build homes and reads only the low dwords —
+      <code>r9d</code>, not <code>r9</code> — everything downstream is <code>int</code> math.)</li>
+  </ul>
+</div>
+
+<!-- ===== MS shadow store rules ===== -->
+<div class="sect">
+  <h2 style="color:var(--sky)">Say hello to the Microsoft "shadow store"</h2>
+  <p>Straight from the
+    <a href="https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-160"
+       target="_blank" rel="noopener">x64 calling convention</a> docs:</p>
+  <div class="quote">"The x64 Application Binary Interface (ABI) uses a four-register
+    <b>fast-call</b> calling convention by default. Space is allocated on the call stack as a
+    <b>shadow store</b> for callees to save those registers."</div>
+  <div class="quote">"The caller must always allocate sufficient space to store four register
+    parameters, <b>even if the callee doesn't take that many parameters</b>."</div>
+  <div class="quote">"Any parameters beyond the first four must be stored on the stack
+    <b>after the shadow store, before the call</b>."</div>
+  <p style="margin-top:.6rem">And from the takeaway slide: <i>"The callee has the responsibility
+    of dumping the register parameters into their <b>shadow space</b> if needed"</i> — the
+    compiler reserves this space even if no function parameters are passed to another function.
+    The whole contract, as one table (offsets are from the <b>callee's</b> rsp at entry,
+    i.e. <code>[rsp]</code> = return address):</p>
+  <table class="al-table">
+    <tr><th>parameter</th><th>integer / pointer</th><th>float / double</th><th>home / slot</th><th>who writes it</th></tr>
+    <tr><td>arg1</td><td>rcx</td><td>xmm0</td><td>[rsp+8]</td><td>callee (homing, if needed)</td></tr>
+    <tr><td>arg2</td><td>rdx</td><td>xmm1</td><td>[rsp+10h]</td><td>callee (homing, if needed)</td></tr>
+    <tr><td>arg3</td><td>r8</td><td>xmm2</td><td>[rsp+18h]</td><td>callee (homing, if needed)</td></tr>
+    <tr><td>arg4</td><td>r9</td><td>xmm3</td><td>[rsp+20h]</td><td>callee (homing, if needed)</td></tr>
+    <tr><td>arg5, arg6, …</td><td colspan="2">no register — stack only</td><td>[rsp+28h], [rsp+30h], …</td><td>caller, before the call</td></tr>
+    <tr><td>return value</td><td>rax</td><td>xmm0</td><td>—</td><td>callee</td></tr>
+  </table>
+</div>
+
+<!-- ===== 64-bit calling conventions ===== -->
+<div class="sect">
+  <h2 style="color:var(--teal)">64-bit calling conventions — MS "x64" vs. System V "x86-64"</h2>
+  <p>Two specs rule the planet. Everything above was the left one; gdb on Linux speaks the right
+     one. The full documents (they really do have everything):</p>
+  <div class="spec-cards">
+    <a class="spec-card" href="https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=msvc-160" target="_blank" rel="noopener">
+      <div class="sc-name">Microsoft "x64" ABI</div>
+      <div class="sc-who">Visual Studio · Windows</div>
+      <div class="sc-link">docs.microsoft.com → x64 software conventions ↗</div>
+    </a>
+    <a class="spec-card" href="https://raw.githubusercontent.com/wiki/hjl-tools/x86-psABI/x86-64-psABI-1.0.pdf" target="_blank" rel="noopener">
+      <div class="sc-name">System V "x86-64" psABI</div>
+      <div class="sc-who">GCC · Clang · Linux · BSD · macOS</div>
+      <div class="sc-link">x86-64-psABI-1.0.pdf ↗</div>
+    </a>
+  </div>
+
+  <h3>Same call, two register maps</h3>
+  <p>The TooManyParameters signature again — colors follow the <i>argument</i>:</p>
+  <table class="pmap-t">
+    <tr>
+      <td class="rl"><code>func(…)</code></td>
+      <td><span class="pchip pa">a = 0x11</span></td>
+      <td><span class="pchip pb">b = 0x22</span></td>
+      <td><span class="pchip pc">c = 0x33</span></td>
+      <td><span class="pchip pd">d = 0x44</span></td>
+      <td><span class="pchip pe">e = 0x55</span></td>
+    </tr>
+    <tr>
+      <td class="rl">MS "x64"<br>4 register args</td>
+      <td><span class="pchip pa">RCX</span></td>
+      <td><span class="pchip pb">RDX</span></td>
+      <td><span class="pchip pc">R8</span></td>
+      <td><span class="pchip pd">R9</span></td>
+      <td><span class="pchip pe">stack [rsp+20h]</span></td>
+    </tr>
+    <tr>
+      <td class="rl">System V<br>6 register args</td>
+      <td><span class="pchip pa">RDI</span></td>
+      <td><span class="pchip pb">RSI</span></td>
+      <td><span class="pchip pc">RDX</span></td>
+      <td><span class="pchip pd">RCX</span></td>
+      <td><span class="pchip pe">R8</span></td>
+    </tr>
+  </table>
+  <p style="font-size:.78rem; margin-top:.5rem">Read the columns and mind the trap:
+    <b>RCX</b> = arg1 on Windows but arg4 on Linux; <b>RDX</b> = arg2 vs. arg3. Same register,
+    different meaning — know the ABI before trusting a register. Spill-over args go on the stack,
+    left-most at the lowest address ("pushed", though really <code>mov</code>, as we saw).</p>
+
+  <h3>Who saves what — the full team sheet <span style="color:var(--dim);font-weight:normal;font-size:.7rem">(hover a column)</span></h3>
+  <table class="abi2" id="abiTable">
+    <tr>
+      <td class="rl">VS <b style="color:var(--red)">caller</b>-saved<br>("volatile")</td>
+      <td class="vol">RAX</td><td></td><td class="vol">RCX<span class="ord">①</span></td><td class="vol">RDX<span class="ord">②</span></td>
+      <td></td><td></td><td></td>
+      <td class="vol">R8<span class="ord">③</span></td><td class="vol">R9<span class="ord">④</span></td><td class="vol">R10–11</td><td></td>
+    </tr>
+    <tr>
+      <td class="rl">VS <b style="color:var(--green)">callee</b>-saved<br>("non-volatile")</td>
+      <td></td><td class="nv">RBX</td><td></td><td></td>
+      <td class="nv sw">RSI</td><td class="nv sw">RDI</td><td class="nv">RBP</td>
+      <td></td><td></td><td></td><td class="nv">R12–15</td>
+    </tr>
+    <tr>
+      <td class="rl">System V <b style="color:var(--red)">caller</b>-saved<br>(GCC et al.)</td>
+      <td class="vol">RAX</td><td></td><td class="vol">RCX<span class="ord">④</span></td><td class="vol">RDX<span class="ord">③</span></td>
+      <td class="vol sw">RSI<span class="ord">②</span></td><td class="vol sw">RDI<span class="ord">①</span></td><td></td>
+      <td class="vol">R8<span class="ord">⑤</span></td><td class="vol">R9<span class="ord">⑥</span></td><td class="vol">R10–11</td><td></td>
+    </tr>
+    <tr>
+      <td class="rl">System V <b style="color:var(--green)">callee</b>-saved</td>
+      <td></td><td class="nv">RBX</td><td></td><td></td><td></td><td></td><td class="nv">RBP</td>
+      <td></td><td></td><td></td><td class="nv">R12–15</td>
+    </tr>
+  </table>
+  <div class="abi-legend">
+    <span><span class="sw-b" style="background:rgba(255,107,107,.25)"></span>caller-saved / "volatile" — trashed across calls</span>
+    <span><span class="sw-b" style="background:rgba(74,222,128,.25)"></span>callee-saved / "non-volatile" — survive calls</span>
+    <span><span class="sw-b" style="background:rgba(244,114,182,.4)"></span>RSI &amp; RDI — the only two that switch teams</span>
+    <span><span style="color:var(--amber);font-weight:bold">①</span> argument order</span>
+  </div>
+
+  <h3>Caller-save vs. callee-save — who owns the registers</h3>
+  <div class="own-grid">
+    <div class="own volb">
+      <h3>Caller-save — MS: "volatile"</h3>
+      <div class="sub">assume they <b>WILL</b> be changed by the callee · the registers "belong" to the callee</div>
+      <div class="tl">
+        <div class="seg dim">caller code</div>
+        <div class="seg save">save what you need</div>
+        <div class="seg dim">call ▶</div>
+        <div class="seg hot">callee clobbers freely</div>
+        <div class="seg dim">◀ ret</div>
+        <div class="seg save">restore</div>
+      </div>
+      <div class="regs-line"><b>VS:</b> RAX·RCX·RDX·R8–R11<br>
+        <b>GCC:</b> RAX·<span style="color:var(--rip)">RDI·RSI</span>·RDX·RCX·R8–R11</div>
+    </div>
+    <div class="own nvb">
+      <h3>Callee-save — MS: "non-volatile"</h3>
+      <div class="sub">assume they will <b>NOT</b> be changed · the registers "belong" to the caller</div>
+      <div class="tl">
+        <div class="seg save">prologue: push rbx…</div>
+        <div class="seg body">body — use them freely</div>
+        <div class="seg save">epilogue: pop rbx…</div>
+        <div class="seg dim">ret</div>
+      </div>
+      <div class="regs-line"><b>VS:</b> RBX·RBP·<span style="color:var(--rip)">RDI·RSI</span>·R12–R15<br>
+        <b>GCC:</b> RBX·RBP·R12–R15</div>
+    </div>
+  </div>
+  <p style="font-size:.78rem; margin-top:.6rem"><b style="color:var(--amber)">Balance:</b>
+    every save is matched by a restore — the caller brackets the <i>call site</i> (save right
+    before, restore right after), the callee brackets the <i>whole function body</i> (save in the
+    prologue, restore in the epilogue). Anything pushed must get popped.</p>
+
+  <div class="ret-chips">
+    <span class="ret-chip">return ≤ 64 bits → <b>RAX</b></span>
+    <span class="ret-chip">return 128 bits → <b>RDX:RAX</b></span>
+    <span class="ret-chip">both ABIs agree — params &amp; returns ride <b>caller-save</b> regs</span>
+  </div>
+
+  <div class="mnem">
+    <span class="M">Stick it:</span>
+    System V arg order — "<b>D</b>iane's <b>S</b>ilk <b>D</b>ress <b>C</b>osts <b>$8 9</b>" →
+    R<b>D</b>I · R<b>S</b>I · R<b>D</b>X · R<b>C</b>X · R<b>8</b> · R<b>9</b><br>
+    MS arg order — alphabet, then digits: <b>C</b> · <b>D</b> · <b>8</b> · <b>9</b> →
+    RCX · RDX · R8 · R9<br>
+    And the pink pair: on Windows <b>RSI/RDI</b> are precious (callee-saved) — on Linux they're
+    the first two arguments, burned on every call.
+  </div>
+</div>
+
+<!-- ===== 001 revisited ===== -->
+<div class="sect">
+  <h2 style="color:var(--purple)">STACK FRAME TIME OUT — 001's mystery 0x28, finally solved</h2>
+  <p>Back in <a href="001_CallASubroutine1-stepper.html">CallASubroutine1</a>, main() had no
+     locals and passed no arguments, yet did <code>sub rsp, 28h</code> — and we had no
+     explanation. Now we do. That frame was <b>pure obligation</b>: 0x20 of shadow store that
+     main must allocate for <i>any</i> call ("even if the callee doesn't take that many
+     parameters" — func took <b>zero</b>), plus 8 bytes of 16-byte-alignment padding.</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>CallASubroutine1's stack, re-labeled</b> with what we know
+        today:</div>
+      <div class="mini">
+        <div class="mr"><div class="ma">00000000`0014FE08</div><div class="mv ret">return address = 00000001`40001349</div></div>
+        <div class="mr"><div class="ma">00000000`0014FE00</div><div class="mv pad">16-byte-stack-alignment padding</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDF8</div><div class="mv sh">r9 shadow store (never written)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDF0</div><div class="mv sh">r8 shadow store (never written)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDE8</div><div class="mv sh">rdx shadow store (never written)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDE0</div><div class="mv sh">rcx shadow store (never written)</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDD8</div><div class="mv ret">return address = 00000001`40001019</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDD0</div><div class="mv">undef</div></div>
+        <div class="mr"><div class="ma">00000000`0014FDC8</div><div class="mv">undef</div></div>
+      </div>
+    </div>
+    <div>
+      <ul style="margin-top:0">
+        <li><b>main's 0x28</b> = 4 × 8 shadow slots + 8 alignment. Nothing else. main never
+          touches a byte of it.</li>
+        <li><b>func never even makes a stack frame</b> — no locals, no parameters to home, no
+          calls of its own → no <code>sub rsp</code> at all. Just
+          <code>mov eax, 0BEEFh</code> / <code>ret</code>.</li>
+        <li>So the recipe for reading any MSVC x64 frame:
+          <code>sub rsp, N</code> where N = locals (16-byte chunks) + out-going args area
+          (0x20 shadow + 8·(extra args), 16-byte rounded) + 8 if needed for alignment.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="shadow-gag">
+  <div class="q">"Who knows what evil lies in the <s>hearts</s> stacks of <s>men</s> compilers?"</div>
+  <div class="big">THE SHADOW KNOWS</div>
+</div>
+
+<footer>
+  Recreated from OST2 Arch1001 "Parameters 01 Pass1Parameter / 02 TooManyParameters" (Xeno Kovah, CC-BY-SA) · interactive remake for study<br>
+  <a href="001_CallASubroutine1-stepper.html">001 CallASubroutine1</a> ·
+  <a href="002_SingleLocalVariable-stepper.html">002 SingleLocalVariable</a> ·
+  <a href="003_SingleLocalVariable2-stepper.html">003 SingleLocalVariable2</a> ·
+  <a href="004_ArrayLocalVariable-stepper.html">004 ArrayLocalVariable</a> ·
+  <a href="005_StructLocalVariable-stepper.html">005 StructLocalVariable</a>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------- data ---------------- */
+
+const CSRC = [
+  {id:'c0', h:'<span class="kw">int</span> <span class="fn">func</span>(<span class="kw">int</span> a){'},
+  {id:'c1', h:'    <span class="kw">int</span> i = a;'},
+  {id:'c2', h:'    <span class="kw">return</span> i;'},
+  {id:'c3', h:'}'},
+  {id:'c4', h:' '},
+  {id:'c5', h:'<span class="kw">int</span> <span class="fn">main</span>(){'},
+  {id:'c6', h:'    <span class="kw">return</span> <span class="fn">func</span>(<span class="num">0x11</span>);'},
+  {id:'c7', h:'}'},
+];
+
+const LISTING = [
+  {label:'func:'},
+  {key:'1000', addr:'0000000140001000', mn:'mov',  ops:'dword ptr [rsp+8], ecx'},
+  {key:'1004', addr:'0000000140001004', mn:'sub',  ops:'rsp, 18h'},
+  {key:'1008', addr:'0000000140001008', mn:'mov',  ops:'eax, dword ptr [rsp+20h]'},
+  {key:'100C', addr:'000000014000100C', mn:'mov',  ops:'dword ptr [rsp], eax'},
+  {key:'100F', addr:'000000014000100F', mn:'mov',  ops:'eax, dword ptr [rsp]'},
+  {key:'1012', addr:'0000000140001012', mn:'add',  ops:'rsp, 18h'},
+  {key:'1016', addr:'0000000140001016', mn:'ret',  ops:''},
+  {label:'main:'},
+  {key:'1020', addr:'0000000140001020', mn:'sub',  ops:'rsp, 28h'},
+  {key:'1024', addr:'0000000140001024', mn:'mov',  ops:'ecx, 11h'},
+  {key:'1029', addr:'0000000140001029', mn:'call', ops:'func (0140001000h)'},
+  {key:'102E', addr:'000000014000102E', mn:'add',  ops:'rsp, 28h'},
+  {key:'1032', addr:'0000000140001032', mn:'ret',  ops:''},
+];
+
+/* stack rows, high→low, 8-byte granularity (matches the course diagram) */
+const ROWS = [
+  {addr:'00000000`0014FE08', who:'return addr',      wcls:'w-ret'},
+  {addr:'00000000`0014FE00', who:'16B-align pad',    wcls:'w-pad'},
+  {addr:'00000000`0014FDF8', who:'shadow: r9 (arg4)', wcls:'w-sh'},
+  {addr:'00000000`0014FDF0', who:'shadow: r8 (arg3)', wcls:'w-sh'},
+  {addr:'00000000`0014FDE8', who:'shadow: rdx (arg2)',wcls:'w-sh'},
+  {addr:'00000000`0014FDE0', who:'shadow: rcx = a',  wcls:'w-sh'},
+  {addr:'00000000`0014FDD8', who:'return addr',      wcls:'w-ret'},
+  {addr:'00000000`0014FDD0', who:'16B-align pad',    wcls:'w-pad'},
+  {addr:'00000000`0014FDC8', who:'16B-align pad',    wcls:'w-pad'},
+  {addr:'00000000`0014FDC0', who:'i',                wcls:'w-loc'},
+];
+
+const RA0 = '00000001`40001359';   // return address out of main
+const RAF = '00000001`4000102E';   // return address out of func
+
+function ST(over){
+  const a = ROWS.map(()=>({v:'undef'}));
+  a[0] = {v:RA0, tag:'start'};
+  for (const k in over) a[k] = over[k];
+  return a;
+}
+/* 8-byte rows split as two dwords: display "high`low" */
+const A_M = {hi:'undef', lo:'00000011', loTag:'mod', tag:'mod'};   // FDE0: a homed
+const A_P = {hi:'undef', lo:'00000011'};
+const A_S = {hi:'undef', lo:'00000011', stale:true};
+const I_M = {hi:'undef', lo:'00000011', loTag:'mod', tag:'mod'};   // FDC0: i
+const I_P = {hi:'undef', lo:'00000011'};
+const I_S = {hi:'undef', lo:'00000011', stale:true};
+const RF_M = {v:RAF, tag:'mod'};
+const RF_P = {v:RAF};
+const RF_S = {v:RAF, stale:true};
+
+const R1  = '00000000`00000001';
+const V11 = '00000000`00000011';
+
+const STEPS = [
+  { // 0
+    rip:'00000001`40001020', ripCtx:'— no instruction yet executed',
+    executed:[], current:'1020', cline:'c5',
+    rax:{v:R1, tag:'start'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FE08', tag:'start'}, rspRow:0,
+    stack:ST({}),
+    bubble:{row:0, text:'Belongs to the frame *before* main() is called'},
+    title:'Step 0 — Initial state',
+    note:`<p>Two functions for the first time since 001 — and this time the callee takes a
+      <b>parameter</b>: main() hands <code>0x11</code> to <code>func(int a)</code>.</p>
+      <p>Note that RIP starts at <code>1020</code> — <code>func:</code> merely sits at lower
+      addresses; execution begins in main. Watch two things: which register carries the
+      argument, and what func does with it the instant it arrives.</p>`,
+  },
+  { // 1
+    rip:'00000001`40001024', ripCtx:'— main prologue done',
+    executed:['1020'], current:'1024', justExec:'1020', cline:'c6',
+    rax:{v:R1, tag:'start'}, rcx:{v:R1, tag:'start'}, rsp:{v:'00000000`0014FDE0', tag:'mod'}, rspRow:5,
+    stack:ST({}),
+    bubble:{row:5, text:'main has NO locals — so why grab 0x28 bytes? Keep watching…'},
+    title:'Step 1 — sub rsp, 28h (a frame… for what, exactly?)',
+    note:`<p>main() has zero local variables, yet allocates 0x28 bytes. Mystery frame!</p>
+      <p>The answer: before <i>any</i> call, an x64 caller must allocate 0x20 bytes of
+      <b>shadow store</b> — four 8-byte slots where the callee may save its register
+      parameters — plus 8 bytes here so rsp is 16-byte aligned after the upcoming call pushes
+      its return address.</p>
+      <div class="math">shadow store (4 × 8)   0x20
+alignment padding      +  8
+                       = 0x28</div>
+      <p>main's frame exists entirely on func's behalf.</p>`,
+  },
+  { // 2
+    rip:'00000001`40001029', ripCtx:'— argument staged in ecx',
+    executed:['1020','1024'], current:'1029', justExec:'1024', cline:'c6',
+    rax:{v:R1, tag:'start'}, rcx:{v:V11, tag:'mod', zx:true}, rsp:{v:'00000000`0014FDE0'}, rspRow:5,
+    stack:ST({}),
+    title:'Step 2 — mov ecx, 11h (the argument boards its register)',
+    note:`<p>MS x64 <i>fast-call</i>: the first four integer/pointer arguments travel in
+      <code>rcx, rdx, r8, r9</code> (floats in xmm0–3). An int is 32 bits, so the compiler uses
+      <code>ecx</code> — and the 32-bit write zero-extends rcx's upper half:
+      <span class="zx">00000000</span>\`00000011.</p>
+      <p>No push instruction anywhere. The parameter doesn't touch the stack. <i>Yet.</i></p>`,
+  },
+  { // 3
+    rip:'00000001`40001000', ripCtx:'— jumped into func()',
+    executed:['1020','1024','1029'], current:'1000', justExec:'1029', cline:'c0',
+    rax:{v:R1, tag:'start'}, rcx:{v:V11}, rsp:{v:'00000000`0014FDD8', tag:'mod'}, rspRow:6,
+    stack:ST({6:RF_M}),
+    bubble:{row:6, text:'call = push + jmp: 8 bytes saying where to resume in main()'},
+    title:'Step 3 — call func (0140001000h)',
+    note:`<p><code>call</code> pushes the address of main's next instruction
+      (<code>14000\`102E</code>) at FDD8 and jumps RIP to func.</p>
+      <p>Mind the geography: rsp now points at the return address, and main's four untouched
+      shadow slots sit <i>directly above it</i> at FDE0–FDF8. func knows they're there — by
+      contract.</p>`,
+  },
+  { // 4
+    rip:'00000001`40001004', ripCtx:'— inside func',
+    executed:['1020','1024','1029','1000'], current:'1004', justExec:'1000', cline:'c0',
+    rax:{v:R1, tag:'start'}, rcx:{v:V11}, rsp:{v:'00000000`0014FDD8'}, rspRow:6,
+    stack:ST({6:RF_P, 5:A_M}),
+    bubble:{row:5, text:'func() wrote its argument ABOVE the return address — outside its own frame?!'},
+    title:'Step 4 — mov dword ptr [rsp+8], ecx (the star of the show)',
+    note:`<p>func's very first act: copy its register argument to
+      <code>[rsp+8]</code> = FDD8 + 8 = <b>FDE0</b> — above the return address, inside
+      <i>main's</i> frame. This is called <b>homing</b> the parameter.</p>
+      <p>Not a bug, not a stack smash: FDE0 is precisely the shadow-store slot main
+      pre-allocated for arg1. <i>"The callee has the responsibility of dumping the register
+      parameters into their shadow space if needed."</i></p>
+      <div class="warn-box">The slide's double-take — "func() wrote the register-passed argument
+      above the return address? Outside of its own frame?!" — is the whole lesson: those
+      0x20 caller-allocated bytes <b>belong to the callee</b>.</div>`,
+  },
+  { // 5
+    rip:'00000001`40001008', ripCtx:'— func frame built',
+    executed:['1020','1024','1029','1000','1004'], current:'1008', justExec:'1004', cline:'c1',
+    rax:{v:R1, tag:'start'}, rcx:{v:V11}, rsp:{v:'00000000`0014FDC0', tag:'mod'}, rspRow:9,
+    stack:ST({6:RF_P, 5:A_P}),
+    title:'Step 5 — sub rsp, 18h (func’s own frame)',
+    note:`<p>Now the familiar local-variable frame from 002–005: one <code>int i</code> → one
+      16-byte chunk, plus 8 for alignment:</p>
+      <div class="math">locals chunk (i)   0x10
+alignment          +  8
+                   = 0x18</div>
+      <p>func is a <b>leaf</b> — it calls nobody — so unlike main it allocates no shadow store
+      of its own.</p>`,
+  },
+  { // 6
+    rip:'00000001`4000100C', ripCtx:'— a fetched from the shadow store',
+    executed:['1020','1024','1029','1000','1004','1008'], current:'100C', justExec:'1008', cline:'c1',
+    rax:{v:V11, tag:'mod', zx:true}, rcx:{v:V11}, rsp:{v:'00000000`0014FDC0'}, rspRow:9,
+    stack:ST({6:RF_P, 5:A_P}),
+    bubble:{row:5, text:'[rsp+20h] = FDC0 + 20h = FDE0 — a, read straight out of main’s frame'},
+    title:'Step 6 — mov eax, dword ptr [rsp+20h] (int i = a begins)',
+    note:`<p><code>a</code> comes back <i>off the stack</i>: rsp moved down 0x18, so the same
+      FDE0 slot that was <code>[rsp+8]</code> is now <code>[rsp+20h]</code>.</p>
+      <p>At /Od the compiler treats a as a memory variable, period — even though ecx still holds
+      0x11 right now. Which begs the slide's question: didn't we pass it in a register for
+      <i>speed</i>?</p>`,
+  },
+  { // 7
+    rip:'00000001`4000100F', ripCtx:'— i stored (the slide moment)',
+    executed:['1020','1024','1029','1000','1004','1008','100C'], current:'100F', justExec:'100C', cline:'c2',
+    rax:{v:V11}, rcx:{v:V11}, rsp:{v:'00000000`0014FDC0'}, rspRow:9,
+    stack:ST({6:RF_P, 5:A_P, 9:I_M}),
+    bubble:{row:9, text:'i = a = 0x11 — the exact stack state of the course diagram'},
+    title:'Step 7 — mov dword ptr [rsp], eax (i = a)',
+    note:`<p><code>i</code> materializes at <code>[rsp]</code> = FDC0 in func's frame. This is
+      the precise moment the course freezes for its stack diagram: the same 0x11 now lives on
+      the stack <b>twice</b> — a's homed copy in main's frame, i in func's — plus once more in
+      ecx.</p>`,
+  },
+  { // 8
+    rip:'00000001`40001012', ripCtx:'— return value staged',
+    executed:['1020','1024','1029','1000','1004','1008','100C','100F'], current:'1012', justExec:'100F', cline:'c2',
+    rax:{v:V11, tag:'mod', zx:true}, rcx:{v:V11}, rsp:{v:'00000000`0014FDC0'}, rspRow:9,
+    stack:ST({6:RF_P, 5:A_P, 9:I_P}),
+    title:'Step 8 — mov eax, dword ptr [rsp] (return i)',
+    note:`<p>The return value is staged in eax… which <i>already held 0x11</i>. Pure /Od ritual:
+      every C statement compiled independently, memory as the single source of truth —
+      <code>return i</code> means "load i", no matter what's in the registers.</p>`,
+  },
+  { // 9
+    rip:'00000001`40001016', ripCtx:'— func epilogue',
+    executed:['1020','1024','1029','1000','1004','1008','100C','100F','1012'], current:'1016', justExec:'1012', cline:'c3',
+    rax:{v:V11}, rcx:{v:V11}, rsp:{v:'00000000`0014FDD8', tag:'mod'}, rspRow:6,
+    stack:ST({6:RF_P, 5:A_P, 9:I_S}),
+    title:'Step 9 — add rsp, 18h',
+    note:`<p>func's frame collapses: <code>i</code> drops below rsp and is dead. But notice what
+      <i>survives</i> — a's homed copy at FDE0 is untouched, because it was never part of func's
+      frame. It dies only when <i>main's</i> frame does.</p>`,
+  },
+  { // 10
+    rip:'00000001`4000102E', ripCtx:'— back in main()',
+    executed:['1020','1024','1029','1000','1004','1008','100C','100F','1012','1016'], current:'102E', justExec:'1016', cline:'c7',
+    rax:{v:V11}, rcx:{v:V11}, rsp:{v:'00000000`0014FDE0', tag:'mod'}, rspRow:5,
+    stack:ST({6:RF_S, 5:A_P, 9:I_S}),
+    bubble:{row:6, text:'popped — execution resumes at 14000`102E in main()'},
+    title:'Step 10 — ret (back to main)',
+    note:`<p><code>ret</code> pops FDD8 into RIP → <code>14000\`102E</code>, rsp climbs to FDE0.</p>
+      <p>And the actual "return" of the return value? It's just <b>eax = 0x11 riding through
+      unchanged</b> — rax is the return register, no memory involved.</p>`,
+  },
+  { // 11
+    rip:'00000001`40001032', ripCtx:'— main epilogue',
+    executed:['1020','1024','1029','1000','1004','1008','100C','100F','1012','1016','102E'], current:'1032', justExec:'102E', cline:'c7',
+    rax:{v:V11}, rcx:{v:V11}, rsp:{v:'00000000`0014FE08', tag:'mod'}, rspRow:0,
+    stack:ST({6:RF_S, 5:A_S, 9:I_S}),
+    title:'Step 11 — add rsp, 28h',
+    note:`<p>main's frame — the alignment pad plus all four shadow slots, a's homed copy
+      included — evaporates in one add. rsp: <code>0014FDE0 → 0014FE08</code>.</p>`,
+  },
+  { // 12
+    rip:'00000001`40001359', ripCtx:'— back in the code that called main()',
+    executed:['1020','1024','1029','1000','1004','1008','100C','100F','1012','1016','102E','1032'], current:null, justExec:'1032', cline:null,
+    rax:{v:V11}, rcx:{v:V11}, rsp:{v:'00000000`0014FE10', tag:'mod'}, rspRow:-1,
+    stack:ST({0:{v:RA0, stale:true}, 6:RF_S, 5:A_S, 9:I_S}),
+    bubble:{row:0, text:'popped — main() returns 0x11 to its caller'},
+    title:'Step 12 — ret (program done)',
+    note:`<p>main passes func's value along untouched: <b>EAX = 0x11</b>.</p>
+      <p>Scroll down for what happens with <i>five</i> parameters, the official shadow-store
+      rules from the MS docs, and the retroactive answer to 001's mystery
+      <code>sub rsp, 28h</code>.</p>`,
+  },
+];
+
+/* ---------------- build static DOM ---------------- */
+
+const $ = id => document.getElementById(id);
+const asmEl = $('asm'), stackEl = $('stack'), dotsEl = $('dots'), csrcEl = $('csrc');
+
+const clineEls = {};
+CSRC.forEach(l => {
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = l.h;
+  csrcEl.appendChild(d);
+  clineEls[l.id] = d;
+});
+
+const asmRows = {};
+LISTING.forEach(ins => {
+  if (ins.label){
+    const d = document.createElement('div');
+    d.className = 'lbl'; d.textContent = ins.label;
+    asmEl.appendChild(d);
+    return;
+  }
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.innerHTML = `<span class="rip-ptr">RIP▶</span>` +
+    `<span class="addr">${ins.addr}</span>` +
+    `<span class="mark">☒</span>` +
+    `<span class="mn">${ins.mn}</span>` +
+    `<span class="ops">${ins.ops}</span>`;
+  asmEl.appendChild(r);
+  asmRows[ins.key] = r;
+});
+
+const stackRows = [];
+ROWS.forEach(rw => {
+  const r = document.createElement('div');
+  r.className = 'srow';
+  r.innerHTML = `<div class="cell addr">${rw.addr}</div><div class="cell val"></div>` +
+                `<div class="cell who ${rw.wcls}">${rw.who}</div>`;
+  stackEl.appendChild(r);
+  stackRows.push(r);
+});
+
+STEPS.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className='dot'; d.title = 'Step '+i;
+  d.addEventListener('click', ()=> go(i));
+  dotsEl.appendChild(d);
+});
+
+/* ---------------- rendering ---------------- */
+
+const BADGE_MOD   = '<span class="badge mod">♍</span>';
+const BADGE_START = '<span class="badge start">⌘</span>';
+
+function valKey(o){
+  if (!o) return '';
+  if (o.hi !== undefined) return o.hi + '|' + o.lo + (o.stale ? '·s' : '');
+  return o.v + (o.stale ? '·s' : '');
+}
+
+function halfHTML(t, tag){
+  if (t === 'undef') return '<span class="undef">undef</span>';
+  const cls = tag === 'mod' ? 'v-mod' : 'v-plain';
+  return `<span class="${cls}">${t}</span>`;
+}
+
+function fmtVal(o){
+  if (!o) return '';
+  if (o.hi !== undefined){   // split row: two dword halves (display order: high ` low)
+    let html = halfHTML(o.hi, o.hiTag) + '<span class="sep">`</span>' + halfHTML(o.lo, o.loTag) +
+               (o.tag === 'mod' ? BADGE_MOD : '');
+    if (o.stale) html = `<span class="stale">${html}</span>`;
+    return html;
+  }
+  if (o.v === 'undef'){
+    return `<span class="undef">undef</span>` + (o.tag==='mod' ? BADGE_MOD : '');
+  }
+  const cls = o.tag==='mod' ? 'v-mod' : o.tag==='start' ? 'v-start' : 'v-plain';
+  let txt = o.v;
+  if (o.zx){
+    const [hi, lo] = o.v.split('`');
+    txt = `<span class="zx">${hi}</span>\`${lo}`;
+  }
+  let html = `<span class="${cls}">${txt}</span>` +
+             (o.tag==='mod' ? BADGE_MOD : o.tag==='start' ? BADGE_START : '');
+  if (o.stale) html = `<span class="stale">${html}</span>`;
+  return html;
+}
+
+let cur = 0, prevSnap = null, timer = null;
+
+function render(i, animate = true){
+  const s = STEPS[i];
+
+  const ripEl = $('ripVal');
+  if (prevSnap && prevSnap.rip !== s.rip && animate){ ripEl.classList.remove('flash'); void ripEl.offsetWidth; ripEl.classList.add('flash'); }
+  ripEl.textContent = s.rip;
+  $('ripCtx').textContent = s.ripCtx;
+
+  for (const id in clineEls) clineEls[id].classList.toggle('cur', s.cline === id);
+
+  for (const name of ['rax','rcx','rsp']){
+    const el = $(name);
+    el.innerHTML = fmtVal(s[name]);
+    if (animate && prevSnap && prevSnap[name] !== s[name].v){
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+
+  for (const key in asmRows){
+    const r = asmRows[key];
+    r.classList.toggle('executed', s.executed.includes(key));
+    r.classList.toggle('current',  s.current === key);
+    r.classList.remove('just-executed');
+  }
+  if (animate && s.justExec && prevSnap && prevSnap.step === i-1){
+    const r = asmRows[s.justExec];
+    void r.offsetWidth; r.classList.add('just-executed');
+  }
+  $('exitRow').classList.toggle('on', s.current === null);
+
+  s.stack.forEach((o, idx) => {
+    const cell = stackRows[idx].querySelector('.val');
+    cell.innerHTML = fmtVal(o);
+    if (animate && prevSnap && prevSnap.stack[idx] !== valKey(o)){
+      const span = cell.firstElementChild;
+      if (span) span.classList.add('pop-in');
+    }
+  });
+
+  const arrow = $('rspArrow');
+  let top;
+  if (s.rspRow < 0){
+    top = stackEl.offsetTop - 10;
+  } else {
+    const row = stackRows[s.rspRow];
+    top = stackEl.offsetTop + row.offsetTop + row.offsetHeight/2;
+  }
+  arrow.style.top = top + 'px';
+
+  const bub = $('bubble');
+  if (s.bubble){
+    const row = stackRows[s.bubble.row];
+    bub.textContent = s.bubble.text;
+    bub.style.top = (stackEl.offsetTop + row.offsetTop + row.offsetHeight) + 'px';
+    bub.classList.add('on');
+  } else {
+    bub.classList.remove('on');
+  }
+
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  $('stepInd').textContent = `Step ${i} / ${STEPS.length-1}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled   = (i === STEPS.length-1);
+  [...dotsEl.children].forEach((d,k)=>{
+    d.classList.toggle('now',  k === i);
+    d.classList.toggle('done', k <  i);
+  });
+
+  prevSnap = {
+    step: i, rip: s.rip,
+    rax: s.rax.v, rcx: s.rcx.v, rsp: s.rsp.v,
+    stack: s.stack.map(valKey),
+  };
+  cur = i;
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= STEPS.length) return;
+  render(i, animate);
+  if (i === STEPS.length-1) stopPlay();
+}
+
+function startPlay(){
+  if (cur === STEPS.length-1) go(0,false);
+  timer = setInterval(()=>{
+    if (cur >= STEPS.length-1) stopPlay();
+    else go(cur+1);
+  }, 3000);
+  $('btnPlay').textContent = '⏸ Pause';
+  $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play';
+  $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', ()=>{ stopPlay(); go(cur+1); });
+$('btnPrev').addEventListener('click', ()=>{ stopPlay(); go(cur-1); });
+$('btnReset').addEventListener('click', ()=>{ stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', ()=>{ stopPlay(); go(STEPS.length-1); });
+$('btnPlay').addEventListener('click', ()=> timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName === 'INPUT') return;
+  switch(e.key){
+    case 'ArrowRight': stopPlay(); go(cur+1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur-1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0);     e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STEPS.length-1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+  }
+});
+
+/* ---- ABI team sheet: column hover lines the four rows up ---- */
+const abiT = document.getElementById('abiTable');
+if (abiT && abiT.addEventListener){
+  abiT.addEventListener('mouseover', e=>{
+    const cell = e.target.closest('td');
+    if (!cell || cell.cellIndex === 0) return;
+    abiT.querySelectorAll('td').forEach(c=>
+      c.classList.toggle('colhl', c.cellIndex === cell.cellIndex));
+  });
+  abiT.addEventListener('mouseleave', ()=>
+    abiT.querySelectorAll('td.colhl').forEach(c=> c.classList.remove('colhl')));
+}
+
+window.addEventListener('resize', ()=> render(cur, false));
+window.addEventListener('load',   ()=> render(cur, false));
+render(0, false);
+</script>
+</body>
+</html>
