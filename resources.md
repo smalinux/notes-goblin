@@ -722,6 +722,7 @@ Raw links parked here for later sorting.
 - https://github.com/HACKE-RC/awesome-reversing
 - https://gist.github.com/DtxdF/9c9297945bd7165c53b264ec597a9c39
 - https://github.com/wtsxdev/reverse-engineering
+- [Introduction To Reverse Engineering With Radare2](https://www.youtube.com/watch?v=LAkYW5ixvhg) #video
 
 ---
 
