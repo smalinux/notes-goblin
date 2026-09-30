@@ -234,6 +234,8 @@ Full shelf with covers, ratings & reading tracker → [books.html](./books.html)
 - Cisco Binary Game (Binary↔Decimal) — https://learningnetwork.cisco.com/s/binary-game
 - Online disassembler (Google: "Online disassembler")
 - aarch64-esr-decoder — https://esr.arm64.dev/
+- The dark awful history of ARM: Arm mode → Thumb → Thumb-2 (Armv7) → Arm64. Arm64 = AArch64 (same thing); its instruction set is A64.
+- Searchable A64 references: community index of every instruction with quick search, closest in feel to esr.arm64.dev — https://www.scs.stanford.edu/~zyedidia/arm64/ · Arm's official A64 ISA reference, searchable by mnemonic — https://developer.arm.com/documentation/ddi0602/latest · armconverter.com (assembly ↔ hex encoding) — https://armconverter.com
 - Godbolt Compiler Explorer — https://godbolt.org/ · diff decompilers: dogbolt.org
 - rappel (asm REPL) — https://github.com/yrp604/rappel
 - x64 software conventions (MSVC) — https://learn.microsoft.com/en-us/cpp/build/x64-software-conventions?view=msvc-160
