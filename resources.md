@@ -385,6 +385,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - Kaitai Struct — https://github.com/kaitai-io/kaitai_struct_webide , awesome: https://github.com/kaitai-io/awesome-kaitai
 - rappel (asm REPL) — https://github.com/yrp604/rappel
 - aarch64-esr-decoder — https://esr.arm64.dev/
+- Hiew (Hacker's View) — https://www.hiew.ru/ — classic hex editor + disassembler/assembler (x86/x64/ARM); fast PE/ELF triage and in-place binary patching
 - readelf / nm / objdump / patchelf / objcopy / strip
 
 ## Tools — debugging & dynamic analysis
