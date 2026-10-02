@@ -43,6 +43,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Adjacent path B — network security](#adjacent-path-b--network-security)
 - [Adjacent path C — electronics](#adjacent-path-c--electronics)
 - [Game RE, decompilation & modding](#game-re-decompilation--modding)
+    - [Tibia — RE hobby project](#tibia--re-hobby-project)
 - [Newsletters & aggregators](#newsletters--aggregators)
 - [Hidden gems — the "unknowns"](#hidden-gems--the-unknowns)
 - [External links — unsorted drop-box](#external-links--unsorted-drop-box)
@@ -693,6 +694,34 @@ Full electronics study path from Gihad (works in the field), ordered like a mult
 - OpenRCT2 — https://github.com/OpenRCT2/OpenRCT2 · gradual reimplementation writeup — https://github.com/jvlomax/OpenRCT2
 - OpenTTD — https://github.com/OpenTTD/OpenTTD
 - Cheat engines · UnknownCheats / Guided Hacking (see Communities)
+
+### Tibia — RE hobby project
+- **Run a server locally** — Canary · The Forgotten Server (TFS) — open-source Tibia server implementations
+    - Canary: <https://github.com/opentibiabr/canary>
+    - TFS: <https://github.com/otland/forgottenserver>
+- **Reverse the client** — packet handling · encryption (older versions: XTEA after an RSA handshake) · find where player HP + position live in memory
+    - packet handling:
+        - Google: tibia otclient protocolgame opcodes parsing
+        - <https://github.com/edubart/otclient>
+    - encryption (older versions: XTEA after an RSA handshake):
+        - Google: tibia RSA XTEA login handshake
+        - <https://github.com/a3f/Tibia-Wireshark-Plugin>
+        - <https://otland.net/threads/7-70-rsa-xtea-encryption.206077/>
+    - find where player HP + position live in memory:
+        - <https://github.com/villor/TibiaReader>
+- **Build tooling** — small packet logger or memory reader, pointed at your local server
+    - Google: open tibia packet logger proxy memory reader github
+    - <https://github.com/jo3bingham/TibiaAPI>
+    - <https://github.com/d33tah/tibiaproxy>
+    - <https://github.com/Mytherin/Tibialyzer>
+
+**Search queries**
+- Google("Canary open tibia server github opentibiabr")
+- Google("The Forgotten Server otland github tibia")
+- Google("OTClient edubart github open tibia client protocol")
+- Google("Tibia protocol XTEA RSA encryption reverse engineering writeup")
+- Google("tibia packet proxy logger github open tibia")
+- Google("tibia memory reader bot github player hp position")
 
 ## Newsletters & aggregators
 - tl;dr sec (Clint Gibler) · This Week in Security (Zack Whittaker) · Risky Business (+ daily Risky Bulletin) · Detection Engineering Weekly
