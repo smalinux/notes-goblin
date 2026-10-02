@@ -101,7 +101,7 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - HEVD (Windows kernel LPE) · Google kernelCTF (real Linux 0-day writeups)
 - Flare-On archives (best malware-RE skill test) · MemLabs (Volatility CTF) · PMAT-labs (safe samples) 🦄
 - OWASP MAS Crackmes · DVIA-v2 (iOS) · DIVA / InsecureBankv2 / InjuredAndroid (Android) · iGoat · awesome-mobile-CTF
-- Malware-Traffic-Analysis.net — https://malware-traffic-analysis.net (Brad Duncan; pcap + samples)
+- Malware-Traffic-Analysis.net — https://malware-traffic-analysis.net (Brad Duncan; pcap + samples)  🦄
 - CyberDefenders · LetsDefend (free tier) · Blue Team Labs Online · DetectionLab
 - flaws.cloud / CloudGoat / Kubernetes Goat
 - Ethernaut / Damn Vulnerable DeFi (blockchain)
@@ -439,12 +439,14 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - Unpacking: UnpacMe, PE-sieve/HollowsHunter (hasherezade), TinyTracer, dumpulator
 - Shellcode/maldocs: scdbg, BlobRunner, Didier Stevens Suite (oledump, xorsearch), oletools
 - Memory: Volatility 3, MemProcFS
-- Network/C2: Wireshark, FakeNet-NG, INetSim, JA3/JA4 fingerprints, C2 Matrix
+- Network/C2: Wireshark, FakeNet-NG 🦄, INetSim 🦄, JA3/JA4 fingerprints, C2 Matrix
 - Detection: YARA + YARA-X, Sigma, Neo23x0/signature-base (Florian Roth)
 - Config extraction: Binary Refinery, malduck + karton + MWDB (CERT.pl)
 - Sandboxes: CAPEv2, ANY.RUN, Joe Sandbox, Tria.ge, Hybrid Analysis, DRAKVUF, VirusTotal + LiveHunt
-- Sample sources: MalwareBazaar (abuse.ch), vx-underground, VirusShare/MalShare, Malpedia, theZoo, malware-traffic-analysis.net, contagio
+- Sample sources: MalwareBazaar (abuse.ch) 🦄, vx-underground 🦄, VirusShare/MalShare, Malpedia, theZoo (github repo for Malware samples) 🦄, malware-traffic-analysis.net, contagio
+- Test file: EICAR (eicar.org) — harmless AV detection check
 - Reference: MalAPI.io, Malpedia (malpedia.caad.fkie.fraunhofer.de), Unprotect.it, Malcat (malcat.fr)
+- History: Google: Mirai Botnet
 
 ## Tools — web, network, blue/red team, cloud
 - Burp Suite — https://portswigger.net/burp
@@ -459,7 +461,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - Secrets/SAST: TruffleHog — https://github.com/trufflesecurity/trufflehog , Gitleaks — https://github.com/gitleaks/gitleaks , Semgrep — https://github.com/semgrep/semgrep , Checkov — https://github.com/bridgecrewio/checkov , CodeQL
 - Containers/images: Trivy — https://github.com/aquasecurity/trivy , Clair — https://github.com/quay/clair
 - Crypto/hygiene: age — https://github.com/FiloSottile/age , sops — https://github.com/getsops/sops , WireGuard, LUKS + YubiKey, restic / borg, podman / distrobox, BFG Repo-Cleaner — https://github.com/rtyley/bfg-repo-cleaner
-- Detection/DFIR: Snort / Suricata / Zeek / Security Onion, Sigma, Splunk / Elastic, Volatility / Autopsy / KAPE / plaso, Velociraptor / GRR, OSQuery, MISP / OpenCTI / VirusTotal, YARA, REMnux / FLARE-VM, Any.run / Triage
+- Detection/DFIR: Snort / Suricata / Zeek / Security Onion, Sigma, Splunk / Elastic, Volatility / Autopsy / KAPE / plaso, Velociraptor / GRR, OSQuery, MISP / OpenCTI / VirusTotal, YARA, REMnux 🦄/ FLARE-VM 🦄, Any.run / Triage
 - Purple/deception: Atomic Red Team / Caldera / Prelude, T-Pot / Cowrie / Thinkst Canary
 - Lab: GNS3 / EVE-NG, VirtualBox / VMware, Docker
 
@@ -699,6 +701,9 @@ Full electronics study path from Gihad (works in the field), ordered like a mult
 - **Run a server locally** — Canary · The Forgotten Server (TFS) — open-source Tibia server implementations
     - Canary: <https://github.com/opentibiabr/canary>
     - TFS: <https://github.com/otland/forgottenserver>
+- **Run a client locally** — OTClient — open-source Tibia client (source = answer key)
+    - <https://github.com/edubart/otclient>
+- **Sandbox setup** — TFS + OTClient on your Linux box · optional old offline client binary as a "wild" target · you control both ends, nothing at risk
 - **Reverse the client** — packet handling · encryption (older versions: XTEA after an RSA handshake) · find where player HP + position live in memory
     - packet handling:
         - Google: tibia otclient protocolgame opcodes parsing
@@ -715,6 +720,46 @@ Full electronics study path from Gihad (works in the field), ordered like a mult
     - <https://github.com/d33tah/tibiaproxy>
     - <https://github.com/Mytherin/Tibialyzer>
 
+**Roadmap**
+1. **Find your HP** — scanmem/GameConqueror (Linux Cheat Engine) → scan HP, change it, watch it move in-game · memory layout, data types
+2. **Rebuild the player struct** — HP neighbours (mana, x/y/z) → C struct · alignment + padding
+3. **First tool** — external HP reader in C/Python via `process_vm_readv` / `/proc/pid/mem`
+4. **Go static** — Ghidra/Binary Ninja + GDB watchpoint on HP → who writes it → trace the function · C++: vtables, name mangling, STL patterns
+5. **The protocol** — Wireshark capture · RSA at login, XTEA for game packets · find XTEA key in handshake/memory → decrypt → parse, check against OTClient source
+6. **Capstone (pick one)** — memory-reading radar/minimap of nearby creatures · protocol proxy logging decrypted packets · Ghidra project documenting client structs → blog post (portfolio piece)
+
+**Awesome tibia**
+- **Servers** — open-source Tibia server emulators
+    - The Forgotten Server (TFS) ⭐1.8k: <https://github.com/otland/forgottenserver>
+    - Canary (OpenTibiaBR, latest protocol) ⭐650: <https://github.com/opentibiabr/canary>
+    - OpenCoreMMO (C#) ⭐480: <https://github.com/OpenCoreMMO/OpenCoreMMO>
+    - opentibia/server (the original, archived) ⭐450: <https://github.com/opentibia/server>
+    - OTHire (7.72) ⭐95: <https://github.com/Ezzz-dev/OTHire>
+    - Nostalrius (7.7 clone, archived) ⭐115: <https://github.com/Ezzz-dev/Nostalrius>
+- **Clients** — alternative clients (C++ + Lua)
+    - OTClient (edubart, original) ⭐700: <https://github.com/edubart/otclient>
+    - OTClient Redemption (OpenTibiaBR/mehah, C++20) ⭐535: <https://github.com/opentibiabr/otclient>
+    - OTClientV8 (optimized) ⭐300: <https://github.com/OTCv8/otclientv8>
+    - YATC (old alt client) ⭐70: <https://github.com/opentibia/yatc>
+- **Map & asset tools**
+    - Remere's Map Editor ⭐320: <https://github.com/hampusborgos/rme>
+    - Object Builder (`.dat`/`.spr` editor): <https://github.com/ottools/ObjectBuilder>
+    - Item Editor (`items.otb`): <https://github.com/ottools/ItemEditor>
+    - open-tibia-library (TS, OTS/OTClient file formats): <https://github.com/gesior/open-tibia-library>
+    - OTBM2JSON (map file format): <https://github.com/Inconcessus/OTBM2JSON>
+    - tibia-map-data (fully explored maps): <https://github.com/tibiamaps/tibia-map-data>
+- **Websites (AAC)** — account creators for OT servers
+    - MyAAC ⭐170: <https://github.com/slawkens/myaac>
+    - Znote AAC ⭐155: <https://github.com/Znote/ZnoteAAC>
+- **RE, proxies & bots** — study material for the roadmap
+    - TibiaAPI (C# proxy library) ⭐85: <https://github.com/jo3bingham/TibiaAPI>
+    - Tibialyzer (memory reader) ⭐190: <https://github.com/Mytherin/Tibialyzer>
+    - Tibia Wireshark dissector: <https://github.com/a3f/Tibia-Wireshark-Plugin>
+    - PyTibia (pixel bot, Python) ⭐290: <https://github.com/lucasmonstrox/PyTibia>
+    - OpenTibia-Unity (client in Unity) ⭐105: <https://github.com/slavidodo/OpenTibia-Unity>
+- **Data / API**
+    - TibiaData API (Go) ⭐110: <https://github.com/tibiadata/tibiadata-api-go>
+
 **Search queries**
 - Google("Canary open tibia server github opentibiabr")
 - Google("The Forgotten Server otland github tibia")
@@ -722,6 +767,8 @@ Full electronics study path from Gihad (works in the field), ordered like a mult
 - Google("Tibia protocol XTEA RSA encryption reverse engineering writeup")
 - Google("tibia packet proxy logger github open tibia")
 - Google("tibia memory reader bot github player hp position")
+
+**Awesome tibia**
 
 ## Newsletters & aggregators
 - tl;dr sec (Clint Gibler) · This Week in Security (Zack Whittaker) · Risky Business (+ daily Risky Bulletin) · Detection Engineering Weekly
