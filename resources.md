@@ -573,7 +573,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 ## Communities
 - pwn.college Discord · Reverse Engineering Discord (~14k) · OALabs Discord · vx-underground · 0x00sec · OpenToAll · Tuts4You
 - CTF & bug-bounty Discords · local CTF team · HTB/THM Discords
-- r/netsec · [r/ReverseEngineering](https://www.reddit.com/r/ReverseEngineering/) · r/Malware · r/ExploitDev
+- r/netsec · [r/ReverseEngineering](https://www.reddit.com/r/ReverseEngineering/)  🦄· r/Malware · r/ExploitDev
 - UnknownCheats · Guided Hacking (game hacking) · OpenMined (privacy)
 - Mailing lists: Dailydave · Full Disclosure · oss-security
 
