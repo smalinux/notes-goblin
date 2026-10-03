@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en-US" prefix="og: http://ogp.me/ns#" xmlns="http://www.w3.org/1999/html">
+<head>
+  <meta charset="UTF-8" />
+  <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' />
+  <meta name="msvalidate.01" content="8DC7EF4E3154F974DCC3DE021597634B" />
+  <title>Breaking and evading Linux with a new novel technique |SentineOne.com</title>
+  <link rel="stylesheet" type="text/css" href="_archive/sentinelone-breaking-and-evading_files/style.css" />
+
+    
+  <link rel="shortcut icon" href="https://www.sentinelone.com/favicon.ico" type="image/x-icon" />
+	<link rel="icon" href="https://www.sentinelone.com/favicon.png" type="image/png" />
+
+	<!-- Apple Touch Icons -->
+	<link rel="apple-touch-icon" href="https://www.sentinelone.com/apple-touch-icon.png" />
+	<link rel="apple-touch-icon" sizes="57x57" href="https://www.sentinelone.com/apple-touch-icon-57x57.png" />
+	<link rel="apple-touch-icon" sizes="60x60" href="https://www.sentinelone.com/apple-touch-icon-60x60.png" />
+	<link rel="apple-touch-icon" sizes="72x72" href="https://www.sentinelone.com/apple-touch-icon-72x72.png" />
+	<link rel="apple-touch-icon" sizes="76x76" href="https://www.sentinelone.com/apple-touch-icon-76x76.png" />
+	<link rel="apple-touch-icon" sizes="114x114" href="https://www.sentinelone.com/apple-touch-icon-114x114.png" />
+	<link rel="apple-touch-icon" sizes="120x120" href="https://www.sentinelone.com/apple-touch-icon-120x120.png" />
+	<link rel="apple-touch-icon" sizes="144x144" href="https://www.sentinelone.com/apple-touch-icon-144x144.png" />
+	<link rel="apple-touch-icon" sizes="152x152" href="https://www.sentinelone.com/apple-touch-icon-152x152.png" />
+   
+
+   <!-- WP HEAD GOES HERE -->
+  
+<!-- This site is optimized with the Yoast WordPress SEO plugin v2.2.1 - https://yoast.com/wordpress/plugins/seo/ -->
+<meta name="description" content="The focus of any malware research is on anticipating where an attack may go, or where it’s already been in order to develop and implement new prevention techniques."/>
+<link rel="canonical" href="https://www.sentinelone.com/blog/breaking-and-evading/" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Breaking and evading Linux with a new novel technique |SentineOne.com" />
+<meta property="og:description" content="The focus of any malware research is on anticipating where an attack may go, or where it’s already been in order to develop and implement new prevention techniques." />
+<meta property="og:url" content="https://www.sentinelone.com/blog/breaking-and-evading/" />
+<meta property="og:site_name" content="SentinelOne" />
+<meta property="article:section" content="Security" />
+<meta property="og:image" content="_archive/sentinelone-breaking-and-evading_files/shutterstock_235908178.jpg" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:description" content="The focus of any malware research is on anticipating where an attack may go, or where it’s already been in order to develop and implement new prevention techniques."/>
+<meta name="twitter:title" content="Breaking and evading Linux with a new novel technique |SentineOne.com"/>
+<meta name="twitter:domain" content="SentinelOne"/>
+<meta name="twitter:image:src" content="_archive/sentinelone-breaking-and-evading_files/shutterstock_235908178.jpg"/>
+<!-- / Yoast WordPress SEO plugin. -->
+
+		
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel='stylesheet' id='contact-form-7-css'  href='https://www.sentinelone.com/wp-content/plugins/contact-form-7/includes/css/styles.css?ver=4.2.1' type='text/css' media='all' />
+<link rel='stylesheet' id='mobile_navigation_style-css'  href='https://www.sentinelone.com/wp-content/plugins/mobile-navigation/css/generated.css?ver=4.3.1' type='text/css' media='all' />
+<link rel='stylesheet' id='mailchimp-for-wp-checkbox-css'  href='https://www.sentinelone.com/wp-content/plugins/mailchimp-for-wp/assets/css/checkbox.min.css?ver=2.3.7' type='text/css' media='all' />
+<link rel='stylesheet' id='jquery-ui-css-css'  href='https://www.sentinelone.com/wp-content/themes/sentinelone/css/jquery-ui.min.css?ver=4.3.1' type='text/css' media='screen' />
+<link rel='stylesheet' id='roboto-css-css'  href='//fonts.googleapis.com/css?family=Roboto%3A400%2C100%2C300%2C700&#038;ver=4.3.1' type='text/css' media='all' />
+<link rel='stylesheet' id='fontawesome-css-css'  href='//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css?ver=4.3.1' type='text/css' media='all' />
+<link rel='stylesheet' id='responsive-css-css'  href='https://www.sentinelone.com/wp-content/themes/sentinelone/css/responsive.css?ver=4.3.1' type='text/css' media='all' />
+<link rel='stylesheet' id='animate-css-css'  href='https://www.sentinelone.com/wp-content/themes/sentinelone/css/animate.css?ver=4.3.1' type='text/css' media='screen' />
+<link rel='stylesheet' id='hp-animate-css'  href='https://www.sentinelone.com/wp-content/themes/sentinelone/css/hp-animation.css?ver=4.3.1' type='text/css' media='screen' />
+<link rel='stylesheet' id='upw_theme_standard-css'  href='https://www.sentinelone.com/wp-content/plugins/ultimate-posts-widget/css/upw-theme-standard.min.css?ver=4.3.1' type='text/css' media='all' />
+<link rel='stylesheet' id='mailchimp-for-wp-form-css'  href='https://www.sentinelone.com/wp-content/plugins/mailchimp-for-wp/assets/css/form.min.css?ver=2.3.7' type='text/css' media='all' />
+
+
+
+
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://www.sentinelone.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="https://www.sentinelone.com/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress 4.3.1" />
+<link rel='shortlink' href='https://www.sentinelone.com/?p=3690' />
+				
+		<style type="text/css">.mc4wp-form input[name="_mc4wp_required_but_not_really"] { display: none !important; }</style>
+  
+  <!-- marketo -->
+   
+<!-- script ToutApp  -->
+
+<!-- script ToutApp end   -->
+ 
+</head>
+<body class="single single-blog postid-3690">
+<div id="wrapper" class="hfeed">
+<header id="header" role="banner">
+<section id="branding">
+	<div class="logo">
+		<a href="/"><img src="_archive/sentinelone-breaking-and-evading_files/sentinelone.png"></a>
+	</div>
+	<nav id="menu" role="navigation">
+        <span class="top-arrow"></span>
+		<div class="menu-menu-1-container"><ul id="menu-menu-1" class="menu"><li id="menu-item-26" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-26"><a href="https://www.sentinelone.com/">Home</a></li>
+<li id="menu-item-1013" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-1013"><a>Products</a>
+<ul class="sub-menu">
+	<li id="menu-item-641" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-641"><a href="/?show_edr=true">EDR &#8211; Endpoint Detection &#038; Response</a></li>
+	<li id="menu-item-2255" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2255"><a href="/?show_epp=true">EPP &#8211; Endpoint Protection Platform</a></li>
+	<li id="menu-item-3583" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3583"><a href="/epp-demo-videos/">What’s New in 1.6</a></li>
+</ul>
+</li>
+<li id="menu-item-25" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-25"><a href="https://www.sentinelone.com/solutions/">Solutions</a></li>
+<li id="menu-item-245" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-245"><a href="https://www.sentinelone.com/services/">Services</a></li>
+<li id="menu-item-21" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-21"><a href="https://www.sentinelone.com/blog/">Blog</a></li>
+<li id="menu-item-1205" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-1205"><a href="https://www.sentinelone.com/team/">About</a>
+<ul class="sub-menu">
+	<li id="menu-item-595" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-595"><a href="https://www.sentinelone.com/team/">Team</a></li>
+	<li id="menu-item-591" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-591"><a href="https://www.sentinelone.com/careers/">Careers</a></li>
+	<li id="menu-item-592" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-592"><a href="https://www.sentinelone.com/events/">Events</a></li>
+	<li id="menu-item-593" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-593"><a href="https://www.sentinelone.com/partners/">Partners</a></li>
+	<li id="menu-item-1008" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1008"><a href="https://www.sentinelone.com/news-2/">News</a></li>
+	<li id="menu-item-594" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-594"><a href="https://www.sentinelone.com/press/">Press</a></li>
+</ul>
+</li>
+<li id="menu-item-22" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-22"><a href="https://www.sentinelone.com/contact/">Contact</a></li>
+</ul></div>		<a id="evaluation-popup-open" class="eval" href="/contact">Arrange an<br /> Evaluation</a>
+		<div id="evaluation-form" class="eval">
+			<i class='fa fa-times close'></i>
+			<h3>Arrange an Evaluation</h3>
+		</br>
+		  <h4 style="width: 328px; text-align: center;line-height: 1.3;font-family: roboto;font-weight: 300;">Schedule a personalized, interactive online demonstration from our team of experts.</h4>
+			<div role="form" class="wpcf7" id="wpcf7-f1595-o1" lang="en-US" dir="ltr">
+<div class="screen-reader-response"></div>
+<form name="" action="/blog/breaking-and-evading/#wpcf7-f1595-o1" method="post" class="wpcf7-form" novalidate="novalidate">
+<div style="display: none;">
+<input type="hidden" name="_wpcf7" value="1595" />
+<input type="hidden" name="_wpcf7_version" value="4.2.1" />
+<input type="hidden" name="_wpcf7_locale" value="en_US" />
+<input type="hidden" name="_wpcf7_unit_tag" value="wpcf7-f1595-o1" />
+<input type="hidden" name="_wpnonce" value="0543ad676f" />
+</div>
+<div class="aae" style="padding-left:12px;">
+<div class="firstAndEmail" style="width:302px;>
+<span class="wpcf7-form-control-wrap first-name"><input type="text" name="first-name" value="" size="40" class="wpcf7-form-control wpcf7-text wpcf7-validates-as-required" aria-required="true" aria-invalid="false" placeholder="First Name *" /></span><br />
+<span class="wpcf7-form-control-wrap last-name"><input type="text" name="last-name" value="" size="40" class="wpcf7-form-control wpcf7-text wpcf7-validates-as-required" aria-required="true" aria-invalid="false" placeholder="Last Name *" /></span>
+</div>
+<p>
+<span class="wpcf7-form-control-wrap email"><input type="email" name="email" value="" size="40" class="wpcf7-form-control wpcf7-text wpcf7-email wpcf7-validates-as-required wpcf7-validates-as-email" aria-required="true" aria-invalid="false" placeholder="Email *" /></span>
+</p>
+<p>
+<span class="wpcf7-form-control-wrap company"><input type="text" name="company" value="" size="40" class="wpcf7-form-control wpcf7-text" aria-invalid="false" placeholder="Company" /></span>
+</p>
+<p>
+<span class="wpcf7-form-control-wrap phone"><input type="text" name="phone" value="" size="40" class="wpcf7-form-control wpcf7-text" aria-invalid="false" placeholder="Telephone" /></span>
+</p>
+<p style="font-family: roboto;font-weight: lighter;">
+<span class="wpcf7-form-control-wrap checkbox-905"><span class="wpcf7-form-control wpcf7-checkbox"><span class="wpcf7-list-item first last"><input type="checkbox" name="checkbox-905[]" value="Sign up for our newsletter" />&nbsp;<span class="wpcf7-list-item-label">Sign up for our newsletter</span></span></span></span>
+</p>
+<p><input type="submit" value="Send" class="wpcf7-form-control wpcf7-submit" /></p>
+<p><span class="wpcf7-form-control-wrap lead"><input type="hidden" name="lead" value="Arrange Ev pop up" /></span><br />
+<span class="wpcf7-form-control-wrap referrer"><input type="hidden" name="referrer" value="unknown" /></span><br />
+<span class="wpcf7-form-control-wrap campaign"><input type="hidden" name="campaign" value="" /></span><br />
+<span class="wpcf7-form-control-wrap websource"><input type="hidden" name="websource" value="" /></span>
+</p></div>
+<p></p>
+<div class="wpcf7-response-output wpcf7-display-none"></div></form></div>		</div>
+	</nav>
+</section>
+</header>
+<div id="container">
+
+
+<section class="hero-wrap carriers"><img class="alignnone wp-image-207" src="_archive/sentinelone-breaking-and-evading_files/blog.jpg" alt="blog" />
+<div class="orange-angle">
+<div class="h1blog">Blog</div>
+<a class="a-btn hero-edr2 blue" href="/contact">Contact us</a>
+
+</div>
+</section>
+
+<section class="our-team-single">
+
+<img src="_archive/sentinelone-breaking-and-evading_files/blog-icon.png" alt="partners-icon"  class="alignnone size-full wp-image-286 team-icon" />
+
+</section>
+
+
+
+<section id="content" class="blog-info" role="main" itemprop="mainContentOfPage">
+
+
+<article id="post-3690" class="post-3690 blog type-blog status-publish has-post-thumbnail hentry category-security category-threats">
+<header>
+<h1 class="entry-title"><a href="https://www.sentinelone.com/blog/breaking-and-evading/" title="Breaking and evading Linux with a new novel technique" rel="bookmark">Breaking and evading Linux with a new novel technique</a></h1> <section class="entry-meta">
+<span class="entry-date">December 15, 2015</span>
+<span class="meta-sep"> | </span>
+<span class="author vcard"><a href="https://www.sentinelone.com/author/tim/" title="Posts by Tim Strazzere" rel="author">Tim Strazzere</a></span>
+</section></header>
+<section class="entry-content">
+<img width="500" height="334" src="_archive/sentinelone-breaking-and-evading_files/shutterstock_235908178.jpg" class="attachment-post-thumbnail wp-post-image" alt="shutterstock_235908178" /><p>
+The focus of any malware research is on anticipating where an attack may go, or where it’s already been in order to develop and implement new prevention techniques.  While reverse engineering some recent Linux malware samples, I found an interesting and novel technique being used that’s important to share with the broader community. A malicious actor had logged into a honeypot and attempted to download a file I hadn’t seen before. Loading the file into <a href="https://www.hex-rays.com/products/ida/" target="_blank">IDA Pro</a> I was prompted by a “SHT table size or offset is invalid. Continue?” message &#8211; nothing to worry about as this is normal for every stripped executable. However, after continuing through this message I was prompted by a new warning I’d not seen before;
+</p>
+<img src="_archive/sentinelone-breaking-and-evading_files/Screen-Shot-2015-12-15-at-11.15.58-AM.png" alt="OS" style="max-width: 100%; height: auto;" class="aligncenter size-full wp-image-3691" />
+<p>
+This caused the ELF loader to fail in IDA Pro &#8211; preventing me from loading the binary for analysis. Opening up the file in <a href="http://www.sweetscape.com/010editor/" target="_blank">010Editor</a> using the <a href="https://github.com/strazzere/010Editor-stuff/blob/master/Templates/ELFTemplate.bt" target="_blank">ELFTemplate</a> it was quite easy to see what had happened;
+</p>
+<br />
+<img src="_archive/sentinelone-breaking-and-evading_files/Screen-Shot-2015-12-15-at-11.21.41-AM.png" alt="code" style="max-width: 100%; height: auto;" class="aligncenter size-full wp-image-3692" />
+<br />
+<br />
+<p>
+One of the program headers was pointing outside of the actual file. This is easy to fix, simply nulling this section out allowed IDA Pro to load the sample. Interestingly enough, it turned out this was an invalid binary and the section was misaligned only because the file was truncated. However, this error message lead me down the path to try and reconstruct this error &#8211; and it was simple to do. The steps were relatively easy to reproduce using the hex editor;
+</p>
+<p>
+<ul style="padding-left:40px;">
+<li>Strip all sections from the ELF header</li>
+<li>Find a program header which is not required by the ELF file for loading</li>
+<li>Make this program header have the offset for this section pointing outside of the file</li>
+</ul>
+</p>
+<p>
+As long as the rest of the section headers are not found &#8211; IDA Pro will fail to load. After scripting this process, I decided to test a few scenarios with other disassemblers and debuggers. Radare (r2), Hopper and lldb handled the binary perfectly fine &#8211; however GDB failed to understand the file format;
+</p>
+<img src="_archive/sentinelone-breaking-and-evading_files/Screen-Shot-2015-12-15-at-11.25.41-AM.png" alt="black screen" style="max-width: 100%; height: auto;" class="aligncenter size-full wp-image-3693" />
+<br />
+<br />
+<p>
+Trying to take things a bit further I wanted to see if this would work as not only an anti-disassembly technique, but also an anti-analysis or obfuscation technique. The idea was that if I was so easily able to find this issue with a few disassemblers, it would be likely that some anti-virus applications may have also implemented the same issue in their parsing engines. From here I grabbed a relatively well detected malware sample from the Linux/XorDDos family;
+</p>
+<img src="_archive/sentinelone-breaking-and-evading_files/Screen-Shot-2015-12-15-at-11.30.05-AM.png" alt="virustotal" style="max-width: 100%; height: auto;" class="aligncenter size-full wp-image-3694" />
+<p>
+<a href="https://www.virustotal.com/en/file/0a9e6adcd53be776568f46c3f98e27b6869f63f9c356468f0d19f46be151c01a/analysis/" target="_blank">https://www.virustotal.com/en/file/0a9e6adcd53be776568f46c3f98e27b6869f63f9c356468f0d19f46be151c01a/analysis/</a>
+</p>
+<p>
+9 different engines (Two appear to be owned by the same company? So I hesitate to say 10) failed to detect the same malware, they just recently detected. This was interesting to me, as I’m relatively new to the Linux side of malware, I would have assumed that these engines would have easily detected the malware and a simple change like this would not be such a simple evasion technique.
+</p>
+<p>
+It seemed almost too easy to beat the disassemblers and engines &#8211; so I wanted to look across a large corpus of samples and see if anyone else has stumbled upon and implemented this technique. Using the rather simple <a href="https://plusvic.github.io/yara/" target="_blank">YARA</a> rule below, I was able to find over 6,000 samples which are currently utilizing this exact technique. Luckily, almost every single one of these samples was just a commercial Android packer attempting to protect it’s own code.
+</p>
+<p>
+While we have yet to see any malicious actors use this technique in the wild, there are likely many other similar tricks being used in the wild. This is a good start at looking to see how ELF files might be abused to hide from analysis, and hopefully with the release of these scripts, people will be able to monitor for this technique being used and other similar ones in the future.
+</p>
+<p>
+Prior to publishing this article, I’ve notified Hex-Rays and the 10 engines which failed to detect the slightly modified malware. The script for producing and fixing these modified binaries can be found on github here. 
+</p>
+<p>
+Yara Rule:
+</p>
+<img src="_archive/sentinelone-breaking-and-evading_files/Screen-Shot-2015-12-15-at-11.35.53-AM.png" alt="gride" style="max-width: 100%; height: auto;" class="aligncenter size-full wp-image-3695" />
+<br />
+<br /><div data-animation="no-animation" data-icons-animation="no-animation" data-overlay="" data-change-size="" data-button-size="1" style="font-size:1em;display:none;" class="supsystic-social-sharing supsystic-social-sharing-package-flat supsystic-social-sharing-spacing supsystic-social-sharing-content"><a class="social-sharing-button sharer-flat sharer-flat-2 counter-standard without-counter without-counter facebook" target="_blank" title="Facebook" href="http://www.facebook.com/sharer.php?u=https%3A%2F%2Fwww.sentinelone.com%2Fblog%2Fbreaking-and-evading%2F" data-nid="1" data-pid="3" data-post-id="3690" data-url="https://www.sentinelone.com/wp-admin/admin-ajax.php"><i class="fa fa-fw fa-facebook"></i><div class="counter-wrap standard"><span class="counter">0</span></div></a><a class="social-sharing-button sharer-flat sharer-flat-2 counter-standard without-counter without-counter twitter" target="_blank" title="Twitter" href="https://twitter.com/share?url=https%3A%2F%2Fwww.sentinelone.com%2Fblog%2Fbreaking-and-evading%2F&text=Breaking and evading Linux with a new novel technique" data-nid="2" data-pid="3" data-post-id="3690" data-url="https://www.sentinelone.com/wp-admin/admin-ajax.php"><i class="fa fa-fw fa-twitter"></i><div class="counter-wrap standard"><span class="counter">2</span></div></a><a class="social-sharing-button sharer-flat sharer-flat-2 counter-standard without-counter without-counter tooltip linkedin" target="_blank" title="Linkedin" href="https://www.linkedin.com/shareArticle?mini=true&title=Breaking and evading Linux with a new novel technique&url=https%3A%2F%2Fwww.sentinelone.com%2Fblog%2Fbreaking-and-evading%2F" data-nid="13" data-pid="3" data-post-id="3690" data-url="https://www.sentinelone.com/wp-admin/admin-ajax.php"><i class="fa fa-fw fa-linkedin"></i><div class="counter-wrap standard"><span class="counter">0</span></div></a></div><div class="entry-links"></div>
+</section><footer class="entry-footer">
+<span class="cat-links">Categories: <a href="https://www.sentinelone.com/category/security/" rel="category tag">Security</a>, <a href="https://www.sentinelone.com/category/threats/" rel="category tag">Threats</a></span>
+<span class="tag-links"></span>
+<span class="meta-sep">|</span> <span class="comments-link"><a href="https://www.sentinelone.com/blog/breaking-and-evading/#comments">Comments</a></span></footer> </article>
+
+<div id="disqus_thread">
+    </div>
+
+
+
+
+<footer class="footer">
+
+<nav id="nav-below" class="navigation" role="navigation">
+    <div class="nav-previous"><a href="https://www.sentinelone.com/blog/utilities-company-chooses-sentinelone-to-safeguard-devices/" rel="prev"><span class="meta-nav">&larr;</span> Previous</a></div>
+    <div class="nav-next"></div>
+</nav>
+
+</footer>
+
+</section>
+
+<aside id="sidebar" role="complementary">
+</aside><div class="clear"></div>
+<footer class="footer-slide">
+<div id="text-5" class="widget-container widget_text">			<div class="textwidget"><ul class="social">
+<li><a href="https://twitter.com/SentinelSec" target="_blank"><i class="fa fa-twitter"></i></a></li>
+<li><a href="https://www.facebook.com/sentinelsec" target="_blank"><i class="fa fa-facebook" target="_blank"></i></a></li>
+<li><a href="https://plus.google.com/107661430507098919794/posts" target="_blank"><i class="fa fa-google-plus"></i></a></li>
+<li><a href="https://www.linkedin.com/company/sentinel-inc-" target="_blank"><i class="fa fa-linkedin"></i></a></li>
+</ul>
+<div class="triangle-top"></div>
+<div class="left_side ft-top">
+<p CLASS="left-p">REGISTER FOR AN </p>
+</div>
+<div class="right_side text-side ft-top2">
+<p class="right-p">EXCLUSIVE DEMO NOW </p>
+</div>
+<div class="footer-ic-wrap">
+<img class="footer-ic" src="_archive/sentinelone-breaking-and-evading_files/registericon.png">
+</div>
+<div class="one_half">
+<h3>Register for an Exclusive <span> Demo</span> NOW!</h3>
+<p class="footer-intro">For enterprise IT professionals responsible for security, SentinelOne provides a full cycle of protection against advanced persistent threats (APTs) and zero-day attacks from detection to prevention with real-time forensics generated during attacks.</p>
+</div>
+<div class="one_half form-side">
+<a class="close-footer" id="close-footer" href="#"></a>
+<div role="form" class="wpcf7" id="wpcf7-f59-o2" lang="en-US" dir="ltr">
+<div class="screen-reader-response"></div>
+<form name="" action="/blog/breaking-and-evading/#wpcf7-f59-o2" method="post" class="wpcf7-form" novalidate="novalidate">
+<div style="display: none;">
+<input type="hidden" name="_wpcf7" value="59" />
+<input type="hidden" name="_wpcf7_version" value="4.2.1" />
+<input type="hidden" name="_wpcf7_locale" value="en_US" />
+<input type="hidden" name="_wpcf7_unit_tag" value="wpcf7-f59-o2" />
+<input type="hidden" name="_wpnonce" value="d8fd20f5c6" />
+</div>
+<div class="footer-lead-form">
+<p><span class="wpcf7-form-control-wrap first-name"><input type="text" name="first-name" value="" size="40" class="wpcf7-form-control wpcf7-text wpcf7-validates-as-required" aria-required="true" aria-invalid="false" placeholder="First Name*" /></span></p>
+<p><span class="wpcf7-form-control-wrap last-name"><input type="text" name="last-name" value="" size="40" class="wpcf7-form-control wpcf7-text" aria-invalid="false" placeholder="Last Name" /></span></p>
+<p><span class="wpcf7-form-control-wrap job"><input type="text" name="job" value="" size="40" class="wpcf7-form-control wpcf7-text" aria-invalid="false" placeholder="Job Title" /></span></p>
+<p><span class="wpcf7-form-control-wrap company"><input type="text" name="company" value="" size="40" class="wpcf7-form-control wpcf7-text" aria-invalid="false" placeholder="Company Name" /></span></p>
+<p><span class="wpcf7-form-control-wrap email"><input type="email" name="email" value="" size="40" class="wpcf7-form-control wpcf7-text wpcf7-email wpcf7-validates-as-required wpcf7-validates-as-email" aria-required="true" aria-invalid="false" placeholder="Email Address*" /></span></p>
+<p class="f-btn" style="margin:0;">
+<div><span class="wpcf7-form-control-wrap demo"><select name="demo" class="wpcf7-form-control wpcf7-select" aria-invalid="false"><option value="I am interested in a live EPP Demo">I am interested in a live EPP Demo</option><option value="I am interested in a live EDR Demo" selected="selected">I am interested in a live EDR Demo</option><option value="Speak to a security expert">Speak to a security expert</option></select></span></div>
+<div class="footer-form-radio-field"><span class="wpcf7-form-control-wrap newsletter"><span class="wpcf7-form-control wpcf7-checkbox"><span class="wpcf7-list-item first last"><input type="checkbox" name="newsletter[]" value="Sign up for our newsletter" />&nbsp;<span class="wpcf7-list-item-label">Sign up for our newsletter</span></span></span></span></div>
+<p><input type="submit" value="Send" class="wpcf7-form-control wpcf7-submit" id="ad442878" /></p>
+<p><span class="wpcf7-form-control-wrap lead"><input type="hidden" name="lead" value="footer form" /></span><br />
+<span class="wpcf7-form-control-wrap referrer"><input type="hidden" name="referrer" value="unknown" /></span><br />
+<span class="wpcf7-form-control-wrap campaign"><input type="hidden" name="campaign" value="" /></span>
+</p></div>
+<p></p>
+<div class="wpcf7-response-output wpcf7-display-none"></div></form></div>
+</div></div>
+		</div></footer>
+</div>
+</div>
+		<div class="mn-navigation-wrap">
+										<div class="mn-logo-image"><a href="https://www.sentinelone.com"><img width="223" height="64" src="_archive/sentinelone-breaking-and-evading_files/sentinelone.png" class="attachment-full" alt="sentinelone" /></a></div>
+						<div class="mn-icon-wrap">
+				<div class="icono-bars"></div>
+				<div class="icono-cross"></div>
+			</div>
+						<div class="mn-menu-wrap">
+									<ul id="menu-menu-2" class="mobile-navigation"><li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-26"><a href="https://www.sentinelone.com/">Home</a></li>
+<li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-1013"><a>Products</a>
+<ul class="sub-menu">
+	<li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-641"><a href="/?show_edr=true">EDR &#8211; Endpoint Detection &#038; Response</a></li>
+	<li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2255"><a href="/?show_epp=true">EPP &#8211; Endpoint Protection Platform</a></li>
+	<li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3583"><a href="/epp-demo-videos/">What’s New in 1.6</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-25"><a href="https://www.sentinelone.com/solutions/">Solutions</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-245"><a href="https://www.sentinelone.com/services/">Services</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-21"><a href="https://www.sentinelone.com/blog/">Blog</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-1205"><a href="https://www.sentinelone.com/team/">About</a>
+<ul class="sub-menu">
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-595"><a href="https://www.sentinelone.com/team/">Team</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-591"><a href="https://www.sentinelone.com/careers/">Careers</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-592"><a href="https://www.sentinelone.com/events/">Events</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-593"><a href="https://www.sentinelone.com/partners/">Partners</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1008"><a href="https://www.sentinelone.com/news-2/">News</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-594"><a href="https://www.sentinelone.com/press/">Press</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-22"><a href="https://www.sentinelone.com/contact/">Contact</a></li>
+</ul>							</div>
+		</div>
+		<!-- Google Tag Manager -->
+<noscript></noscript>
+
+<!-- End Google Tag Manager -->
+    <link rel='stylesheet' id='sss-base-css'  href='https://www.sentinelone.com/wp-content/plugins/social-share-buttons-by-supsystic/src/SocialSharing/Projects/assets/css/base.css' type='text/css' media='all' />
+<link rel='stylesheet' id='sss-tooltipster-main-css'  href='https://www.sentinelone.com/wp-content/plugins/social-share-buttons-by-supsystic/src/SocialSharing/Projects/assets/css/tooltipster.css' type='text/css' media='all' />
+<link rel='stylesheet' id='sss-brand-icons-css'  href='https://www.sentinelone.com/wp-content/plugins/social-share-buttons-by-supsystic/src/SocialSharing/Projects/assets/css/buttons/brand-icons.css' type='text/css' media='all' />
+<link rel='stylesheet' id='sss-tooltipster-shadow-css'  href='https://www.sentinelone.com/wp-content/plugins/social-share-buttons-by-supsystic/src/SocialSharing/Projects/assets/css/tooltipster-shadow.css' type='text/css' media='all' />
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" type="text/css" href="https://www.sentinelone.com/wp-content/themes/sentinelone/css/metaslider.css" type="text/css" />
+</body>
+</html>
+<!-- Performance optimized by W3 Total Cache. Learn more: http://www.w3-edge.com/wordpress-plugins/
+
+Page Caching using disk: enhanced
+Object Caching 1449/1861 objects using disk
+
+ Served from: www.sentinelone.com @ 2015-12-15 20:26:38 by W3 Total Cache -->
