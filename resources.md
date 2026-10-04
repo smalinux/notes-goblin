@@ -448,6 +448,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - Test file: EICAR (eicar.org) — harmless AV detection check
 - Reference: MalAPI.io, Malpedia (malpedia.caad.fkie.fraunhofer.de), Unprotect.it, Malcat (malcat.fr)
 - History: Google: Mirai Botnet
+-- YouTube: Revisit later: https://www.youtube.com/watch?v=adAr0KBJm4U
 
 ## Tools — web, network, blue/red team, cloud
 - Burp Suite — https://portswigger.net/burp
