@@ -127,6 +127,7 @@ const TRACKS = {
   pre:  { name: "Practical Reverse Engineering (book)", short: "PRE book", color: "#6366f1" },
   ost2: { name: "OST2 — Assembly (Arch1001 x86-64)",    short: "OST2 asm", color: "#10b981" },
   re4b: { name: "RE4B — Reverse Engineering for Beginners (book)", short: "RE4B book", color: "#38bdf8" },
+  bn:   { name: "Binary Ninja (tool)",                   short: "Binja",    color: "#f97316" },
 };
 
 const LOG = [
@@ -141,6 +142,8 @@ const LOG = [
   { d:"2026-09-30", t:"re4b", e:"progress", note:"Read on the train up to §1.5.2 (Hello, world! — x86-64), p.18" },
   { d:"2026-09-30", t:"ost2", e:"progress", note:"Watched a few parts of the bottom half, still in progress — comfortable (at least mentally) with the ABI differences and GCC vs MSVC. Tomorrow: continue from 'Looking at all those examples on Linux!' — the ugly AT&T syntax. Bottom half + exercises ≈ another week" },
   { d:"2026-09-30", t:"ost2", e:"skip",     tag:"arch1001-revisit", note:"Revisit the whole course in a few months — after real assembly & RE practice — to make sure the knowledge truly stuck" },
+  { d:"2026-10-04", t:"bn",   e:"start",    note:"Started playing with Binary Ninja" },
+  { d:"2026-10-04", t:"bn",   e:"progress", note:"Learned the basics. Tomorrow: start reading the user manual" },
 ];
 
 const STALE_DAYS = 7;    // amber warning after this much silence
