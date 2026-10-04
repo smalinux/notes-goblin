@@ -442,6 +442,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - Network/C2: Wireshark, FakeNet-NG 🦄, INetSim 🦄, JA3/JA4 fingerprints, C2 Matrix
 - Detection: YARA + YARA-X, Sigma, Neo23x0/signature-base (Florian Roth)
 - Config extraction: Binary Refinery, malduck + karton + MWDB (CERT.pl)
+  - Binary Refinery — https://github.com/binref/refinery
 - Sandboxes: CAPEv2, ANY.RUN, Joe Sandbox, Tria.ge, Hybrid Analysis, DRAKVUF, VirusTotal + LiveHunt
 - Sample sources: MalwareBazaar (abuse.ch) 🦄, vx-underground 🦄, VirusShare/MalShare, Malpedia, theZoo (github repo for Malware samples) 🦄, malware-traffic-analysis.net, contagio
 - Test file: EICAR (eicar.org) — harmless AV detection check
@@ -472,12 +473,15 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - synthesis.to (Tim Blazytko) · msreverseengineering.com/blog (Rolf Rolles) · hex-rays.com/blog ("Igor's Tip of the Week") · binary.ninja/blog (Vector 35) · blog.quarkslab.com
 - mahaloz.re + decompilation.wiki ("30 Years of Decompilation") · megabeets.net (radare2) · unprotect.it · felixcloutier.com/x86 · agner.org/optimize
 - airbus-seclab/qemu_blog · corkami (Ange Albertini) · dogbolt.org · Ricardo Narvaja RE courses (Spanish)
+  - blog.washi.dev (Washi — AsmResolver author, .NET RE & deobfuscation) — https://blog.washi.dev/
 ### Exploitation / kernel
 - Google Project Zero (projectzero.google) · Phrack — https://phrack.org · RET2 Systems blog · Connor McGarr · Zero Day Initiative blog · Zon8 Research JS engine reading list · browser-pwn (m1ghtym0) · Nightmare (guyinatuxedo) · sploitfun "Understanding glibc malloc" · Exodus Intelligence / grsecurity
 ### Windows internals
 - Microsoft Learn · Geoff Chappell (geoffchappell.com) · Alex Ionescu (alex-ionescu.com) · tiraniddo.dev (Forshaw) · ired.team · CodeMachine Articles · hasherezade "1001 nights" · Palantir "Tampering with Windows Event Tracing" · modexp · LOLBAS
 ### Malware
 - Mandiant/FLARE (cloud.google.com/blog/topics/threat-intelligence) · Check Point Research · Securelist / Kaspersky GReAT · SentinelLabs · Elastic Security Labs · Unit 42 · Cisco Talos · Zscaler ThreatLabz · ESET WeLiveSecurity · The DFIR Report · hasherezade's blog · 0ffset blog · MalwareTech · vx-underground · Malpedia · n1ght-w0lf · ired.team · decoded.avast.io · exploitreversing.com (Alexandre Borges)
+  - dr4k0nia (.NET malware & deobfuscation) — https://dr4k0nia.github.io/
+  - pwnage.io / infosec4breakfast (Joshua Reynolds — malware RE, Qiling emulation) — https://pwnage.io/
 - APT collections: APTnotes (github.com/aptnotes/data) · CyberMonitor APT & CyberCriminal Collections · ThaiCERT Threat Group Cards (apt.etda.or.th) · Virus Bulletin archive · Mandiant APT1 (2013) · MITRE ATT&CK
 ### Firmware / hardware
 - Raelize · Quarkslab · Colin O'Flynn · rtl-sdr.com · Great Scott Gadgets (Ossmann) · firmwaresecurity.com · OWASP Firmware Security Testing Methodology (FSTM) · Interrupt (Memfault) blog
@@ -809,3 +813,14 @@ Raw links parked here for later sorting.
 - `[[devopstoolbox]]` — 500+ DevOps/terminal tools + 207 YouTube videos (only the security-relevant subset copied above).
 - Personal career/immigration links (Austria RWR card, etc.) live in their own career notes, not here.
 - Book covers + per-book ratings, reading status and page progress: [books.html](./books.html).
+
+### Yara
+
+	- Talk with Yara auther & main maintainer https://podcasts.apple.com/us/podcast/ep02-victor-manuel-alvarez-motivation-community-and/id1777589687?i=1000677670834
+	- Introduction to YARA Part 1 - What is a YARA Rule https://youtu.be/3BpIhbsDR_I
+	- Yara rules
+		-- Google it.
+		-- https://github.com/yara-rules/rules
+		-- https://github.com/neo23x0/signature-base
+		-- https://github.com/elastic/protections-artifacts/tree/main/yara
+
