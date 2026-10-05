@@ -122,7 +122,8 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
   - Pwn2Own "IoT / SOHO Smashup" category
   - 34 0-days at Pwn2Own — https://cybersecuritynews.com/34-0-day-vulnerabilities-pwn2own/
 - Zero Day Initiative (ZDI)
-- Flare-On (solo malware-RE CTF each fall) — https://flare-on.com 🦄
+- Flare-On (solo malware-RE CTF each fall) —  🦄 https://flare-on.com/
+- Past-year challenges + official solutions (all editions) — https://github.com/mandiant/flare-on-challenges 🦄
 - DEF CON CTF · Google CTF · PlaidCTF (CMU PPP) · HITCON CTF · Real World CTF (Chaitin, hypervisor) · hxp / Dragon / 0CTF
 - Rhme CTF (ChipWhisperer / fault injection) · Hack-A-Sat (satellite)
 - Code4rena / Sherlock / Secureum (smart-contract audits)
@@ -476,7 +477,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - airbus-seclab/qemu_blog · corkami (Ange Albertini) · dogbolt.org · Ricardo Narvaja RE courses (Spanish)
   - blog.washi.dev (Washi — AsmResolver author, .NET RE & deobfuscation) — https://blog.washi.dev/
 ### Exploitation / kernel
-- Google Project Zero (projectzero.google) · Phrack — https://phrack.org · RET2 Systems blog · Connor McGarr · Zero Day Initiative blog · Zon8 Research JS engine reading list · browser-pwn (m1ghtym0) · Nightmare (guyinatuxedo) · sploitfun "Understanding glibc malloc" · Exodus Intelligence / grsecurity
+- Google Project Zero (projectzero.google) · Phrack — https://phrack.org 🦄 · RET2 Systems blog · Connor McGarr · Zero Day Initiative blog · Zon8 Research JS engine reading list · browser-pwn (m1ghtym0) · Nightmare (guyinatuxedo) · sploitfun "Understanding glibc malloc" · Exodus Intelligence / grsecurity
 ### Windows internals
 - Microsoft Learn · Geoff Chappell (geoffchappell.com) · Alex Ionescu (alex-ionescu.com) · tiraniddo.dev (Forshaw) · ired.team · CodeMachine Articles · hasherezade "1001 nights" · Palantir "Tampering with Windows Event Tracing" · modexp · LOLBAS
 ### Malware
@@ -531,7 +532,7 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - gdb quick intro — https://youtu.be/HcBordv7aWU?t=246
 
 ## Papers, RFCs & protocol docs
-- "Smashing the Stack for Fun and Profit" — Aleph One (Phrack 49)
+- "Smashing the Stack for Fun and Profit" — Aleph One (Phrack 49) — https://phrack.org/issues/49/smashing-the-stack-for-fun-and-profit
 - "The Malloc Maleficarum" — Phantasmal · "Attacking JavaScript Engines" + "Exploiting Logic Bugs in JS JIT Engines" — saelo (Phrack 70)
 - "Setuid Demystified" — USENIX Security 2002 (Chen, Wagner, Dean)
 - SoK: All You Ever Wanted to Know About x86/x64 Binary Disassembly — Pang et al., S&P 2021
@@ -825,3 +826,42 @@ Raw links parked here for later sorting.
 		-- https://github.com/neo23x0/signature-base
 		-- https://github.com/elastic/protections-artifacts/tree/main/yara
 
+### Shellcode
+shell-storm: https://shell-storm.org/shellcode/index.html
+
+### DLL search order hijacking (Windows persistence)
+Technique traces back to **Nick Harbour** (Mandiant), 2010:
+- [Malware Persistence without the Windows Registry](https://cloud.google.com/blog/topics/threat-intelligence/malware-persistence-windows-registry) — Jul 2010, still live on Google Cloud's threat-intel blog. The EXE's own directory is first in the DLL search order (except `KnownDLLs`), and `KnownDLLs` does *not* protect *dependent* DLLs: `explorer.exe` loads `ws2_32.dll` (protected) → which loads `iphlpapi.dll` (not protected) → drop a fake in `C:\Windows` for persistence with zero registry footprint. He counted 1,032 exploitable DLL/path combos on Win7 x64.
+- "DLL Search Order Hijacking Revisited" — Sep 2010, distinguishes this persistence technique from the remote "DLL preloading / binary planting" flavor. ⚠️ dead everywhere: fireeye.com 530, mandiant.com 301s to a landing page, Google Cloud slug soft-404s, no Wayback snapshot.
+- [The Black Art of Binary Hijacking](https://media.blackhat.com/bh-us-10/presentations/Harbour/BlackHat-USA-2010-Harbour-Black-Art-of-Binary-Hijacking-slides.pdf) — same research, Black Hat USA 2010 slides (PDF), live.
+- Modern follow-ups: [MITRE T1574.001](https://attack.mitre.org/techniques/T1574/001/) · [Mandiant: DLL Side-loading & Hijacking](https://cloud.google.com/blog/topics/threat-intelligence/abusing-dll-misconfigurations/) · [Hijacking DLLs in Windows](https://www.wietzebeukema.nl/blog/hijacking-dlls-in-windows) (Wietze Beukema) · [HijackLibs](https://hijacklibs.net/)
+
+### DLL side-loading (FireEye, 2014)
+**Amanda Stewart** (FireEye) — the canonical reference. Malicious DLL dropped so a trusted EXE loads it instead of the real one (WinSxS abuse); payload runs in-memory under a benign process. ⚠️ all original fireeye.com URLs now 301 to a generic Mandiant landing page.
+- [DLL Side-Loading: A Thorn in the Side of the Anti-Virus (AV) Industry](https://docs.huihoo.com/rsaconference/usa-2014/hta-w04a-dll-side-loading-a-thorn-in-the-side-of-the-anti-virus-av-industry.pdf) — RSA Conference 2014 slides, session HTA-W04A (PDF, live mirror). What it is → APT usage → how to recognize → how to avoid.
+- [DLL Side-Loading: Another Blind-Spot for Anti-Virus](https://web.archive.org/web/20200313180739/https://www.fireeye.com/blog/threat-research/2014/04/dll-side-loading-another-blind-spot-for-anti-virus.html) — Apr 2014 blog post (Wayback only).
+- [rpt-dll-sideloading.pdf](https://web.archive.org/web/20200302090732/https://www.fireeye.com/content/dam/fireeye-www/global/en/current-threats/pdfs/rpt-dll-sideloading.pdf) — the full whitepaper (Wayback only). Best of the three: disambiguates side-loading vs. search-order hijacking vs. DLL hijacking vs. pre-loading, plus a PlugX variant teardown (campaign against Chinese political rights activists).
+- Modern follow-ups: [MITRE T1574.002](https://attack.mitre.org/techniques/T1574/002/) · [CAPEC-641](https://capec.mitre.org/data/definitions/641.html) · [mandiant/DueDLLigence](https://github.com/mandiant/DueDLLigence) (hands-on shellcode-execution harness for finding side-loading targets)
+
+### Anti-disassembly in malware samples
+
+**Real malware samples with anti-disassembly**
+- [DanaBot obfuscation techniques (Zscaler)](https://www.zscaler.com/blogs/security-research/technical-analysis-danabot-obfuscation-techniques) — the best "real sample" write-up of the bunch. Covers the **junk-byte jump**: a `jmp` over inserted garbage that makes IDA decode wrong instruction boundaries, plus control-flow flattening and string obfuscation.
+- [Defeating Anti-Reverse Engineering: the 'Trouble' binary (Binary Ninja, Jan 2026)](https://binary.ninja/2026/01/23/reversing-linux-anti-re.html) — Linux binary that XOR-decrypts a buffer at runtime and jumps into the freshly decrypted region. Relevant to your `binary_ninja/` notes; also discusses how BN's basic-block analysis handles malformed code.
+- [How Malware Employs Anti-Debugging, Anti-Disassembly and Anti-Virtualization (Qualys / BlackHat 2012)](https://blog.qualys.com/vulnerabilities-threat-research/2012/07/30/how-malware-employs-anti-debugging-anti-disassembly-and-anti-virtualization-technologies) — statistical study over a large sample corpus: which techniques actually show up in the wild and how often. Old but still the main data point on prevalence.
+
+**Technique references (the canon)**
+- [Practical Malware Analysis, Ch. 15 — Anti-Disassembly (PDF)](http://staff.ustc.edu.cn/~bjhua/courses/security/2014/readings/anti-disas.pdf) — the chapter itself. Linear vs. flow-oriented disassembly, jump-with-same-target (`jz`/`jnz` to one address), `E8` false call, impossible disassembly, `push`/`retn` instead of `jmp`, SEH abuse. Start here if you want one source.
+- [MBC: Disassembler Evasion](https://github.com/MBCProject/mbc-markdown/blob/main/anti-static-analysis/disassembler-evasion.md) and [Executable Code Obfuscation](https://github.com/MBCProject/mbc-markdown/blob/main/anti-static-analysis/executable-code-obfuscation.md) — MITRE's Malware Behavior Catalog. Each technique has an ID and real malware families cited as examples, so it's a good index into further write-ups.
+- [RE Reference Manual — Anti-Disassembly](https://github.com/shangadi/reverse-engineering-reference-manual/blob/master/contents/anti-analysis/Anti-Disassembly.md) — terse cheatsheet form, good to keep next to the disassembler.
+- [Anti-disassembly, anti-debugging and anti-VM (Infosec Institute)](https://www.infosecinstitute.com/resources/malware-analysis/anti-disassembly-anti-debugging-and-anti-vm/) — decent overview tying the three categories together.
+
+**Defeating it with scripts**
+- [IDA Pro Anti-Disassembly, Basic Blocks, and IDAPython (Moritz Raabe)](https://moritzraabe.de/2017/01/15/ida-pro-anti-disassembly-basic-blocks-and-idapython/) — the practical one: how anti-disassembly breaks IDA's basic-block graph and IDAPython to patch junk bytes to `nop` and re-analyze. This is the "now fix it" piece most overviews are missing.
+- [Malware development part 6 — obfuscation with LLVM (0xpat)](https://0xpat.github.io/Malware_development_part_6/) — offense side, useful for understanding *why* opaque predicates and CFG flattening look the way they do in the disassembly.
+
+**Lab walkthroughs (PMA 15-01…15-03)**
+- [Lab 15 — Discover Anti-Disassembly Techniques (Medium)](https://medium.com/@aitichoumustapha/lab-15-practical-malware-analysis-discover-anti-disassembly-techniques-7198b91baf3f)
+- [Practical Malware Analysis: Anti-Disassembly Lab 15-01](https://jmprsp.wordpress.com/2016/03/20/practical-malware-analysis-anti-disassemblylab-15-01/) — the `xor`-then-`jz` trick and the `E8` opcode abuse, worked byte by byte.
+
+Given your repo rule ("read less, build more — every resource means do the labs and publish a writeup"), the minimal path is: PMA ch.15 → Lab 15-01/02/03 → Raabe's IDAPython script → DanaBot as the real-world confirmation. The Binary Ninja 'Trouble' post slots naturally into `binary_ninja/`.
