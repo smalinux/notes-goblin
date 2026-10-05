@@ -388,6 +388,8 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - rappel (asm REPL) — https://github.com/yrp604/rappel
 - aarch64-esr-decoder — https://esr.arm64.dev/
 - Hiew (Hacker's View) — https://www.hiew.ru/ — classic hex editor + disassembler/assembler (x86/x64/ARM); fast PE/ELF triage and in-place binary patching
+- ImHex — https://github.com/WerWolv/ImHex — hex editor
+- rehex — https://github.com/solemnwarning/rehex — hex editor
 - readelf / nm / objdump / patchelf / objcopy / strip
 
 ## Tools — debugging & dynamic analysis
