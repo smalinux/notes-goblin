@@ -13,10 +13,14 @@
         die        Detect It Easy            (portable -> C:\Tools\DIE)
         pestudio   PE Studio                 (portable -> C:\Tools\pestudio)
         dnspy      dnSpyEx                   (portable -> C:\Tools\dnSpyEx)
+        x64dbg     x64dbg / x32dbg           (portable -> C:\Tools\x64dbg)
+        vs         Visual Studio Community   (installed, "Desktop development with C++" workload)
 
     Portable tools get a desktop shortcut and a command shim in C:\Tools\bin
     (which is added to the system PATH), so `pebear`, `die`, `diec`, `pestudio`,
-    `dnspy`, `reshacker` all work from cmd after a new shell is opened.
+    `dnspy`, `reshacker`, `x64dbg`, `x32dbg` all work from cmd after a new shell is opened.
+
+    Visual Studio is a multi-GB download and takes a while; skip it with -Skip vs.
 
     Re-runnable: already-installed tools are skipped unless -Force is given.
 
@@ -37,6 +41,8 @@ param(
     [string]   $ToolsDir            = 'C:\Tools',
     [string]   $SamplesDir          = 'C:\Samples',
     [string]   $PythonVersion       = '3.13.16',
+    [string]   $VSBootstrapperUrl   = 'https://aka.ms/vs/17/release/vs_community.exe',
+    [string[]] $VSWorkloads         = @('Microsoft.VisualStudio.Workload.NativeDesktop'),
     [string[]] $Only,
     [string[]] $Skip,
     [switch]   $Force,
@@ -379,6 +385,69 @@ function Install-dnSpyEx {
     return $a.Version
 }
 
+function Find-X64dbg {
+    # snapshot zips nest the binaries under release\x64 and release\x32
+    $dest = Join-Path $ToolsDir 'x64dbg'
+    if (-not (Test-Path $dest)) { return $null }
+    $x64 = Get-ChildItem -Path $dest -Filter 'x64dbg.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $x64) { return $null }
+    $root = Split-Path (Split-Path $x64.FullName -Parent) -Parent
+    return [pscustomobject]@{
+        X64 = $x64.FullName
+        X32 = Join-Path $root 'x32\x32dbg.exe'
+        X96 = Join-Path $root 'x96dbg.exe'
+    }
+}
+
+function Install-X64dbg {
+    $found = Find-X64dbg
+    if (-not $Force -and $found) { Write-Ok "already present ($(Split-Path $found.X64 -Parent))"; return 'portable' }
+    # asset names are timestamped (snapshot_YYYY-MM-DD_HH-MM.zip), so no tag fallback
+    $a = Get-GitHubAsset -Repo 'x64dbg/x64dbg' -Pattern 'snapshot_*.zip'
+    $zip  = Join-Path $script:CacheDir $a.Name
+    $dest = Join-Path $ToolsDir 'x64dbg'
+    Invoke-Download -Url $a.Url -OutFile $zip
+    Expand-Zip -ZipPath $zip -Destination $dest
+    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    $found = Find-X64dbg
+    if (-not $found) { throw 'x64dbg.exe not found after extracting the snapshot' }
+    New-Shim -Name 'x64dbg' -Target $found.X64
+    if (Test-Path $found.X32) { New-Shim -Name 'x32dbg' -Target $found.X32 }
+    New-DesktopShortcut -Name 'x64dbg' -Target $found.X64
+    if (Test-Path $found.X32) { New-DesktopShortcut -Name 'x32dbg' -Target $found.X32 }
+    return $a.Version
+}
+
+function Find-VisualStudio {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (-not (Test-Path $vswhere)) { return $null }
+    $args_ = @('-latest', '-products', '*', '-format', 'json')
+    foreach ($w in $VSWorkloads) { $args_ += @('-requires', $w) }
+    $vs = (& $vswhere @args_ | Out-String | ConvertFrom-Json) | Select-Object -First 1
+    if (-not $vs) { return $null }
+    return [pscustomobject]@{
+        Path    = $vs.installationPath
+        Version = $vs.catalog.productDisplayVersion
+        Devenv  = Join-Path $vs.installationPath 'Common7\IDE\devenv.exe'
+    }
+}
+
+function Install-VisualStudio {
+    $existing = Find-VisualStudio
+    if (-not $Force -and $existing) { Write-Ok "already present ($($existing.Version) at $($existing.Path))"; return $existing.Version }
+    $exe = Join-Path $script:CacheDir 'vs_community.exe'
+    Invoke-Download -Url $VSBootstrapperUrl -OutFile $exe
+    $vsArgs = @('--quiet', '--wait', '--norestart', '--nocache', '--includeRecommended')
+    foreach ($w in $VSWorkloads) { $vsArgs += @('--add', $w) }
+    Write-Info 'this downloads several GB and can take 20+ minutes'
+    Invoke-Installer -FilePath $exe -Arguments $vsArgs
+    Remove-Item $exe -Force -ErrorAction SilentlyContinue
+    $now = Find-VisualStudio
+    if (-not $now) { throw 'Visual Studio installer finished but vswhere cannot find the install' }
+    New-Shim -Name 'devenv' -Target $now.Devenv
+    return $now.Version
+}
+
 # ----------------------------------------------------------- VM tweaks ------
 function Set-ExplorerTweaks {
     if ($NoExplorerTweaks) { return }
@@ -430,6 +499,8 @@ $tools = [ordered]@{
     'die'       = @{ Name = 'Detect It Easy';             Action = { Install-DIE } }
     'pestudio'  = @{ Name = 'PE Studio';                  Action = { Install-PEStudio } }
     'dnspy'     = @{ Name = 'dnSpyEx';                    Action = { Install-dnSpyEx } }
+    'x64dbg'    = @{ Name = 'x64dbg';                     Action = { Install-X64dbg } }
+    'vs'        = @{ Name = 'Visual Studio Community';    Action = { Install-VisualStudio } }
 }
 
 foreach ($key in $tools.Keys) {
@@ -462,7 +533,7 @@ Write-Host "  Portable tools : $ToolsDir"
 Write-Host "  Samples folder : $SamplesDir"
 Write-Host "  Full log       : $log"
 Write-Host ''
-Write-Host '  Open a NEW cmd window, then: pebear / die / diec / pestudio / dnspy / reshacker / hxd / python' -ForegroundColor Gray
+Write-Host '  Open a NEW cmd window, then: pebear / die / diec / pestudio / dnspy / reshacker / hxd / x64dbg / x32dbg / devenv / python' -ForegroundColor Gray
 Write-Host '  Next: set the VM network to host-only (or disconnect it) and take a clean snapshot.' -ForegroundColor Gray
 Write-Host ''
 
