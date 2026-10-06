@@ -867,3 +867,11 @@ Technique traces back to **Nick Harbour** (Mandiant), 2010:
 - [Practical Malware Analysis: Anti-Disassembly Lab 15-01](https://jmprsp.wordpress.com/2016/03/20/practical-malware-analysis-anti-disassemblylab-15-01/) — the `xor`-then-`jz` trick and the `E8` opcode abuse, worked byte by byte.
 
 Given your repo rule ("read less, build more — every resource means do the labs and publish a writeup"), the minimal path is: PMA ch.15 → Lab 15-01/02/03 → Raabe's IDAPython script → DanaBot as the real-world confirmation. The Binary Ninja 'Trouble' post slots naturally into `binary_ninja/`.
+
+### Command-line obfuscation (Daniel Bohannon, Mandiant)
+_**SMA:** Heard about this from: EP03 Ryan Chapman - From Software Cracking to Threat Hunting: A Reverse Engineering Story._
+- [DOSfuscation whitepaper (2018)](https://cloud.google.com/blog/topics/threat-intelligence/dosfuscation-exploring-obfuscation-and-detection-techniques) · [BH Asia talk](https://infocondb.org/con/black-hat/black-hat-asia-2018/invoke-dosfuscation-techniques-for-f-in-style-do-s-level-cmd-obfuscation): `cmd.exe` obfuscation (`^`, `""`, `%VAR:~s,n%`, `%VAR:old=new%`, FOR-loop encodings) + detection.
+- [Invoke-DOSfuscation (GitHub)](https://github.com/danielbohannon/Invoke-DOSfuscation) · [HITB 2018 slides](https://conference.hitb.org/hitbsecconf2018ams/materials/D1T2%20-%20Daniel%20Bohannon%20-%20Invoke-DOSfuscation.pdf) · [HITB talk list](https://www.helpnetsecurity.com/2018/01/18/hitb2018ams-accepted-talks/) · [Dark Reading](https://www.darkreading.com/threat-intelligence/researcher-to-release-free-attack-obfuscation-tool)
+- Deobfuscation: [De-DOSfuscation with flare-qdb (FLARE)](https://cloud.google.com/blog/topics/threat-intelligence/cmd-and-conquer-de-dosfuscation-flare-qdb)
+- Secondary: [IT Carlow student research (PDF)](https://showcase.itcarlow.ie/C00253245/assets/docs/Research.pdf) · [cmd evasion Q&A](https://answers.securityscientist.net/q/22303/what-obfuscation-techniques-do-adversaries-use-to-evade-cmd-exe-detection) · [iThome series, zh-TW](https://ithelp.ithome.com.tw/articles/10281403)
+- Related: [Revoke-Obfuscation (PowerShell, BH USA 2017)](https://github.com/danielbohannon/Revoke-Obfuscation) · [MaLDAPtive (DEF CON 32)](https://securityboulevard.com/2024/11/def-con-32-maldaptive-obfuscation-and-de-obfuscation)
