@@ -11,6 +11,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 > Book covers + reading tracker live in [books.html](./books.html). Rule for me: read less, build more — every resource means do the labs and publish a writeup.
 
 ## Table of contents
+- [DFIR Diva ❤️❤️❤️❤️❤️](#dfir-diva-️️️️️)
 - [My notes-goblin pages](#my-notes-goblin-pages)
 - [Practice platforms & wargames](#practice-platforms--wargames)
 - [CTFs, competitions & events](#ctfs-competitions--events)
@@ -49,6 +50,9 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [External links — unsorted drop-box](#external-links--unsorted-drop-box)
 
 ---
+
+## DFIR Diva ❤️❤️❤️❤️❤️
+- [dfirdiva.com](https://dfirdiva.com)
 
 ## My notes-goblin pages
 Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https://htmlpreview.github.io/)).
@@ -452,6 +456,9 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - Reference: MalAPI.io, Malpedia (malpedia.caad.fkie.fraunhofer.de), Unprotect.it, Malcat (malcat.fr)
 - History: Google: Mirai Botnet
 -- YouTube: Revisit later: https://www.youtube.com/watch?v=adAr0KBJm4U
+- History: Conti — Russian RaaS gang (Wizard Spider, Ryuk successor); Feb 2022 "ContiLeaks": a Ukrainian researcher dumped its chats + source code after Conti backed Russia
+- History: Monti — copycat ransomware (2022) built on the leaked Conti code, name mimics Conti; later Linux/ESXi variant
+- History: Babuk — RaaS (2021), source leaked Sept 2021, spawned many ESXi lockers. Why: real ransomware code end to end (FS walk, Curve25519 + stream cipher, ESXi VM shutdown)
 
 ## Tools — web, network, blue/red team, cloud
 - Burp Suite — https://portswigger.net/burp
