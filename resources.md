@@ -875,3 +875,7 @@ _**SMA:** Heard about this from: EP03 Ryan Chapman - From Software Cracking to T
 - Deobfuscation: [De-DOSfuscation with flare-qdb (FLARE)](https://cloud.google.com/blog/topics/threat-intelligence/cmd-and-conquer-de-dosfuscation-flare-qdb)
 - Secondary: [IT Carlow student research (PDF)](https://showcase.itcarlow.ie/C00253245/assets/docs/Research.pdf) · [cmd evasion Q&A](https://answers.securityscientist.net/q/22303/what-obfuscation-techniques-do-adversaries-use-to-evade-cmd-exe-detection) · [iThome series, zh-TW](https://ithelp.ithome.com.tw/articles/10281403)
 - Related: [Revoke-Obfuscation (PowerShell, BH USA 2017)](https://github.com/danielbohannon/Revoke-Obfuscation) · [MaLDAPtive (DEF CON 32)](https://securityboulevard.com/2024/11/def-con-32-maldaptive-obfuscation-and-de-obfuscation)
+
+### Ryan Chapman: EP03 "From Software Cracking to Threat Hunting: A Reverse Engineering Story"
+- Google: `Ryan "rj_chap" Chapman` · `Ryan Chapman SANS FOR528 ransomware` · `Ryan Chapman FOR610` · `Ryan Chapman Palo Alto managed threat hunting` · `Ryan Chapman Blueprint malware triage`
+- TODO: talk notes
