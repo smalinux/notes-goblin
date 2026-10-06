@@ -1,0 +1,27 @@
+// RE4B p.503  1.32.4 Fast square root calculation
+
+/* Assumes that float is in the IEEE 754 single precision floating point format
+ * and that int is 32 bits. */
+float sqrt_approx(float z)
+{
+    int val_int = *(int*)&z; /* Same bits, but as an int */
+    /*
+     * To justify the following code, prove that
+     *
+
+     * ((((val_int / 2^m) - b) / 2) + b) * 2^m = ((val_int - 2^m) / 2) + (( b + 1) / 2) * 2^m)
+     *
+     * where
+     *
+     * b = exponent bias
+     * m = number of mantissa bits
+     *
+     * .
+     */
+
+    val_int -= 1 << 23; /* Subtract 2^m. */
+    val_int >>= 1; /* Divide by 2. */
+    val_int += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
+
+    return *(float*)&val_int; /* Interpret again as float */
+}

@@ -1,0 +1,19 @@
+; RE4B p.665  3.14.1 Strings and memory functions
+
+lea     edi, [src]
+or      ecx, 0FFFFFFFFh
+repne scasb
+not     ecx
+sub     edi, ecx
+mov     esi, edi
+mov     edi, [dst]
+mov     edx, ecx
+or      ecx, 0FFFFFFFFh
+repne scasb
+mov     ecx, edx
+dec     edi
+shr     ecx, 2
+rep movsd
+mov     ecx, edx
+and     ecx, 3
+rep movsb

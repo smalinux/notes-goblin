@@ -1,0 +1,6 @@
+# build outputs from the Makefile (`make bin` / `make win`), the .s listings stay tracked
+*_O0
+*_O2
+*_O0.o
+*_O2.o
+*.exe
