@@ -14,13 +14,12 @@
         pestudio   PE Studio                 (portable -> C:\Tools\pestudio)
         dnspy      dnSpyEx                   (portable -> C:\Tools\dnSpyEx)
         x64dbg     x64dbg / x32dbg           (portable -> C:\Tools\x64dbg)
-        vs         Visual Studio Community   (installed, "Desktop development with C++" workload)
 
     Portable tools get a desktop shortcut and a command shim in C:\Tools\bin
     (which is added to the system PATH), so `pebear`, `die`, `diec`, `pestudio`,
     `dnspy`, `reshacker`, `x64dbg`, `x32dbg` all work from cmd after a new shell is opened.
 
-    Visual Studio is a multi-GB download and takes a while; skip it with -Skip vs.
+    Visual Studio is separate: install-visual-studio.ps1.
 
     Re-runnable: already-installed tools are skipped unless -Force is given.
 
@@ -41,8 +40,6 @@ param(
     [string]   $ToolsDir            = 'C:\Tools',
     [string]   $SamplesDir          = 'C:\Samples',
     [string]   $PythonVersion       = '3.13.16',
-    [string]   $VSBootstrapperUrl   = 'https://aka.ms/vs/17/release/vs_community.exe',
-    [string[]] $VSWorkloads         = @('Microsoft.VisualStudio.Workload.NativeDesktop'),
     [string[]] $Only,
     [string[]] $Skip,
     [switch]   $Force,
@@ -58,6 +55,7 @@ $ProgressPreference    = 'SilentlyContinue'   # 10x faster Invoke-WebRequest
 $script:UserAgent      = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 $script:Results        = New-Object System.Collections.ArrayList
 $script:CacheDir       = $null   # set in main: $ToolsDir\.cache (Defender-excluded)
+$script:RebootNeeded   = $false  # some installer returned 3010 / 1641
 
 # ---------------------------------------------------------------- output ----
 function Write-Step { param($m) Write-Host "`n==> $m" -ForegroundColor Cyan }
@@ -149,7 +147,10 @@ function Invoke-Installer {
     Write-Info "running $(Split-Path $FilePath -Leaf) $($Arguments -join ' ')"
     $p = Start-Process -FilePath $FilePath -ArgumentList $Arguments -Wait -PassThru
     if ($OkExitCodes -notcontains $p.ExitCode) { throw "installer exited with code $($p.ExitCode)" }
-    if ($p.ExitCode -in 3010, 1641) { Write-Warn2 'installer requests a reboot (not required to continue)' }
+    if ($p.ExitCode -in 3010, 1641) {
+        $script:RebootNeeded = $true
+        Write-Warn2 'installer requests a reboot (the rest of the install can continue)'
+    }
 }
 
 # ------------------------------------------------------------- github -------
@@ -418,36 +419,6 @@ function Install-X64dbg {
     return $a.Version
 }
 
-function Find-VisualStudio {
-    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (-not (Test-Path $vswhere)) { return $null }
-    $args_ = @('-latest', '-products', '*', '-format', 'json')
-    foreach ($w in $VSWorkloads) { $args_ += @('-requires', $w) }
-    $vs = (& $vswhere @args_ | Out-String | ConvertFrom-Json) | Select-Object -First 1
-    if (-not $vs) { return $null }
-    return [pscustomobject]@{
-        Path    = $vs.installationPath
-        Version = $vs.catalog.productDisplayVersion
-        Devenv  = Join-Path $vs.installationPath 'Common7\IDE\devenv.exe'
-    }
-}
-
-function Install-VisualStudio {
-    $existing = Find-VisualStudio
-    if (-not $Force -and $existing) { Write-Ok "already present ($($existing.Version) at $($existing.Path))"; return $existing.Version }
-    $exe = Join-Path $script:CacheDir 'vs_community.exe'
-    Invoke-Download -Url $VSBootstrapperUrl -OutFile $exe
-    $vsArgs = @('--quiet', '--wait', '--norestart', '--nocache', '--includeRecommended')
-    foreach ($w in $VSWorkloads) { $vsArgs += @('--add', $w) }
-    Write-Info 'this downloads several GB and can take 20+ minutes'
-    Invoke-Installer -FilePath $exe -Arguments $vsArgs
-    Remove-Item $exe -Force -ErrorAction SilentlyContinue
-    $now = Find-VisualStudio
-    if (-not $now) { throw 'Visual Studio installer finished but vswhere cannot find the install' }
-    New-Shim -Name 'devenv' -Target $now.Devenv
-    return $now.Version
-}
-
 # ----------------------------------------------------------- VM tweaks ------
 function Set-ExplorerTweaks {
     if ($NoExplorerTweaks) { return }
@@ -500,7 +471,6 @@ $tools = [ordered]@{
     'pestudio'  = @{ Name = 'PE Studio';                  Action = { Install-PEStudio } }
     'dnspy'     = @{ Name = 'dnSpyEx';                    Action = { Install-dnSpyEx } }
     'x64dbg'    = @{ Name = 'x64dbg';                     Action = { Install-X64dbg } }
-    'vs'        = @{ Name = 'Visual Studio Community';    Action = { Install-VisualStudio } }
 }
 
 foreach ($key in $tools.Keys) {
@@ -533,7 +503,10 @@ Write-Host "  Portable tools : $ToolsDir"
 Write-Host "  Samples folder : $SamplesDir"
 Write-Host "  Full log       : $log"
 Write-Host ''
-Write-Host '  Open a NEW cmd window, then: pebear / die / diec / pestudio / dnspy / reshacker / hxd / x64dbg / x32dbg / devenv / python' -ForegroundColor Gray
+Write-Host '  Open a NEW cmd window, then: pebear / die / diec / pestudio / dnspy / reshacker / hxd / x64dbg / x32dbg / python' -ForegroundColor Gray
+if ($script:RebootNeeded) {
+    Write-Host '  REBOOT before launching the tools - an installer updated system components.' -ForegroundColor Yellow
+}
 Write-Host '  Next: set the VM network to host-only (or disconnect it) and take a clean snapshot.' -ForegroundColor Gray
 Write-Host ''
 
