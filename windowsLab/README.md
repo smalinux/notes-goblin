@@ -72,6 +72,26 @@ tool, and the exit code is 1 if any failed.
 2. Set the VM network to host-only or disconnect it.
 3. **Take a clean snapshot** before any sample touches the disk.
 
+## SSH from the Linux host (`enable-ssh.ps1`)
+
+So the host can drive the VM (logs, fixes, file copies) without copy-paste into the console.
+In **cmd.exe as Administrator** on the VM:
+
+```cmd
+curl -L -o %TEMP%\ssh.ps1 https://raw.githubusercontent.com/smalinux/notes-goblin/main/windowsLab/enable-ssh.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%\ssh.ps1
+```
+
+- Installs the OpenSSH Server capability (needs internet), sshd on automatic start.
+- Key-only: password login off, the host's `id_rsa.pub` goes into
+  `C:\ProgramData\ssh\administrators_authorized_keys` (`-PublicKey '<key>'` to use another).
+- Default shell is PowerShell.
+- Port 22 open to `192.168.231.1` only — the host side of VMware `vmnet8`
+  (`-AllowFrom <ip>` for another network).
+- Prints the `ssh user@ip` line to use from the host.
+
+**Turn it off before detonating anything:** `powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%\ssh.ps1 -Disable`
+(stops + disables sshd, removes the firewall rule), or just revert to a pre-SSH snapshot.
+
 ## Notes
 
 - PE Studio here is the free "basic" edition — not licensed for corporate use.
