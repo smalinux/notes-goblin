@@ -972,3 +972,6 @@ Web searches that produced the facts above (dates, podcast names):
 - `security conferences October November December 2026 Hexacon Ekoparty Black Hat Europe 39C3 dates`
 - `39C3 Chaos Communication Congress December 2026 dates Hamburg`
 - `SANS Holiday Hack Challenge 2026 Advent of Cyber 2026 dates`
+
+## Binary Ninja Mastery
+- [Ninjas In Training](https://github.com/Vector35/binaryninja-api/wiki/Ninjas-In-Training) — Vector35's official wiki page of curated Binary Ninja learning resources for beginners.
