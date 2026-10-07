@@ -978,3 +978,6 @@ Web searches that produced the facts above (dates, podcast names):
 
 ## ROP
 - [CET on Windows](https://windows-internals.com/cet-on-windows/) — windows-internals.com write-up on Intel CET shadow stacks and how Windows uses them to break ROP.
+
+## Calling Conventions
+- 
