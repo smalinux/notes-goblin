@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poison NULL Byte &#183; Heap Off-by-One</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 70px; }
+  code, pre, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; color: #e6edf3; }
+  a { color: var(--accent); }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 8px; font-size: 38px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 740px; margin: 0 auto; font-size: 16px; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 22px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0d1117;
+  }
+  h2.sec .hint { color: var(--dim); font-weight: 400; font-size: 14px; margin-left: auto; }
+  .c1{background:var(--accent)} .c2{background:var(--orange)} .c3{background:var(--green)}
+  .c4{background:var(--yellow)} .c5{background:var(--purple)} .c6{background:var(--pink)}
+  .c7{background:var(--cyan)} .c8{background:var(--red)}
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 16px 12px; margin: 14px 0;
+  }
+  .panel h3 { font-size: 15px; margin: 12px 0 8px; color: #dbe6f1; letter-spacing: .2px; }
+  .panel h3 .hint { color: var(--dim); font-weight: 400; font-size: 12.5px; margin-left: 6px; }
+
+  table.ref { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 8px; }
+  table.ref th {
+    background: #1d2534; color: var(--accent); text-align: left; padding: 6px 10px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+  table.ref td { padding: 6px 10px; border: 1px solid var(--border); vertical-align: top; }
+  table.ref tr:nth-child(even) { background: #131922; }
+  .muted { color: var(--dim); }
+  .ok { color: var(--green); font-weight: 700; }
+  .bad { color: var(--red); font-weight: 700; }
+
+  .callout {
+    border-left: 3px solid var(--yellow); background: #191d13aa; border-radius: 0 8px 8px 0;
+    padding: 9px 14px; margin: 10px 0; font-size: 13.5px; color: #d8e0c9;
+  }
+  .callout.blue { border-color: var(--accent); background: #12233c88; color: #cfe0f5; }
+  .callout.pink { border-color: var(--pink); background: #2a153088; color: #f2d6ea; }
+  .callout.green { border-color: var(--green); background: #11261a88; color: #d3ecd9; }
+  .callout.red { border-color: var(--red); background: #2d151888; color: #f5d5d3; }
+  .callout b { color: #fff; }
+
+  .svgbox { margin: 20px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 26px 0 6px; }
+  .toc a {
+    text-decoration: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+    background: #161b22; border: 1px solid var(--border); color: var(--dim);
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Poison NULL Byte</h1>
+  <p>One byte. Always <code>0x00</code>. Always just past the end of a heap buffer. That is enough to make glibc believe a chunk is shorter than it is &#8212; and from a disagreement about size you get overlapping chunks, which is a write into an object that is still alive.</p>
+  <div class="tag">GLIBC MALLOC &#183; OFF-BY-ONE &#183; CWE-193 &#183; MEASURED ON 2.39</div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <a href="#bug">1 &#183; The bug class</a>
+  <a href="#anatomy">2 &#183; Chunk anatomy</a>
+  <a href="#poison">3 &#183; What one NUL buys</a>
+  <a href="#chain">4 &#183; The attack chain</a>
+  <a href="#lab">5 &#183; Lab on glibc 2.39</a>
+  <a href="#checks">6 &#183; The checks</a>
+  <a href="#tcache">7 &#183; Not tcache poisoning</a>
+  <a href="#defense">8 &#183; Defence</a>
+</div>
+
+<h2 class="sec" id="bug"><span class="n c1">1</span> The bug class <span class="hint">the most boring bug in C, weaponised</span></h2>
+
+<p>A <b>poison NULL byte</b> is an off-by-one heap overflow whose single overflowing byte is a zero terminator. You do not choose the value, you do not choose the offset, and you get exactly one byte. It is the smallest heap corruption that still ends in a shell &#8212; which is why it is a classic.</p>
+
+<div class="panel">
+  <h3>Where that byte comes from in real code</h3>
+  <table class="ref">
+    <tr><th>Pattern</th><th>Why it is one byte over</th></tr>
+    <tr><td><code>char *d = malloc(strlen(s)); strcpy(d, s);</code></td><td><code>strcpy</code> copies the terminator too &#8212; you needed <code>strlen(s)+1</code></td></tr>
+    <tr><td><code>n = read(fd, buf, size); buf[n] = 0;</code></td><td>a full read makes <code>n == size</code>, so the index is one past the end</td></tr>
+    <tr><td><code>strncat(dst, src, space_left)</code></td><td><code>strncat</code> writes up to <code>n</code> chars <b>plus</b> a NUL &#8212; the <code>n</code> excludes the terminator</td></tr>
+    <tr><td><code>for (i = 0; i &lt;= len; i++) dst[i] = ...</code></td><td>the <code>&lt;=</code></td></tr>
+    <tr><td><code>buf[sizeof(buf)] = '\0';</code> &#8220;just to be safe&#8221;</td><td>defensive code that is itself the bug</td></tr>
+    <tr><td><code>snprintf(d, n, ...)</code> then <code>d[ret] = 0</code></td><td><code>snprintf</code> returns the length it <i>would</i> have written, not what it wrote</td></tr>
+  </table>
+  <div class="callout">In a heap buffer, &#8220;one past the end&#8221; is not unused slack. It is glibc&#8217;s own bookkeeping &#8212; and, on 64-bit little-endian, it is specifically the <b>least significant byte of the next chunk&#8217;s size field</b>. The allocator laid its metadata exactly where your loop went one step too far.</div>
+</div>
+
+<h2 class="sec" id="anatomy"><span class="n c2">2</span> Chunk anatomy <span class="hint">why index == usable_size hits the size field</span></h2>
+
+<p>glibc stores a chunk header <i>inline</i>, immediately before the pointer it hands you. Two qwords: <code>prev_size</code> and <code>size</code>. The pointer you get (<code>mem</code>) is <code>chunk + 16</code>. The <code>size</code> field counts the whole chunk including the header and is always a multiple of 16, so its low 4 bits are free for flags:</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 940 560" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff7bc6"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b3"/>
+    </marker>
+  </defs>
+
+  <!-- ===== allocated chunk ===== -->
+  <text x="225" y="28" text-anchor="middle" fill="#ffa657" font-size="15" font-weight="800">in use &#8212; malloc(0x500)</text>
+
+  <rect x="110" y="42" width="230" height="30" fill="#161b22" stroke="#30363d"/>
+  <text x="225" y="62" text-anchor="middle" fill="#9aa7b3" font-size="11.5">prev_size (unused while prev is in use)</text>
+
+  <rect x="110" y="72" width="230" height="34" fill="#2b2313" stroke="#e3b341" stroke-width="2"/>
+  <text x="225" y="94" text-anchor="middle" fill="#e3b341" font-size="12.5" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">size = 0x511</text>
+
+  <rect x="110" y="106" width="230" height="150" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="225" y="150" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">your 0x500 bytes</text>
+  <text x="225" y="172" text-anchor="middle" fill="#c9b8a4" font-size="11">mem = chunk + 0x10</text>
+  <text x="225" y="196" text-anchor="middle" fill="#c9b8a4" font-size="11">&#8230; but malloc_usable_size</text>
+  <text x="225" y="212" text-anchor="middle" fill="#c9b8a4" font-size="11">says <tspan font-family="'SFMono-Regular',Consolas,monospace" fill="#e3b341">0x508</tspan></text>
+
+  <rect x="110" y="256" width="230" height="30" fill="#0f2a2e" stroke="#39c5cf" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="225" y="276" text-anchor="middle" fill="#39c5cf" font-size="11">next chunk&#8217;s prev_size &#8212; yours to use</text>
+
+  <rect x="110" y="286" width="230" height="34" fill="#2d1518" stroke="#ff7b72" stroke-width="2"/>
+  <text x="225" y="308" text-anchor="middle" fill="#ff7b72" font-size="12.5" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">next chunk&#8217;s size</text>
+
+  <path d="M 100 112 L 100 282" stroke="#ff7bc6" stroke-width="1.5" stroke-dasharray="4 3" marker-start="url(#ap)" marker-end="url(#ap)"/>
+  <text x="92" y="200" fill="#ff7bc6" font-size="10.5" text-anchor="middle" transform="rotate(-90 92 200)">0x508 usable</text>
+
+  <path d="M 348 300 L 390 300" stroke="#ff7b72" stroke-width="1.6" marker-end="url(#ap)"/>
+  <text x="396" y="296" fill="#ff7b72" font-size="11.5" font-weight="700">mem[0x508] lands here</text>
+  <text x="396" y="312" fill="#f0b4b0" font-size="10.5" font-style="italic">= one byte past usable = the LSB</text>
+
+  <!-- ===== free chunk ===== -->
+  <text x="715" y="28" text-anchor="middle" fill="#3fb950" font-size="15" font-weight="800">after free() &#8212; same memory</text>
+
+  <rect x="600" y="42" width="230" height="30" fill="#161b22" stroke="#30363d"/>
+  <text x="715" y="62" text-anchor="middle" fill="#9aa7b3" font-size="11.5">prev_size</text>
+
+  <rect x="600" y="72" width="230" height="34" fill="#2b2313" stroke="#e3b341" stroke-width="1.5"/>
+  <text x="715" y="94" text-anchor="middle" fill="#e3b341" font-size="12.5" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">size = 0x511 (flags kept)</text>
+
+  <rect x="600" y="106" width="230" height="30" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="715" y="126" text-anchor="middle" fill="#bc8cff" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">fd &#8594; next free chunk</text>
+
+  <rect x="600" y="136" width="230" height="30" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="715" y="156" text-anchor="middle" fill="#bc8cff" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">bk &#8594; prev free chunk</text>
+
+  <rect x="600" y="166" width="230" height="90" fill="#11261a" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="715" y="200" text-anchor="middle" fill="#3fb950" font-size="12">stale user data</text>
+  <text x="715" y="220" text-anchor="middle" fill="#a9cfb3" font-size="10.5">(the attacker&#8217;s forged headers live here)</text>
+
+  <rect x="600" y="256" width="230" height="30" fill="#0f2a2e" stroke="#39c5cf" stroke-width="2"/>
+  <text x="715" y="276" text-anchor="middle" fill="#39c5cf" font-size="11.5" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">prev_size = 0x510  &#8592; written by free</text>
+
+  <rect x="600" y="286" width="230" height="34" fill="#2d1518" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="715" y="302" text-anchor="middle" fill="#ff7b72" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">next size, P bit cleared</text>
+  <text x="715" y="315" text-anchor="middle" fill="#f0b4b0" font-size="10">&#8220;the chunk before me is free&#8221;</text>
+
+  <text x="715" y="344" text-anchor="middle" fill="#6e7a86" font-size="11" font-style="italic">free() records the size twice: in size, and in the next chunk&#8217;s prev_size</text>
+
+  <!-- ===== byte ruler ===== -->
+  <rect x="110" y="378" width="720" height="160" rx="8" fill="#0b0f14" stroke="#30363d"/>
+  <text x="130" y="400" fill="#58a6ff" font-size="13" font-weight="700">the size qword, byte by byte (little-endian)</text>
+
+  <g font-family="'SFMono-Regular',Consolas,monospace">
+    <!-- 8 byte cells -->
+    <rect x="130" y="414" width="60" height="38" fill="#2d1518" stroke="#ff7b72" stroke-width="2"/>
+    <text x="160" y="439" text-anchor="middle" fill="#ff7b72" font-size="15" font-weight="700">11</text>
+    <rect x="190" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="220" y="439" text-anchor="middle" fill="#c9d1d9" font-size="15">05</text>
+    <rect x="250" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="280" y="439" text-anchor="middle" fill="#6e7a86" font-size="15">00</text>
+    <rect x="310" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="340" y="439" text-anchor="middle" fill="#6e7a86" font-size="15">00</text>
+    <rect x="370" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="400" y="439" text-anchor="middle" fill="#6e7a86" font-size="15">00</text>
+    <rect x="430" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="460" y="439" text-anchor="middle" fill="#6e7a86" font-size="15">00</text>
+    <rect x="490" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="520" y="439" text-anchor="middle" fill="#6e7a86" font-size="15">00</text>
+    <rect x="550" y="414" width="60" height="38" fill="#161b22" stroke="#30363d"/>
+    <text x="580" y="439" text-anchor="middle" fill="#6e7a86" font-size="15">00</text>
+
+    <text x="160" y="468" text-anchor="middle" fill="#ff7b72" font-size="10.5">lowest addr</text>
+    <text x="580" y="468" text-anchor="middle" fill="#6e7a86" font-size="10.5">highest addr</text>
+  </g>
+
+  <path d="M 160 486 L 160 462" stroke="#ff7b72" stroke-width="1.6" marker-end="url(#ap)"/>
+  <text x="178" y="492" fill="#ff7b72" font-size="12" font-weight="700">your NUL goes here &#8212; 0x511 becomes 0x500</text>
+
+  <g font-family="'SFMono-Regular',Consolas,monospace" font-size="11.5">
+    <text x="630" y="432" fill="#e3b341">0x11 = 0b0001 0001</text>
+    <text x="630" y="450" fill="#9aa7b3">bit0  P  PREV_INUSE   = 1</text>
+    <text x="630" y="466" fill="#9aa7b3">bit1  M  IS_MMAPPED   = 0</text>
+    <text x="630" y="482" fill="#9aa7b3">bit2  A  NON_MAIN_ARENA = 0</text>
+    <text x="630" y="504" fill="#ff7bc6">one NUL clears all three flags</text>
+    <text x="630" y="520" fill="#ff7bc6">and rounds the size down to 0x500</text>
+  </g>
+
+  <text x="130" y="520" fill="#6e7a86" font-size="11" font-style="italic">little-endian is the gift:</text>
+  <text x="130" y="534" fill="#6e7a86" font-size="11" font-style="italic">the overflow byte hits the part of size that matters most</text>
+</svg>
+<div class="cap">A <code>malloc(0x500)</code> request becomes a <code>0x510</code>-byte chunk, of which <code>0x508</code> bytes are usable &#8212; the extra 8 are the <i>next</i> chunk&#8217;s <code>prev_size</code> slot, which is dead space while you are alive. So <code>mem[0x508]</code> is the first byte of the next chunk&#8217;s <code>size</code>.</div>
+</div>
+
+<div class="panel">
+  <h3>The arithmetic, once <span class="hint">64-bit, 16-byte alignment</span></h3>
+  <table class="ref">
+    <tr><th>quantity</th><th>formula</th><th>for <code>malloc(0x500)</code></th></tr>
+    <tr><td>chunk size</td><td><code>max(align16(req + 8), 0x20)</code></td><td><code>0x510</code></td></tr>
+    <tr><td><code>mem</code> (what you get)</td><td><code>chunk + 0x10</code></td><td>&#8212;</td></tr>
+    <tr><td><code>malloc_usable_size</code></td><td><code>chunksize - 8</code></td><td><code>0x508</code></td></tr>
+    <tr><td>next chunk header</td><td><code>chunk + chunksize</code> = <code>mem + usable - 8</code></td><td><code>mem + 0x500</code></td></tr>
+    <tr><td><b>next <code>size</code> LSB</b></td><td><code>mem + usable</code></td><td><code>mem[0x508]</code></td></tr>
+  </table>
+  <div class="callout blue">Requests whose remainder makes <code>usable == req + 8</code> are the comfortable ones (<code>0x100</code>, <code>0x500</code>&#8230;): a one-past-the-end write at <code>buf[usable]</code> lands precisely on the size byte. With other request sizes the slack moves the landing spot &#8212; this is why heap exploits are written against specific allocation sizes, and why attackers groom the heap to get those sizes.</div>
+</div>
+
+<h2 class="sec" id="poison"><span class="n c3">3</span> What one NUL buys <span class="hint">a lie about where a chunk ends</span></h2>
+
+<p>Writing <code>0x00</code> over the low byte of <code>size</code> does two things at once:</p>
+
+<div class="panel">
+  <table class="ref">
+    <tr><th>effect</th><th>mechanics</th><th>consequence</th></tr>
+    <tr><td><b>shrink</b></td><td><code>0x511 &#8594; 0x500</code>: the size is rounded down to a multiple of <code>0x100</code></td><td>glibc now believes the chunk ends up to <code>0xf0</code> bytes <i>earlier</i> than it does. The real neighbour&#8217;s <code>prev_size</code> is never updated, so the two records disagree.</td></tr>
+    <tr><td><b>clear PREV_INUSE</b></td><td>bit 0 of <code>size</code> goes to 0</td><td>the previous chunk is now declared free. On <code>free()</code> of this chunk, glibc will walk <i>backwards</i> by <code>prev_size</code> and try to merge &#8212; using a number the attacker may control.</td></tr>
+  </table>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 940 440" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff7bc6"/>
+    </marker>
+  </defs>
+
+  <!-- before -->
+  <text x="215" y="26" text-anchor="middle" fill="#e3b341" font-size="15" font-weight="800">before the byte</text>
+  <text x="215" y="44" text-anchor="middle" fill="#9aa7b3" font-size="11" font-style="italic">a in use &#183; b freed &#183; c in use</text>
+
+  <rect x="95" y="58" width="240" height="70" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="215" y="86" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">a &#8212; in use, 0x510</text>
+  <text x="215" y="108" text-anchor="middle" fill="#c9b8a4" font-size="10.5">the buffer with the off-by-one</text>
+
+  <rect x="95" y="128" width="240" height="34" fill="#2b2313" stroke="#e3b341" stroke-width="2"/>
+  <text x="215" y="150" text-anchor="middle" fill="#e3b341" font-size="12" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">b.size = 0x511</text>
+
+  <rect x="95" y="162" width="240" height="90" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="215" y="196" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">b &#8212; free (unsorted bin)</text>
+  <text x="215" y="216" text-anchor="middle" fill="#a9cfb3" font-size="10.5">fd / bk written by free()</text>
+
+  <rect x="95" y="252" width="240" height="30" fill="#0f2a2e" stroke="#39c5cf" stroke-width="2"/>
+  <text x="215" y="272" text-anchor="middle" fill="#39c5cf" font-size="11.5" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">c.prev_size = 0x510</text>
+
+  <rect x="95" y="282" width="240" height="70" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="215" y="312" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">c &#8212; in use, 0x510</text>
+  <text x="215" y="332" text-anchor="middle" fill="#c9b8a4" font-size="10.5">P bit = 0 (b is free)</text>
+
+  <text x="215" y="384" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">both records agree: b is 0x510 long</text>
+
+  <!-- arrow -->
+  <path d="M 360 200 L 420 200" stroke="#ff7bc6" stroke-width="2" marker-end="url(#ar3)"/>
+  <text x="390" y="188" text-anchor="middle" fill="#ff7bc6" font-size="11.5" font-weight="700">a[0x508]=0</text>
+
+  <!-- after -->
+  <text x="690" y="26" text-anchor="middle" fill="#ff7b72" font-size="15" font-weight="800">after the byte</text>
+  <text x="690" y="44" text-anchor="middle" fill="#9aa7b3" font-size="11" font-style="italic">nothing moved &#8212; only a number changed</text>
+
+  <rect x="570" y="58" width="240" height="70" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="690" y="96" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">a &#8212; unchanged</text>
+
+  <rect x="570" y="128" width="240" height="34" fill="#2d1518" stroke="#ff7b72" stroke-width="2"/>
+  <text x="690" y="150" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">b.size = 0x500   P=0</text>
+
+  <rect x="570" y="162" width="240" height="74" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="690" y="196" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">b &#8212; free, &#8220;0x500 long&#8221;</text>
+  <text x="690" y="216" text-anchor="middle" fill="#a9cfb3" font-size="10.5">glibc thinks it ends 0x10 early</text>
+
+  <rect x="570" y="236" width="240" height="30" fill="#241536" stroke="#bc8cff" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="690" y="256" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="700">phantom chunk boundary</text>
+
+  <rect x="570" y="266" width="240" height="26" fill="#0f2a2e" stroke="#39c5cf" stroke-width="2"/>
+  <text x="690" y="284" text-anchor="middle" fill="#39c5cf" font-size="11.5" font-weight="700" font-family="'SFMono-Regular',Consolas,monospace">c.prev_size = 0x510 (stale)</text>
+
+  <rect x="570" y="292" width="240" height="60" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="690" y="326" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">c &#8212; in use</text>
+
+  <text x="690" y="380" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="700">0x500 &#8800; 0x510 &#8212; and the gap is attacker-owned</text>
+  <text x="690" y="400" text-anchor="middle" fill="#9aa7b3" font-size="11" font-style="italic">whatever glibc does next, it does with the wrong length</text>
+</svg>
+<div class="cap">The <b>phantom boundary</b> is the whole attack: glibc will place the next chunk header <code>0x10</code> bytes before the real one &#8212; inside memory the attacker already owns, where a convincing fake header can be waiting.</div>
+</div>
+
+<h2 class="sec" id="chain"><span class="n c4">4</span> The attack chain <span class="hint">from a size lie to overlapping chunks</span></h2>
+
+<ol>
+  <li><b>Groom.</b> Allocate <code>a</code>, <code>b</code>, <code>c</code> adjacent, sizes chosen so the off-by-one lands on <code>b.size</code>&#8217;s LSB and so <code>b</code> bypasses tcache (above <code>0x410</code>) and lands in the unsorted bin.</li>
+  <li><b>Plant.</b> Still inside <code>b</code>&#8217;s own data, write a fake chunk header at <code>b_chunk + 0x500</code>, the address the phantom boundary will point to. This is just data from <code>b</code>&#8217;s point of view.</li>
+  <li><b>Free <code>b</code>.</b> Now <code>c.prev_size</code> records <code>0x510</code> and <code>c</code>&#8217;s P bit is 0.</li>
+  <li><b>Poison.</b> <code>a[usable] = 0</code> shrinks <code>b.size</code> to <code>0x500</code>.</li>
+  <li><b>Re-allocate.</b> Ask for memory that fits in <code>0x500</code>. glibc carves the shrunken <code>b</code>, checks its (forged) phantom neighbour, and hands <code>b</code> back &#8212; while <code>c</code> still believes the chunk before it starts <code>0x510</code> bytes back and is free.</li>
+  <li><b>Collapse.</b> Free <code>c</code>. glibc sees P=0, reads <code>prev_size = 0x510</code>, walks back to <code>b</code> and merges &#8212; swallowing allocations that are still live into one big free chunk.</li>
+  <li><b>Cash out.</b> The next <code>malloc</code> of that size returns a pointer that <b>overlaps a live object</b>.</li>
+</ol>
+
+<div class="svgbox">
+<svg viewBox="0 0 940 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff7bc6"/>
+    </marker>
+  </defs>
+  <text x="470" y="26" text-anchor="middle" fill="#e6edf3" font-size="14.5" font-weight="700">overlapping chunks: two owners, one address range</text>
+
+  <!-- live objects row -->
+  <text x="78" y="78" text-anchor="middle" fill="#ffa657" font-size="12" font-weight="800">program&#8217;s view</text>
+  <rect x="150" y="56" width="180" height="44" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="240" y="83" text-anchor="middle" fill="#ffa657" font-size="12" font-weight="700">b1 (freed)</text>
+  <rect x="330" y="56" width="200" height="44" fill="#12233c" stroke="#58a6ff" stroke-width="2"/>
+  <text x="430" y="76" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="700">b2 &#8212; LIVE object</text>
+  <text x="430" y="92" text-anchor="middle" fill="#a9c4e8" font-size="10">function ptr, FILE*, len field&#8230;</text>
+  <rect x="530" y="56" width="230" height="44" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="645" y="83" text-anchor="middle" fill="#ffa657" font-size="12" font-weight="700">c (freed)</text>
+
+  <!-- allocator view -->
+  <text x="78" y="178" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="800">glibc&#8217;s view</text>
+  <rect x="150" y="156" width="610" height="44" fill="#11261a" stroke="#3fb950" stroke-width="2"/>
+  <text x="455" y="183" text-anchor="middle" fill="#3fb950" font-size="12.5" font-weight="700">one free chunk, 0x510 + 0x510 bytes &#8212; &#8220;nobody is using this&#8221;</text>
+
+  <path d="M 430 104 L 430 152" stroke="#ff7bc6" stroke-width="1.8" stroke-dasharray="5 3" marker-start="url(#ao)" marker-end="url(#ao)"/>
+  <text x="446" y="132" fill="#ff7bc6" font-size="11.5" font-weight="700">same bytes, both opinions</text>
+
+  <rect x="150" y="224" width="610" height="56" rx="8" fill="#0b0f14" stroke="#30363d"/>
+  <text x="170" y="246" fill="#e3b341" font-size="12" font-weight="700">what you get from here:</text>
+  <text x="170" y="266" fill="#c9d1d9" font-size="11.5">malloc() returns a pointer into b2 &#8594; arbitrary write into a live object; or free b2 again &#8594; double free; or leak its contents.</text>
+</svg>
+<div class="cap">Overlapping chunks turn a one-byte bug into a controlled write into a structure the program still trusts &#8212; the standard pivot to a <code>__free_hook</code>-style target, a vtable, or a tcache <code>fd</code>.</div>
+</div>
+
+<h2 class="sec" id="lab"><span class="n c5">5</span> Lab on glibc 2.39 <span class="hint">three programs, real output</span></h2>
+
+<div class="panel">
+  <h3>Step 1 &#8212; see the byte land <span class="hint">and watch glibc notice</span></h3>
+<pre><code>// poison.c &#8212; gcc -O0 -o poison poison.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;malloc.h&gt;
+
+static void hdr(const char *name, void *p) {
+    size_t *h = (size_t *)p - 2;                 /* prev_size, size */
+    printf("  %-2s user=%p  prev_size=0x%04zx  size=0x%04zx  P=%zu\n",
+           name, p, h[0], h[1], h[1] &amp; 1);
+}
+
+int main(void) {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    char *a = malloc(0x500), *b = malloc(0x500), *c = malloc(0x500);
+    size_t usable = malloc_usable_size(a);
+    memset(a, 'A', usable); memset(b, 'B', 0x500); memset(c, 'C', 0x500);
+
+    printf("[1] malloc(0x500) -&gt; chunk 0x510, malloc_usable_size(a) = 0x%zx\n", usable);
+    hdr("a", a); hdr("b", b); hdr("c", c);
+
+    free(b);                                     /* -&gt; unsorted bin */
+    puts("\n[2] after free(b): b is in the unsorted bin, c-&gt;prev_size was written");
+    hdr("b", b); hdr("c", c);
+
+    printf("\n[3] the bug: a[0x%zx] = 0   (one byte past a's usable space)\n", usable);
+    a[usable] = 0;                               /* THE POISON NULL BYTE */
+    hdr("b", b); hdr("c", c);
+    printf("      b-&gt;size = 0x%zx   but c-&gt;prev_size = 0x%zx   &lt;-- they disagree\n",
+           *((size_t *)b - 1), *((size_t *)c - 2));
+
+    puts("\n[4] malloc(0x4f0) asks glibc to carve the shrunken b:");
+    void *d = malloc(0x4f0);                     /* make glibc touch b */
+    printf("      returned %p -- no abort\n", d);
+}</code></pre>
+<pre><code>[1] malloc(0x500) -&gt; chunk 0x510, malloc_usable_size(a) = 0x508
+  a  user=0x60bf551fe2a0  prev_size=0x0000  size=0x0511  P=1
+  b  user=0x60bf551fe7b0  prev_size=0x4141414141414141  size=0x0511  P=1
+  c  user=0x60bf551fecc0  prev_size=0x0000  size=0x0511  P=1
+
+[2] after free(b): b is in the unsorted bin, c-&gt;prev_size was written
+  b  user=0x60bf551fe7b0  prev_size=0x4141414141414141  size=0x0511  P=1
+  c  user=0x60bf551fecc0  prev_size=0x0510  size=0x0510  P=0
+
+[3] the bug: a[0x508] = 0   (one byte past a's usable space)
+  b  user=0x60bf551fe7b0  prev_size=0x4141414141414141  size=0x0500  P=0
+  c  user=0x60bf551fecc0  prev_size=0x0510  size=0x0510  P=0
+      b-&gt;size = 0x500   but c-&gt;prev_size = 0x510   &lt;-- they disagree
+
+[4] malloc(0x4f0) asks glibc to carve the shrunken b:
+malloc(): invalid next size (unsorted)
+Aborted (core dumped)</code></pre>
+  <div class="callout green">Three things to notice. <b>(a)</b> <code>b.prev_size</code> is full of <code>0x41</code> &#8212; proof that the last 8 usable bytes of <code>a</code> really are the next chunk&#8217;s <code>prev_size</code> slot. <b>(b)</b> One byte turned <code>0x511</code> into <code>0x500</code> and cleared P in a single stroke. <b>(c)</b> The naive version dies: modern glibc validates the phantom neighbour before using the chunk.</div>
+</div>
+
+<div class="panel">
+  <h3>Step 2 &#8212; satisfy the checks <span class="hint">plant a convincing fake header</span></h3>
+<pre><code>/* b_chunk + 0x500 == b + 0x4f0 : where the phantom boundary points */
+*(size_t *)(b + 0x4f0) = 0x500;   /* fake prev_size == the shrunken size  */
+*(size_t *)(b + 0x4f8) = 0x20;    /* fake size: sane, and P = 0 because   */
+                                  /* the chunk before it (b) is free      */
+free(b);
+a[usable] = 0;
+char *b1 = malloc(0x100);         /* splits the shrunken b */
+char *b2 = malloc(0x100);         /* from the remainder    */</code></pre>
+<pre><code>b =0x5c36b5e367b0
+b1=0x5c36b5e367b0  b2=0x5c36b5e368c0
+c =0x5c36b5e36cc0  c-&gt;prev_size=0x510  P=0        &lt;-- still the stale lie</code></pre>
+  <div class="callout">With a consistent fake header the unsorted-bin checks pass and glibc hands the shrunken chunk out. Get the fake <code>size</code> wrong and you learn which guard you tripped: <code>0x11</code> (P set) gives <code>malloc(): invalid next-&gt;prev_inuse (unsorted)</code>; leaving garbage there gives <code>malloc(): invalid next size (unsorted)</code>; a <code>prev_size</code> that does not match the size gives <code>malloc(): mismatching next-&gt;prev_size (unsorted)</code>.</div>
+</div>
+
+<div class="panel">
+  <h3>Step 3 &#8212; the payoff, and where 2.39 stops it</h3>
+<pre><code>free(b1);
+free(c);     /* P=0, prev_size=0x510 -&gt; walk back and merge over b */</code></pre>
+<pre><code>free(c)  -- tries to consolidate backwards over b ...
+corrupted size vs. prev_size while consolidating
+Aborted (core dumped)</code></pre>
+  <div class="callout red">On glibc 2.39 the <b>shrink primitive still works</b>, but the consolidation that produces overlapping chunks does not: before trusting <code>prev_size</code>, <code>_int_free</code> walks back and compares the real <code>chunksize</code> of the chunk it landed on with the <code>prev_size</code> it followed. <code>0x500 &#8800; 0x510</code>, abort. The attacker cannot fix that mismatch, because it lives in a header slot they do not control &#8212; which is exactly the point of the check.</div>
+  <div class="callout blue">This is why heap exploitation is written <b>per libc version</b>. On glibc &#8804; 2.25 this chain runs end to end (that is <code>poison_null_byte.c</code> in <a href="https://github.com/shellphish/how2heap">how2heap</a>). After the 2.26&#8211;2.29 hardening passes, poison-NULL-byte bugs are still exploitable in practice, but by paths that keep both size records consistent &#8212; House of Einherjar, large-bin and tcache-based variants &#8212; and usually with one more primitive (a leak, a second overflow, a UAF) in hand.</div>
+</div>
+
+<h2 class="sec" id="checks"><span class="n c6">6</span> The checks <span class="hint">read them straight out of your own libc</span></h2>
+
+<pre><code>$ strings /usr/lib/x86_64-linux-gnu/libc.so.6 | grep -E "corrupted|unsorted|invalid next"
+corrupted double-linked list
+corrupted double-linked list (not small)
+corrupted size vs. prev_size
+corrupted size vs. prev_size in fastbins
+corrupted size vs. prev_size while consolidating
+free(): invalid next size (fast)
+free(): invalid next size (normal)
+malloc(): invalid next-&gt;prev_inuse (unsorted)
+malloc(): invalid next size (unsorted)
+malloc(): mismatching next-&gt;prev_size (unsorted)
+malloc(): unsorted double linked list corrupted
+...</code></pre>
+
+<div class="panel">
+  <table class="ref">
+    <tr><th>message</th><th>what glibc was checking</th><th>landed in</th></tr>
+    <tr><td><code>corrupted size vs. prev_size</code></td><td><code>unlink_chunk</code>: a chunk&#8217;s size must equal its neighbour&#8217;s <code>prev_size</code></td><td>commit <code>17f487b7</code>, Mar 2017 &#8594; glibc <b>2.26</b> (credited to Chris Evans, written for exactly this bug class)</td></tr>
+    <tr><td><code>corrupted size vs. prev_size while consolidating</code></td><td><code>_int_free</code>: re-checks after walking back by <code>prev_size</code>, <i>before</i> trusting it</td><td>the 2.27&#8211;2.28 hardening round &#8212; it is the one that kills step&nbsp;3 above</td></tr>
+    <tr><td><code>malloc(): invalid next size (unsorted)</code><br><code>malloc(): mismatching next-&gt;prev_size (unsorted)</code><br><code>malloc(): invalid next-&gt;prev_inuse (unsorted)</code></td><td>unsorted-bin loop: the chunk <i>after</i> the victim must be plausible and must agree about the victim&#8217;s size and liveness</td><td>Istvan Kurucsai&#8217;s malloc hardening, commit <code>b90ddd08</code> &#8594; glibc <b>2.29</b></td></tr>
+    <tr><td><code>free(): invalid next size (normal)</code></td><td><code>_int_free</code>: the next chunk&#8217;s size must be between <code>0x10</code> and <code>system_mem</code></td><td>old (pre-2.23)</td></tr>
+    <tr><td><code>malloc(): unaligned tcache chunk detected</code><br><code>free(): double free detected in tcache 2</code></td><td>tcache sanity: 16-byte alignment, and the per-chunk <code>key</code> field</td><td>2.29 onwards (key), 2.32 safe-linking, randomised key in 2.34</td></tr>
+  </table>
+  <div class="callout">Version numbers here are the releases those commits shipped in; if you need certainty for a write-up, confirm with <code>git tag --contains &lt;sha&gt;</code> in a glibc clone, or read the release&#8217;s <code>NEWS</code>. The <b>behaviour</b> is easy to pin down without any of that: compile the lab above against the libc you care about and see which message you get.</div>
+</div>
+
+<h2 class="sec" id="tcache"><span class="n c7">7</span> Not the same as tcache poisoning <span class="hint">two different &#8220;poisons&#8221;</span></h2>
+
+<div class="panel">
+  <table class="ref">
+    <tr><th></th><th>poison NULL byte</th><th>tcache poisoning</th></tr>
+    <tr><td>bug needed</td><td>off-by-one heap overflow, one <code>0x00</code></td><td>write into a <b>freed</b> chunk (UAF) or a larger overflow</td></tr>
+    <tr><td>field attacked</td><td><code>size</code> of the next chunk (its LSB)</td><td><code>next</code>/<code>fd</code> pointer of a chunk already in a tcache bin</td></tr>
+    <tr><td>lie told</td><td>&#8220;this chunk is shorter than it is&#8221;</td><td>&#8220;the next free chunk is at &lt;address I chose&gt;&#8221;</td></tr>
+    <tr><td>primitive gained</td><td>overlapping chunks</td><td>near-arbitrary <code>malloc</code> address</td></tr>
+    <tr><td>main mitigation</td><td>size-vs-<code>prev_size</code> consistency checks (2.26&#8211;2.29)</td><td><b>safe-linking</b> (glibc 2.32): the pointer is stored as <code>ptr ^ (&amp;ptr &gt;&gt; 12)</code>, so forging it needs a heap-address leak; plus the alignment check</td></tr>
+  </table>
+  <div class="callout pink">They compose, which is why the names blur. A poison NULL byte that yields overlapping chunks gives you a write into a freed chunk &#8212; and the thing you then write is usually a tcache <code>next</code> pointer. <b>Poison NULL byte is the entry; tcache poisoning is the exit.</b></div>
+</div>
+
+<h2 class="sec" id="defense"><span class="n c8">8</span> Defence <span class="hint">finding the byte before someone else does</span></h2>
+
+<div class="panel">
+  <h3>Tools that catch off-by-one heap writes</h3>
+  <table class="ref">
+    <tr><th>tool</th><th>command</th><th>what it reports</th></tr>
+    <tr><td>AddressSanitizer</td><td><code>gcc -fsanitize=address -g</code></td><td><code>heap-buffer-overflow &#8230; 1 bytes to the right</code>, with both stacks &#8212; the fastest way, and it does not care about glibc internals since ASan replaces the allocator</td></tr>
+    <tr><td>valgrind</td><td><code>valgrind --tool=memcheck ./prog</code></td><td><code>Invalid write of size 1</code> just after a block</td></tr>
+    <tr><td>glibc&#8217;s own checks</td><td><code>MALLOC_CHECK_=3 ./prog</code></td><td>extra consistency checks + abort on detection, no rebuild needed</td></tr>
+    <tr><td>poisoned fill</td><td><code>MALLOC_PERTURB_=42 ./prog</code></td><td>makes use-after-free and reliance-on-zeroed-memory bugs crash loudly</td></tr>
+    <tr><td>static analysis</td><td><code>gcc -Wall -Wextra -fanalyzer</code>, clang-tidy</td><td>catches the <code>malloc(strlen(s))</code> and <code>&lt;=</code> shapes at compile time</td></tr>
+    <tr><td>fuzzing</td><td>AFL++ / libFuzzer + ASan</td><td>length-boundary inputs are exactly what a fuzzer finds first</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h3>Code rules that remove the bug class</h3>
+  <ul>
+    <li><code>malloc(strlen(s) + 1)</code> &#8212; or <code>strdup</code>, which cannot get it wrong.</li>
+    <li>Prefer <code>snprintf(buf, sizeof buf, &#8230;)</code> over <code>strcpy</code>/<code>strcat</code>; never index with its return value without clamping.</li>
+    <li>Size arrays with <code>sizeof</code> at the point of use, not with a constant that can drift.</li>
+    <li>Keep length and buffer together in one struct, so &#8220;space left&#8221; is computed in one place.</li>
+    <li>Treat <code>buf[n] = '\0'</code> as a red flag in review: prove <code>n &lt; capacity</code>, not <code>n &lt;= capacity</code>.</li>
+  </ul>
+  <div class="callout blue">For a defender the useful takeaway is the <b>abort message as a diagnostic</b>. <code>corrupted size vs. prev_size</code> in a production log is not a mysterious glibc bug &#8212; it is the allocator telling you that something wrote past the end of a heap buffer, probably by a very small amount. Reach for ASan, not for a retry loop.</div>
+</div>
+
+<div class="footer">
+  Part of <a href="https://github.com/smalinux/notes-goblin">notes-goblin</a> &#129484; &#183; created 2026-10-08 &#183;
+  measured on Ubuntu 24.04, glibc 2.39, x86-64 &#183;
+  see also <a href="ret2libc-stack-alignment.html">ret2libc &amp; stack alignment</a>, <a href="aslr-memory-layout.html">ASLR off vs on</a>,
+  <a href="https://github.com/shellphish/how2heap">how2heap</a>
+</div>
+
+</div>
+</body>
+</html>

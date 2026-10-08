@@ -58,6 +58,17 @@
   .hm-tip::after { content:""; position:absolute; left:50%; bottom:-4px; margin-left:-4px;
                    border:4px solid transparent; border-bottom:0; border-top-color:#3d444d; }
 
+  #hl { margin:0 0 16px; font-size:14px; color:var(--fg); }
+  #hl > summary { color:var(--dim); font-size:15px; text-transform:uppercase; letter-spacing:.06em; }
+  #hl ul { background:var(--card); border:1px solid var(--border); border-radius:12px;
+           list-style:none; margin:10px 0 0; padding:6px 16px; }
+  #hl li { margin:10px 0; padding-left:12px; border-left:3px solid var(--star); font-style:italic; }
+
+  .todo { background:var(--card); border:1px solid var(--border); border-radius:12px;
+          margin:0; padding:10px 16px 10px 32px; }
+  .todo li { margin:5px 0; }
+  .todo:empty { display:none; }
+
   a { color:#a5b4fc; text-decoration:none; overflow-wrap:anywhere; }
   a:hover { text-decoration:underline; }
   tbody tr:hover { background:var(--card2); }
@@ -88,12 +99,15 @@
   <span class="hint">append one line to LOG (inside this file) per move — everything below is computed</span>
 </header>
 <main>
+  <details id="hl"><summary>🎯 Highlights &amp; quotes</summary><ul></ul></details>
   <div id="alerts"></div>
   <section><h2>Timeline</h2><div id="lanes"></div></section>
   <section><h2>Activity calendar</h2><div id="heatmap"></div></section>
   <section><h2>Log</h2><table id="log"><thead><tr>
     <th>date</th><th>track</th><th>event</th><th>note</th></tr></thead><tbody></tbody></table>
   </section>
+
+  <section><h2>TODO</h2><ul id="todo" class="todo"></ul></section>
 
   <details>
     <summary>How to log (cheat sheet)</summary>
@@ -171,6 +185,16 @@ const LOG = [
   { d:"2026-10-07", t:"bn",   e:"skip",     tag:"bn-settings-workflow", note:"Manual: skipped Settings → Workflow Eligibility Settings — read later: https://docs.binary.ninja/guide/settings.html#workflow-eligibility-settings" },
   { d:"2026-10-07", t:"ost2", e:"start", note:"Created a clean Windows VM for clean studies 😃 : https://www.youtube.com/watch?v=7u4_fRw1HV4" },
   { d:"2026-10-08", t:"re4b", e:"progress", note:"Stopped at: page: 51" },
+];
+
+const HIGHLIGHTS = [
+  "Gun & raddio,, Assembly & binaryninja",
+];
+
+const TODO = [
+  { t:"pre",    note:"Ch.2 (ARM) now — don't wait for x64. Embedded background is the edge, stop routing around it" },
+  { t:"armbly", note:"ARM on real hardware: BeagleBone Black" },
+  { t:"re4b",   note:"Second read: record videos" },
 ];
 
 const STALE_DAYS = 7;    // amber warning after this much silence
@@ -380,6 +404,15 @@ for (const [k,t] of Object.entries(TRACKS)) {
   });
   el.addEventListener("mouseleave", () => tip.style.display = "none");
 }
+
+// ── highlights ──────────────────────────────────────────────────────────
+document.querySelector("#hl ul").innerHTML =
+  HIGHLIGHTS.map(h => `<li>${linkify(h)}</li>`).join("");
+
+// ── todo list ───────────────────────────────────────────────────────────
+document.querySelector("#todo").innerHTML = TODO.map(x => `<li>
+  <span class="tchip" style="background:${TRACKS[x.t].color}22;color:${TRACKS[x.t].color}">${esc(TRACKS[x.t].short)}</span>
+  ${linkify(x.note)}</li>`).join("");
 
 // ── log table (newest first) ────────────────────────────────────────────
 {

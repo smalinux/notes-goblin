@@ -35,6 +35,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [People to follow](#people-to-follow)
 - [Women in RE / malware / exploitation / hardware](#women-in-re--malware--exploitation--hardware)
 - [Podcasts, YouTube & live streams](#podcasts-youtube--live-streams)
+    - [George Hotz (geohot) — streams to watch](#george-hotz-geohot--streams-to-watch)
 - [Papers, RFCs & protocol docs](#papers-rfcs--protocol-docs)
 - [Curated lists, repos & cheat sheets](#curated-lists-repos--cheat-sheets)
 - [Conferences](#conferences)
@@ -62,6 +63,8 @@ Published from this repo (view via GitHub Pages or [htmlpreview.github.io](https
 - [x86-64 Cheatsheet](https://smalinux.github.io/notes-goblin/x86-64-cheatsheet.html)
 - [Stack Visualizer](https://smalinux.github.io/notes-goblin/stack-visualizer.html)
 - [ASLR On vs Off · Process Memory](https://smalinux.github.io/notes-goblin/aslr-memory-layout.html)
+- [ret2libc & the Stack Alignment Trap](https://smalinux.github.io/notes-goblin/as/ret2libc-stack-alignment.html)
+- [Poison NULL Byte · Heap Off-by-One](https://smalinux.github.io/notes-goblin/as/heap-poison-null-byte.html)
 - [x86-64 Segment Registers — Interactive Guide](https://smalinux.github.io/notes-goblin/segment_registers.html)
 - [Segment Registers in 32-bit x86](https://smalinux.github.io/notes-goblin/segments_32.html)
 - [Segment Registers in x86-64](https://smalinux.github.io/notes-goblin/segments_64.html)
@@ -540,6 +543,14 @@ Every newly decoded idiom (magic-number division, inlined `strlen`, …) goes in
 - ELF history video — https://www.youtube.com/embed/2pqvHSy11JE
 - gdb quick intro — https://youtu.be/HcBordv7aWU?t=246
 
+### George Hotz (geohot) — streams to watch
+- **Adding a new C syntax feature to Clang/LLVM** ❤️— diving into a huge unread codebase and landing a change.
+- **HackTheBox "Chainsaw"** — live exploitation, his box-solving thought process ❤️— https://youtu.be/Sx7JszqkL-w · https://archive.org/details/george-hotz-hacking
+- **"learning unity on my new computer (real noob ish)"** (May 2019) — how he learns a tool from zero ❤️— https://gitduck.com/watch/5ddd4afe890d611113a87926
+- **Exploiting fontconfig CVE-2016-5384 with QIRA** — real CVE exploited live in his own debugger (likely ROP) ❤️— https://youtu.be/7bv_DNRpHaY
+- **Exploring checkm8** — reading axi0mX's iOS bootrom exploit ❤️— https://youtu.be/0f21HU2Lr2o
+- **OverTheWire Vortex part 2** (fan upload) ❤️— old-school wargame exploitation — https://youtu.be/Zi-CCXh-0ck
+
 ## Papers, RFCs & protocol docs
 - "Smashing the Stack for Fun and Profit" — Aleph One (Phrack 49) — https://phrack.org/issues/49/smashing-the-stack-for-fun-and-profit
 - "The Malloc Maleficarum" — Phantasmal · "Attacking JavaScript Engines" + "Exploiting Logic Bugs in JS JIT Engines" — saelo (Phrack 70)
@@ -981,3 +992,17 @@ Web searches that produced the facts above (dates, podcast names):
 
 ## Calling Conventions
 - 
+
+## return-to-libc — primary sources
+- [Getting around non-executable stack (and fix)](https://seclists.org/bugtraq/1997/Aug/63) — Solar Designer, Bugtraq, 10 Aug 1997. The first public return-into-libc exploit (`/usr/bin/lpr` on Linux), written to defeat his own non-exec stack kernel patch. Key argument: returning into a libc function kills the exact buffer-size/offset tuning that made shellcode-on-stack exploits fragile — you only need the function address plus its args laid out right after the return address.
+- [MIT bugtraq mirror — `[5133] in bugtraq`](https://diswww.mit.edu/menelaus/bt/5133) — same message, backup copy for when seclists is slow.
+- [Defeating Solar Designer's non-executable stack patch](https://insecure.org/sploits/non-executable.stack.problems.html) — Rafał Wojtczuk, Bugtraq, Jan 1998. Argues there are at least two generic ways to bypass the patch.
+- [Solar Designer's reply to Wojtczuk](https://seclists.org/bugtraq/1998/Feb/6) — Bugtraq, Feb 1998. Sorts out which of those exploits actually relate to the patch and which predate it.
+
+## Arm assembly
+- [LaurieWired — Practical ARM Assembly Tutorial Series (playlist)](https://www.youtube.com/playlist?list=PLn_It163He32Ujm-l_czgEBhbJjOUgFhg) — the main video course; also listed under Ch.2 — ARM in [Book — Practical Reverse Engineering](#book--practical-reverse-engineering).
+- [Intel is Over — Time to Learn ARM Assembly](https://www.youtube.com/watch?v=ZLq-QvLWuoc) — the why-now pitch; watch first, it's short.
+- [Learn ARM Assembly Programming — Lesson 1: For absolute beginners!](https://www.youtube.com/watch?v=7vz8VRaArCM) — opener of a series aimed at writing your own games/programs in Arm asm.
+- [Assembly Language Programming with ARM — Full Tutorial for Beginners](https://www.youtube.com/watch?v=gfmRrPjnEw4) — freeCodeCamp, one long single-sitting course.
+- More: Google → YouTube: `"aarch64 assembly tutorial"`
+- Reference while doing the above: A64 lookups + `esr.arm64.dev` in [Assembly & number bases](#assembly--number-bases); written track = Azeria Labs; book = Blue Fox (Markstedter).

