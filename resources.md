@@ -986,6 +986,8 @@ Web searches that produced the facts above (dates, podcast names):
 
 ## Binary Ninja Mastery
 - [Ninjas In Training](https://github.com/Vector35/binaryninja-api/wiki/Ninjas-In-Training) — Vector35's official wiki page of curated Binary Ninja learning resources for beginners.
+- https://api.binary.ninja/index.html
+- https://github.com/Vector35/binaryninja-api
 
 ## ROP
 - [CET on Windows](https://windows-internals.com/cet-on-windows/) — windows-internals.com write-up on Intel CET shadow stacks and how Windows uses them to break ROP.
