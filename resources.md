@@ -21,6 +21,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Books](#books)
 - [Assembly & number bases](#assembly--number-bases)
 - [ELF & process loading](#elf--process-loading)
+- [PE Windows format](#pe-windows-format)
 - [Reverse engineering — learning & workflow](#reverse-engineering--learning--workflow)
 - [Book — Practical Reverse Engineering](#book--practical-reverse-engineering)
 - [Tools — RE & disassembly](#tools--re--disassembly)
@@ -38,7 +39,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
     - [George Hotz (geohot) — streams to watch](#george-hotz-geohot--streams-to-watch)
 - [Papers, RFCs & protocol docs](#papers-rfcs--protocol-docs)
 - [Curated lists, repos & cheat sheets](#curated-lists-repos--cheat-sheets)
-- [Conferences](#conferences)
+- [Conferences 🦄](#conferences-)
 - [Communities](#communities)
 - [Career & market intel](#career--market-intel)
 - [Adjacent path A — eBPF & cloud-native](#adjacent-path-a--ebpf--cloud-native)
@@ -49,6 +50,16 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Newsletters & aggregators](#newsletters--aggregators)
 - [Hidden gems — the "unknowns"](#hidden-gems--the-unknowns)
 - [External links — unsorted drop-box](#external-links--unsorted-drop-box)
+- [Source & scope notes](#source--scope-notes)
+- [Vienna — RE & malware analysis events](#vienna--re--malware-analysis-events)
+- [Fun layer — podcasts, light videos, talks & conferences for malware analysis / RE](#fun-layer--podcasts-light-videos-talks--conferences-for-malware-analysis--re)
+- [Binary Ninja Mastery](#binary-ninja-mastery)
+- [ROP](#rop)
+- [Calling Conventions](#calling-conventions)
+- [return-to-libc — primary sources](#return-to-libc--primary-sources)
+- [Arm assembly](#arm-assembly)
+- [Stephen Eckels (Google/Mandiant FLARE)](#stephen-eckels-googlemandiant-flare)
+- [CVE / SBOM scanning — firmware & binaries](#cve--sbom-scanning--firmware--binaries)
 
 ---
 
@@ -1031,3 +1042,65 @@ SUBMARINE (Mandiant name: DEPTHCHARGE) is the Barracuda ESG backdoor from UNC484
 - Pulse Secure 0-day / SLOWPULSE (co-author): https://cloud.google.com/blog/topics/threat-intelligence/suspected-apt-actors-leverage-bypass-techniques-pulse-secure-zero-day · https://cloud.google.com/blog/topics/threat-intelligence/updates-on-chinese-apt-compromising-pulse-secure-vpn-devices
 - APT41 / DUSTTRAP (co-author): https://cloud.google.com/blog/topics/threat-intelligence/apt41-arisen-from-dust
 - Profiles: https://github.com/stevemk14ebr · https://infocondb.org/presenter/stephen-eckels · https://www.linkedin.com/in/stephen-eckels-995211102/
+
+## CVE / SBOM scanning — firmware & binaries
+Question that produced this: *"I have firmware and want to check if my glibc is clean or has critical CVEs."*
+
+Industry pattern is three stages: **generate an SBOM → match components against CVE feeds → triage with VEX**. Firmware needs a different front end than normal app scanning, because you have stripped binaries instead of a package manifest.
+
+### General purpose (de-facto standards)
+- [Trivy](https://github.com/aquasecurity/trivy) — Aqua. Container images, filesystems/rootfs, SBOMs, IaC. Most widely deployed single tool; `trivy rootfs ./extracted-fs` works on an unpacked image if it has a distro package DB.
+- [Syft](https://github.com/anchore/syft) + [Grype](https://github.com/anchore/grype) — Anchore. Syft builds the SBOM (SPDX/CycloneDX), Grype matches it. Separable, which matters when archiving an SBOM per release.
+- [OSV-Scanner](https://github.com/google/osv-scanner) — Google, fronts [OSV.dev](https://osv.dev). Aggregates distro trackers with per-package fix status rather than raw CPE ranges → fewer false positives when the component *is* a distro package.
+- [OWASP Dependency-Track](https://github.com/DependencyTrack/dependency-track) — the org-level piece. Upload an SBOM per build, it re-scans continuously as new CVEs land, with VEX support and notifications. How companies learn about a new glibc CVE in *shipped* firmware without re-running anything.
+
+### Binary / firmware specific
+- [cve-bin-tool](https://github.com/ossf/cve-bin-tool) — now under **OpenSSF** (moved from `intel/`). Closest match to the firmware question: ~450 binary "checkers" fingerprint version strings inside stripped binaries, so it IDs glibc, OpenSSL, BusyBox, zlib without a package manifest. Sources NVD, OSV, Red Hat, GitLab Advisory DB, plus EPSS for prioritization. Reads/writes SPDX, CycloneDX, SWID. [Docs / release notes](https://cve-bin-tool.readthedocs.io/en/stable/RELEASE.html)
+- [EMBA](https://github.com/e-m-b-a/emba) — full firmware security analyzer, GPL-3.0, Bash: extraction, static analysis, SBOM, CVE correlation, hardcoded secrets, **emulation-based dynamic verification**. Wraps binwalk, cve-search, yara. Reference open-source tool in embedded security work. [Troopers'22 slides](https://troopers.de/downloads/troopers22/TR22_EMBA.pdf) · [EMBA 2.0 emulation results](https://heise.de/-11119751) — 95% emulation success on the FirmAE corpus vs 79% FirmAE / 16% Firmadyne, though rates drop on newer firmware.
+- [unblob](https://github.com/onekey-sec/unblob) — better extraction than binwalk for modern images; feed its output to anything above.
+- [FACT](https://github.com/fkie-cad/FACT_core) — Fraunhofer FKIE. Firmware analysis + cross-version comparison.
+
+### If you control the build (strictly better than scanning the output)
+- Yocto/OpenEmbedded `cve-check` / `sbom-cve-check` bbclass — checks every recipe against NVD at build time and knows which patches you applied (`CVE_STATUS` marks backports).
+- Buildroot `make pkg-stats` — same idea, per-package CVE listing.
+
+Commercially this niche is Finite State / NetRise / Binarly / Cybellum, but EMBA + cve-bin-tool + Dependency-Track covers most of it.
+
+### Concrete path
+```bash
+# 1. extract
+unblob -e ./out firmware.bin          # or: binwalk -e firmware.bin
+
+# 2. pin the exact glibc version — do this BEFORE any scanning
+strings ./out/lib/libc.so.6 | grep -i 'GNU C Library'
+./out/lib/ld-linux-*.so.* --version   # if arch matches host
+
+# 3a. binary-level scan (no package DB needed)
+pip install cve-bin-tool
+cve-bin-tool ./out --format html --output-file report.html
+
+# 3b. SBOM route, for archiving + continuous monitoring
+syft dir:./out -o cyclonedx-json > sbom.json
+grype sbom:sbom.json
+#    then upload sbom.json to Dependency-Track
+
+# 4. full firmware audit
+sudo ./emba -f firmware.bin -l ./logs -p ./scan-profiles/default-scan.emba
+```
+
+### The part that decides "do I have to move"
+Raw scanner output on glibc is **noisy**. Budget for triage:
+
+- **Version-string matching != vulnerable.** Distros backport fixes while keeping the old version number. A `2.36-r3` or `2.35-0ubuntu3.8` string either trips false positives or matches no range at all. If your glibc came from a distro, check *that distro's* security tracker (Debian/Ubuntu/Red Hat), not NVD. Live example: [Yocto glibc CVE_STATUS patch](https://patchwork.yoctoproject.org/project/oe-core/patch/20260805172840.202825-2-peter.marko@siemens.com/) — stricter version validation rejected distro-suffixed strings, leaving CVEs with nothing to compare.
+- **For a custom upstream build**, the authoritative sources are glibc's own `NEWS` file (lists CVEs fixed per release) and the [glibc Security Exceptions wiki](https://sourceware.org/glibc/wiki/Security%20Exceptions) (classes of issue upstream explicitly does *not* treat as vulnerabilities). NVD's `cpe:2.3:a:gnu:glibc` ranges are the fallback.
+- **Prioritize, don't count.** Cross-reference [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (known exploited) and [EPSS](https://www.first.org/epss/) (exploitation probability) — cve-bin-tool and Grype both surface EPSS. A glibc with 40 open CVEs and none in KEV is usually lower priority than one BusyBox bug being actively exploited.
+- **Reachability matters a lot for glibc.** Most glibc CVEs sit in code paths firmware never touches (`iconv` with an exotic charset, NSS modules, specific locales). Record those as OpenVEX `not_affected` with a justification like `vulnerable_code_not_in_execute_path` — Grype and Trivy both consume OpenVEX, so the suppression stays auditable instead of being a silent ignore. [Grype + OpenVEX](https://www.chainguard.dev/unchained/vexed-then-grype-about-it-chainguard-and-anchore-announce-grype-supports-openvex) · [SBOM → VEX for false positives](https://dev.to/merbayerp/transitioning-from-sbom-to-vex-reducing-false-positives-20ca)
+- Duplicate SBOM entries for the same library also generate false positives — de-dup components before scanning.
+
+**glibc CVEs that historically justified a forced upgrade** (the shape of finding that means *move now*):
+- **CVE-2015-7547** — `getaddrinfo` stack buffer overflow, **remote**.
+- **CVE-2023-4911** "Looney Tunables" — `GLIBC_TUNABLES` overflow in `ld.so`, local privesc, glibc 2.34+.
+- **CVE-2024-2961** — `iconv` ISO-2022-CN-EXT out-of-bounds write; weaponized into RCE.
+
+### Recommendation
+Run `cve-bin-tool` first for a fast answer on the specific glibc → run EMBA once for the full image picture → if the firmware ships to customers, put Syft SBOMs into Dependency-Track so future CVEs find you. If you own the Yocto/Buildroot build, fix it *there* with `cve-check`; scanning the finished image is strictly worse than knowing your own patch set.
