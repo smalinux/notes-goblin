@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System V AMD64 ABI — where params &amp; locals go (interactive stepper)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;   /* executed instruction */
+    --red:       #ff6b6b;   /* rsp / modified       */
+    --green:     #4ade80;   /* argument             */
+    --purple:    #c084fc;   /* modified badge       */
+    --amber:     #fbbf24;   /* return address       */
+    --rip:       #f472b6;
+    --sky:       #38bdf8;   /* rbp / saved rbp      */
+    --teal:      #2dd4bf;
+    --slate:     #94a3b8;
+    --row-h:     36px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1250px; margin:0 auto}
+  a{color:var(--blue)}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--green) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  /* ============ example tabs ============ */
+  .tabs{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-bottom:1rem }
+  .tabs button{
+    background:var(--panel); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.45rem .9rem; font:inherit; font-size:.85rem; cursor:pointer;
+  }
+  .tabs button:hover{ border-color:var(--blue) }
+  .tabs button.on{ border-color:var(--green); color:var(--green); background:#13261b }
+  .tabs button small{ color:var(--dim); font-size:.72rem }
+
+  /* ============ params strip ============ */
+  .params{
+    display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center;
+    padding:.6rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  }
+  .pchip{
+    display:flex; flex-direction:column; align-items:center; gap:.15rem;
+    min-width:5.4rem; padding:.35rem .5rem; border:1px dashed var(--line); border-radius:8px;
+    font-size:.78rem; transition:background .3s, border-color .3s;
+  }
+  .pchip .pn{ color:var(--dim); font-size:.66rem }
+  .pchip .pv{ font-weight:bold }
+  .pchip .pd{ color:var(--dim); font-size:.68rem }
+  .pchip.stk .pd{ color:var(--amber) }
+  .pchip.on{ border-style:solid; border-color:var(--green); background:rgba(74,222,128,.10) }
+  .pchip.on .pd{ color:var(--green) }
+  .pchip.on.stk .pd{ color:var(--amber) }
+  .pchip.just{ animation:valFlash .8s ease }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; grid-template-columns: 1fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 1000px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 small{ text-transform:none; letter-spacing:0; font-size:.78rem }
+
+  /* ============ C source ============ */
+  .csrc{ font-size:.82rem; line-height:1.55; white-space:pre; overflow-x:auto }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .str{ color:#f9a8d4 }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.78rem; line-height:1.1; padding-left:2.6rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.26rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s; white-space:nowrap;
+  }
+  .asm .addr { color:var(--dim); font-size:.72rem; width:6.2ch; flex:none }
+  .asm .bytes{ color:#5b6577; font-size:.7rem; width:15ch; flex:none }
+  .asm .mn   { width:5ch; flex:none }
+  .asm .cmt  { color:var(--dim); font-size:.7rem; margin-left:auto; padding-left:.8rem }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row.virt{ font-style:italic; color:var(--dim); border:1px dashed var(--line); margin:.15rem 0 }
+  .asm .row.virt .mn{ width:auto }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.72rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .asm .row.k-arg .ops{ text-decoration:underline dotted var(--green) }
+  .asm .row.k-stk .ops{ text-decoration:underline dotted var(--amber) }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  /* ============ stdout ============ */
+  .stdout{
+    background:#0a0d12; border:1px solid var(--line); border-radius:8px;
+    padding:.5rem .7rem; font-size:.8rem; min-height:2.1rem; color:var(--green);
+  }
+  .stdout .pr{ color:var(--dim) }
+
+  /* ============ registers ============ */
+  .regs table{ width:100%; border-collapse:collapse; font-size:.84rem }
+  .regs td{ border:1px solid var(--line); padding:.36rem .6rem }
+  .regs td.name{ width:3.6rem; color:var(--dim) }
+  .regs td.hint{ color:var(--dim); font-size:.7rem; width:42% }
+  .v-mod  { color:var(--red) }
+  .v-arg  { color:var(--green) }
+  .v-plain{ color:var(--text) }
+  .v-unk  { color:#5b6577; font-style:italic }
+  .v-trash{ color:var(--purple); font-style:italic }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+  .al{ margin-left:.5rem; font-size:.66rem; padding:.05rem .35rem; border-radius:4px; border:1px solid }
+  .al.ok { color:var(--green); border-color:var(--green) }
+  .al.off{ color:var(--amber); border-color:var(--amber) }
+
+  /* ============ stack ============ */
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack{ border:2px solid var(--line); border-radius:8px }
+  .stack .srow{
+    display:grid; grid-template-columns: 5.4rem 4.6rem 1fr 7.2rem 5.2rem; height:var(--row-h);
+    border-bottom:1px solid var(--line); transition:background .45s, opacity .45s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .srow.dead{ opacity:.42; background:repeating-linear-gradient(135deg, transparent 0 7px, rgba(124,135,153,.07) 7px 10px) }
+  .stack .cell{ display:flex; align-items:center; padding:0 .45rem; font-size:.74rem; overflow:hidden; white-space:nowrap }
+  .stack .cell.ptr{ gap:.25rem; font-weight:bold; font-size:.72rem; justify-content:flex-end }
+  .stack .cell.ptr .p-rsp{ color:var(--red) }
+  .stack .cell.ptr .p-rbp{ color:var(--sky) }
+  .stack .cell.addr{ color:var(--dim); border-left:1px solid var(--line); border-right:1px solid var(--line); font-size:.7rem }
+  .stack .cell.val{ justify-content:center }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.66rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.2; white-space:normal;
+  }
+  .stack .cell.rel{ border-left:1px solid var(--line); font-size:.66rem; color:var(--dim); justify-content:center }
+  .who.w-ret { background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-sav { background:rgba(56,189,248,.14); color:var(--sky) }
+  .who.w-arg { background:rgba(74,222,128,.14); color:var(--green) }
+  .who.w-pad { color:var(--purple); font-style:italic }
+  .who.w-junk{ color:#5b6577; font-style:italic }
+  .who.w-no  { color:#5b6577 }
+  .srow.just{ animation:valFlash .9s ease }
+  .stack-cap{ font-size:.7rem; color:var(--dim); margin-top:.55rem; line-height:1.55 }
+
+  /* ============ note panel ============ */
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7.5rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.6 }
+  .note p+p{ margin-top:.45rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+
+  /* ============ controls ============ */
+  .controls{
+    margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.6rem; height:.6rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  /* ============ explanation sections ============ */
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.6rem }
+  .sect h2 .n{
+    display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+    border-radius:6px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim); font-size:.8rem; margin-right:.5rem; vertical-align:middle;
+  }
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .sect p{ font-size:.86rem; line-height:1.65 }
+  .sect p+p{ margin-top:.5rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.35rem }
+  table.cmp{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.4rem }
+  table.cmp th, table.cmp td{ border:1px solid var(--line); padding:.42rem .6rem; text-align:left }
+  table.cmp th{ color:var(--dim); font-weight:normal; text-transform:uppercase; letter-spacing:1px; font-size:.7rem }
+  table.cmp .g{ color:var(--green) } table.cmp .a{ color:var(--amber) } table.cmp .p{ color:var(--purple) }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.6rem }
+  @media (max-width: 900px){ .two{ grid-template-columns:1fr } }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.76rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .pr{color:var(--green)} .codecard .hl{color:var(--amber)}
+  .codecard .sp{color:var(--sky)} .codecard .lc{color:var(--green)}
+  .codecard b{ color:var(--text) }
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>System V AMD64 ABI — <span>where do the params go?</span></h1>
+  <div class="subtitle">4 × <code>printf</code> with 3 / 4 / 5 / 8 ints · gcc -O0 -no-pie -fcf-protection=none · Linux x86-64 · stack values from a real gdb run</div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span id="ripVal"></span>
+    <span class="ctx" id="ripCtx"></span>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="params" id="params"></div>
+
+<div class="layout">
+  <div class="col">
+    <div class="panel">
+      <h2>C source</h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>main() disassembly <small>(same bytes as Binary Ninja)</small></h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">✓ main returned to __libc_start_call_main+122 → exit(eax)</div>
+    </div>
+    <div class="panel">
+      <h2>stdout</h2>
+      <div class="stdout" id="stdout"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>registers <small>(SysV integer arg order: rdi rsi rdx rcx r8 r9)</small></h2>
+      <table id="regs"></table>
+    </div>
+    <div class="panel">
+      <h2>stack <small>(high addresses on top · 0x7fffffffd6..)</small></h2>
+      <div class="stack-grow">↓ stack grows down ↓</div>
+      <div class="stack" id="stack"></div>
+      <div class="stack-cap">
+        <span style="color:var(--amber)">■</span> return address ·
+        <span style="color:var(--sky)">■</span> saved rbp ·
+        <span style="color:var(--green)">■</span> stack argument ·
+        <span style="color:var(--purple)">■</span> alignment padding ·
+        faded = below rsp (free, but <b>not erased</b>)
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note" id="note"></div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump · <kbd>1</kbd>–<kbd>4</kbd> switch example · click a dot to jump</div>
+</div>
+
+<!-- ============ explanation ============ -->
+<div class="sect">
+  <h2><span class="n">1</span>The rule, and the 4 examples next to each other</h2>
+  <p>Integer/pointer args 1–6 go in <code>rdi, rsi, rdx, rcx, r8, r9</code>. Arg 7 and up are pushed on the stack <b>right-to-left</b>, so arg 7 ends up at the lowest address: <code>[rsp]</code> right before the <code>call</code>, <code>[rsp+8]</code> once you're inside the callee (the return address is on top). The format string is arg 1, so only <b>5</b> of your ints fit in registers.</p>
+  <table class="cmp">
+    <tr><th>example</th><th>printf args</th><th>in registers</th><th>on stack</th><th>sub rsp</th><th>after call</th><th>epilogue</th></tr>
+    <tr><td>3 ints</td><td>4</td><td class="g">rdi rsi rdx rcx</td><td>—</td><td>—</td><td>—</td><td>pop rbp</td></tr>
+    <tr><td>4 ints</td><td>5</td><td class="g">rdi … r8</td><td>—</td><td>—</td><td>—</td><td>pop rbp</td></tr>
+    <tr><td>5 ints</td><td>6</td><td class="g">rdi … r9 (all 6)</td><td>—</td><td>—</td><td>—</td><td>pop rbp</td></tr>
+    <tr><td>8 ints</td><td>9</td><td class="g">rdi … r9 (all 6)</td><td class="a">f, g, h → 3 × 8 = 24 B</td><td class="p">0x8 padding</td><td>add rsp,0x20</td><td>leave</td></tr>
+  </table>
+
+  <h3>Why <code>sub rsp,0x8</code> in the 8-arg version?</h3>
+  <p>It is <b>not</b> a local variable. The ABI says <code>rsp % 16 == 0</code> at the moment of every <code>call</code>. After <code>push rbp</code> main's rsp is aligned (<code>…d690</code>). Three pushes would add 24 bytes → <code>…d678</code>, misaligned. So gcc reserves 8 dead bytes first: 8 + 24 = 32 = 0x20 → <code>…d670</code> ✓. That slot is never written; in the gdb run it still held <code>0x7fffffffd7b8</code> left over from before main.</p>
+
+  <h3>Who cleans up?</h3>
+  <p>The caller. printf doesn't know how many args you passed, so main undoes its own reservation with <code>add rsp,0x20</code> (padding + 3 pushes). Then <code>leave</code> (= <code>mov rsp,rbp; pop rbp</code>) — gcc uses it whenever rsp moved inside the function; in the 3/4/5 versions rsp never moved, so a plain <code>pop rbp</code> is enough.</p>
+
+  <h3>Why <code>mov eax,0x0</code> before the call?</h3>
+  <p>printf is variadic. For variadic calls <code>al</code> = how many vector registers (xmm0–xmm7) carry floating-point args. No doubles → 0. The <code>mov eax,0x0</code> <i>after</i> the call is just <code>return 0</code>.</p>
+</div>
+
+<div class="sect">
+  <h2><span class="n">2</span>Why are stack params pushed in reverse order?</h2>
+  <p>C source order is <code>f, g, h</code>, but gcc emits <code>push 0x8</code> (h) → <code>push 0x7</code> (g) → <code>push 0x6</code> (f). The stack grows <b>down</b>, so the <b>last push lands at the lowest address</b>. Pushing right-to-left therefore lays the args out in memory in <b>source order, going up</b>:</p>
+  <div class="two">
+<div class="codecard"><span class="cm">  push order (time →)        memory at the call</span>
+  <span class="cm">①</span> push 0x8   <span class="cm">; h</span>          <b>…d680</b>  <span class="lc">8</span>  h  <span class="cm">[rsp+0x10]</span>
+  <span class="cm">②</span> push 0x7   <span class="cm">; g</span>          <b>…d678</b>  <span class="lc">7</span>  g  <span class="cm">[rsp+0x08]</span>
+  <span class="cm">③</span> push 0x6   <span class="cm">; f</span>          <b>…d670</b>  <span class="lc">6</span>  f  <span class="cm">[rsp+0x00]</span> <span class="cm">← rsp</span>
+     call printf             <b>…d668</b>  <span class="hl">ret</span>      <span class="cm">← rsp in printf</span>
+
+  <span class="cm">first stack arg = closest to the return address,</span>
+  <span class="cm">args ascend in memory in the same order as in C</span></div>
+<div class="codecard"><span class="cm">// same printf, 32-bit cdecl (gcc -m32 -O0): NO arg registers,</span>
+<span class="cm">// all 9 args are pushed — still last → first</span>
+  push   0x8          <span class="cm">; h   arg 9</span>
+  push   0x7          <span class="cm">; g</span>
+  push   0x6          <span class="cm">; f</span>
+  push   0x5          <span class="cm">; e</span>
+  push   0x4          <span class="cm">; d</span>
+  push   0x3          <span class="cm">; c</span>
+  push   0x2          <span class="cm">; b</span>
+  push   0x1          <span class="cm">; a</span>
+  push   <span class="hl">0x0</span>          <span class="cm">; fmt arg 1 (reloc → "a=%d…")</span>
+  call   printf
+  add    esp,0x30     <span class="cm">; 9×4 = 0x24 + 0xc padding</span></div>
+  </div>
+  <h3>Why it has to be this way</h3>
+  <ul>
+    <li><b>Fixed offsets for the callee.</b> Arg 7 is always at <code>[rsp+0x8]</code> on entry (<code>[rbp+0x10]</code> after the prologue), arg 8 always at +8 after that — no matter how many args were passed. If args were pushed left-to-right, the position of the <i>first</i> arg would depend on the total count.</li>
+    <li><b>Variadic functions need it.</b> printf doesn't know how many args it got. It reads the format string (always in a known spot), then walks <b>upward</b> 8 bytes per <code>%d</code>. That only works if the first variadic arg is closest and the rest follow in order.</li>
+    <li><b>Caller cleans up</b> (<code>add rsp,0x20</code>) for the same reason — only the caller knows how many bytes it pushed.</li>
+    <li>Register args are loaded in reverse too here (<code>r9d</code> first … <code>esi</code> last), but that's just gcc's habit; for registers the order of the <code>mov</code>s doesn't matter.</li>
+    <li>Exploit angle: a format-string bug (<code>printf(user_input)</code>) uses the same walk — <code>%6$p</code> and above read straight up the caller's stack.</li>
+  </ul>
+</div>
+
+<div class="sect">
+  <h2><span class="n">3</span>The callee side — reserving room for locals and incoming params</h2>
+  <p>The 4 mains above have no locals, so nothing is reserved for them. Here is what the <b>callee</b> does with its params and locals (same flags, gcc 10.5). At <code>-O0</code> the register params are immediately spilled into the frame so they get a memory home like any local.</p>
+  <div class="two">
+<div class="codecard"><span class="cm">// leaf: calls nothing → no sub rsp</span>
+<span class="pr">int</span> add(int x, int y) { int s = x + y; return s; }
+
+<b>&lt;add&gt;:</b>
+  push   rbp
+  mov    rbp,rsp
+                                <span class="cm">; ← no sub rsp!</span>
+  mov    DWORD PTR <span class="sp">[rbp-0x14]</span>,edi   <span class="cm">; x (param)</span>
+  mov    DWORD PTR <span class="sp">[rbp-0x18]</span>,esi   <span class="cm">; y (param)</span>
+  mov    edx,DWORD PTR [rbp-0x14]
+  mov    eax,DWORD PTR [rbp-0x18]
+  add    eax,edx
+  mov    DWORD PTR <span class="lc">[rbp-0x4]</span>,eax    <span class="cm">; s (local)</span>
+  mov    eax,DWORD PTR [rbp-0x4]
+  pop    rbp
+  ret
+<span class="cm">; everything lives BELOW rsp → red zone (128 B)</span></div>
+<div class="codecard"><span class="cm">// non-leaf: calls printf → must reserve</span>
+<span class="pr">int</span> show(int x, int y) { int s = x + y; printf("%d\n", s); return s; }
+
+<b>&lt;show&gt;:</b>
+  push   rbp
+  mov    rbp,rsp
+  <span class="hl">sub    rsp,0x20</span>                 <span class="cm">; reserve frame</span>
+  mov    DWORD PTR <span class="sp">[rbp-0x14]</span>,edi   <span class="cm">; x (param)</span>
+  mov    DWORD PTR <span class="sp">[rbp-0x18]</span>,esi   <span class="cm">; y (param)</span>
+  mov    edx,DWORD PTR [rbp-0x14]
+  mov    eax,DWORD PTR [rbp-0x18]
+  add    eax,edx
+  mov    DWORD PTR <span class="lc">[rbp-0x4]</span>,eax    <span class="cm">; s (local)</span>
+  ...
+  call   printf@plt                <span class="cm">; would overwrite the red zone</span>
+  mov    eax,DWORD PTR [rbp-0x4]
+  leave
+  ret</div>
+  </div>
+  <ul>
+    <li><b>Locals</b> → <code>[rbp-N]</code>, near rbp (<code>s</code> at <code>-0x4</code>). <b>Spilled params</b> → further down (<code>x</code>, <code>y</code> at <code>-0x14</code>, <code>-0x18</code>).</li>
+    <li>Leaf function: no <code>sub rsp</code>, it just uses the 128-byte <a href="red_zone.html">red zone</a> below rsp — nobody can clobber it because it calls nobody.</li>
+    <li>Non-leaf: <code>sub rsp,N</code> with N rounded up to a multiple of 16 (here 0x18 bytes used → 0x20), so the next <code>call</code> is aligned and the callee's pushes don't overwrite your locals.</li>
+    <li>Stack args from section 1 are on the <b>caller's</b> side of the return address: inside the callee they're <code>[rbp+0x10]</code>, <code>[rbp+0x18]</code>, … (positive offsets) — locals are negative offsets.</li>
+  </ul>
+<div class="codecard" style="margin-top:.8rem"><span class="cm">              callee frame layout (rbp-based, -O0)</span>
+  <b>[rbp+0x20]</b>  arg 9          <span class="cm">┐</span>
+  <b>[rbp+0x18]</b>  arg 8          <span class="cm">│ pushed by the CALLER (only if &gt; 6 args)</span>
+  <b>[rbp+0x10]</b>  arg 7          <span class="cm">┘</span>
+  <b>[rbp+0x08]</b>  <span class="hl">return address</span> <span class="cm">← pushed by call</span>
+  <b>[rbp+0x00]</b>  <span class="sp">saved rbp</span>      <span class="cm">← push rbp ; mov rbp,rsp</span>
+  <b>[rbp-0x04]</b>  <span class="lc">locals</span>         <span class="cm">┐</span>
+  <b>   ...    </b>  <span class="sp">spilled params</span> <span class="cm">│ reserved by sub rsp,N (or red zone if leaf)</span>
+  <b>[rsp]     </b>  ...            <span class="cm">┘ rsp % 16 == 0 before the next call</span></div>
+</div>
+
+<div class="sect takeaways">
+  <h2>takeaways</h2>
+  <ul>
+    <li>Args 1–6 → <code>rdi rsi rdx rcx r8 r9</code>; arg 7+ → pushed right-to-left; caller pops them (<code>add rsp</code>).</li>
+    <li><code>rsp % 16 == 0</code> at every <code>call</code> → odd number of stack args = 8 bytes of padding.</li>
+    <li>Arg registers are caller-saved: after the call, rdi…r9 may hold garbage. The args are gone unless you saved them.</li>
+    <li>Callee: locals at <code>[rbp-N]</code>, stack args at <code>[rbp+0x10+]</code>; leaf → red zone, non-leaf → <code>sub rsp,N</code>.</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · disassembly checked with GNU objdump + Binary Ninja, stack values from gdb · gcc 10.5 (Ubuntu)<br>
+  <a href="red_zone.html">red zone stepper</a> ·
+  <a href="noise-in-stack.html">noise in stack</a> ·
+  <a href="break-main-vs-star-main.html">b main vs b *main</a> ·
+  <a href="ret2libc-stack-alignment.html">ret2libc stack alignment</a>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const hex = v => '0x' + v.toString(16);
+const hx2 = v => v.toString(16).padStart(2, '0');
+const le32 = v => { v >>>= 0; let s = ''; for (let i = 0; i < 4; i++) s += hx2((v >>> (8 * i)) & 255); return s; };
+const short = a => a.toString(16).slice(-4);
+
+/* ---------- the 4 programs ---------- */
+const FMT   = { 3:'a=%d; b=%d; c=%d', 4:'a=%d; b=%d; c=%d; d=%d', 5:'a=%d; b=%d; c=%d; d=%d; e=%d;',
+                8:'a=%d; b=%d; c=%d; d=%d; e=%d; f=%d; g=%d; h=%d' };
+const FADDR = { 3:0x402004, 4:0x402004, 5:0x402004, 8:0x402008 };
+const PRINTF_PLT = 0x401030, MAIN = 0x401126;
+const NAMES = 'abcdefgh';
+const ARGREG = ['rdi','rsi','rdx','rcx','r8','r9'];
+const MOV32 = { 1:['esi','rsi','be'], 2:['edx','rdx','ba'], 3:['ecx','rcx','b9'], 4:['r8d','r8','41b8'], 5:['r9d','r9','41b9'] };
+
+function build(n){
+  const ins = []; let a = MAIN;
+  const nStk = Math.max(0, n - 5), pad = nStk % 2 ? 8 : 0;
+  const add = (bytes, m, o, eff, cmt, cls) => { ins.push({ a, bytes, m, o, eff, cmt, cls }); a += bytes.length / 2; };
+
+  add('55', 'push', 'rbp', { k:'pushrbp' }, 'saved_rbp');
+  add('4889e5', 'mov', 'rbp, rsp', { k:'movrbp' });
+  if (pad) add('4883ec08', 'sub', 'rsp, 0x8', { k:'sub', v:8 }, 'align pad');
+  for (let i = n; i >= 6; i--) add('6a' + hx2(i), 'push', hex(i), { k:'pushimm', v:i }, NAMES[i-1] + ' · arg ' + (i+1), 'k-stk');
+  for (let i = Math.min(n, 5); i >= 1; i--) {
+    const [r32, r64, op] = MOV32[i];
+    add(op + le32(i), 'mov', `${r32}, ${hex(i)}`, { k:'mov', r:r64, v:i }, NAMES[i-1] + ' · arg ' + (i+1), 'k-arg');
+  }
+  const disp = FADDR[n] - (a + 7);
+  add('488d3d' + le32(disp), 'lea', `rdi, [rip+${hex(disp)}]`, { k:'lea' }, 'fmt · arg 1', 'k-arg');
+  add('b800000000', 'mov', 'eax, 0x0', { k:'al0' }, 'al = 0 xmm');
+  add('e8' + le32(PRINTF_PLT - (a + 5)), 'call', 'printf@plt', { k:'call' });
+  ins.push({ virt:true, m:'⤷ printf() runs in libc … ret', o:'', eff:{ k:'pret' } });
+  if (nStk) add('4883c4' + hx2(8 * nStk + pad), 'add', `rsp, ${hex(8 * nStk + pad)}`, { k:'add', v:8 * nStk + pad }, 'caller cleans');
+  add('b800000000', 'mov', 'eax, 0x0', { k:'ret0' }, 'return 0');
+  if (nStk) add('c9', 'leave', '', { k:'leave' }, 'saved_rbp');
+  else      add('5d', 'pop', 'rbp', { k:'pop' }, 'saved_rbp');
+  add('c3', 'ret', '', { k:'ret' }, 'return_addr');
+  return { n, nStk, pad, ins };
+}
+
+function fmtOut(n){ let i = 0; return FMT[n].replace(/%d/g, () => String(++i)); }
+
+/* ---------- simulator → list of states ---------- */
+const ROWS = [0x7fffffffd6a0, 0x7fffffffd698, 0x7fffffffd690, 0x7fffffffd688,
+              0x7fffffffd680, 0x7fffffffd678, 0x7fffffffd670, 0x7fffffffd668];
+const RSP0 = 0x7fffffffd698, RBP0 = 0x7fffffffd730, LIBC_RET = 0x7ffff7c2a1ca;
+
+function simulate(P){
+  const r = { rdi:null, rsi:null, rdx:null, rcx:null, r8:null, r9:null, rax:null, rsp:RSP0, rbp:RBP0 };
+  const regState = {};                 // name -> 'arg' | 'mod' | 'trash'
+  const mem = {};
+  mem[ROWS[0]] = { v:'…', who:"caller's frame", cls:'w-no' };
+  mem[ROWS[1]] = { v:hex(LIBC_RET), who:'ret → libc', cls:'w-ret' };
+  mem[ROWS[3]] = { v:'0x7fffffffd7b8', who:'leftover junk', cls:'w-junk' };
+  for (const a of ROWS) if (!mem[a]) mem[a] = { v:'?', who:'', cls:'w-junk' };
+  const placed = new Set();
+  let out = '', ip = 0, rip = MAIN, done = false;
+
+  const snap = (changedR, changedM, justP, note) => ({
+    r:{ ...r }, regState:{ ...regState }, mem:JSON.parse(JSON.stringify(mem)), placed:new Set(placed),
+    out, ip, rip, done, changedR, changedM, justP, note
+  });
+
+  const states = [ snap([], [], null, noteStart(P)) ];
+  while (!done) {
+    const I = P.ins[ip], e = I.eff;
+    let cR = [], cM = [], jP = null;
+    switch (e.k) {
+      case 'pushrbp':
+        r.rsp -= 8; mem[r.rsp] = { v:hex(r.rbp), who:'saved rbp', cls:'w-sav' }; cR = ['rsp']; cM = [r.rsp]; break;
+      case 'movrbp':
+        r.rbp = r.rsp; cR = ['rbp']; break;
+      case 'sub':
+        r.rsp -= e.v; mem[r.rsp] = { ...mem[r.rsp], who:'padding (never written)', cls:'w-pad' }; cR = ['rsp']; cM = [r.rsp]; break;
+      case 'pushimm':
+        r.rsp -= 8; mem[r.rsp] = { v:String(e.v), who:`${NAMES[e.v-1]} · arg ${e.v+1}`, cls:'w-arg' };
+        placed.add(e.v); jP = e.v; cR = ['rsp']; cM = [r.rsp]; break;
+      case 'mov':
+        r[e.r] = e.v; regState[e.r] = 'arg'; placed.add(e.v); jP = e.v; cR = [e.r]; break;
+      case 'lea':
+        r.rdi = FADDR[P.n]; regState.rdi = 'arg'; placed.add(0); jP = 0; cR = ['rdi']; break;
+      case 'al0': case 'ret0':
+        r.rax = 0; regState.rax = 'mod'; cR = ['rax']; break;
+      case 'call':
+        r.rsp -= 8; const ra = P.ins[ip + 2] ? P.ins[ip + 2].a : 0;
+        mem[r.rsp] = { v:hex(ra), who:`ret → main+${ra - MAIN}`, cls:'w-ret' };
+        cR = ['rsp']; cM = [r.rsp]; break;
+      case 'pret':
+        r.rsp += 8; out = fmtOut(P.n); r.rax = out.length; regState.rax = 'mod';
+        for (const g of ARGREG) { r[g] = null; regState[g] = 'trash'; }
+        cR = ['rsp', 'rax', ...ARGREG]; break;
+      case 'add':
+        r.rsp += e.v; cR = ['rsp']; break;
+      case 'leave':
+        r.rsp = r.rbp; r.rbp = RBP0; r.rsp += 8; cR = ['rsp', 'rbp']; break;
+      case 'pop':
+        r.rbp = RBP0; r.rsp += 8; cR = ['rsp', 'rbp']; break;
+      case 'ret':
+        r.rsp += 8; done = true; cR = ['rsp']; break;
+    }
+    ip++;
+    rip = done ? LIBC_RET : (P.ins[ip].virt ? PRINTF_PLT : P.ins[ip].a);
+    states.push(snap(cR, cM, jP, noteFor(P, I, r)));
+  }
+  return states;
+}
+
+/* ---------- notes ---------- */
+function noteStart(P){
+  return { t:'At main+0 — nothing executed yet',
+    p:[`<code>[rsp]</code> = return address into <code>__libc_start_call_main</code>. rsp ends in <code>…698</code> → <b>8 mod 16</b>. That's expected: the caller's <code>call</code> pushed 8 bytes onto a 16-aligned stack.`,
+       P.nStk ? `This version passes <b>${P.n + 1}</b> args to printf (fmt + ${P.n} ints) — 6 fit in registers, <b>${P.nStk}</b> must go on the stack.`
+              : `This version passes <b>${P.n + 1}</b> args to printf (fmt + ${P.n} ints) — all fit in registers, the stack won't be touched for params.`] };
+}
+
+function noteFor(P, I, r){
+  const e = I.eff;
+  switch (e.k) {
+    case 'pushrbp': return { t:'push rbp — prologue',
+      p:[`Saves the caller's rbp at <code>${short(r.rsp)}</code>. rsp is now <code>…690</code> → <b>16-aligned</b> again.`] };
+    case 'movrbp': return { t:'mov rbp, rsp — frame anchor',
+      p:[`rbp now points at main's frame. main has <b>no locals</b>, so gcc emits no <code>sub rsp</code> for them.`,
+         P.nStk ? `But ${P.nStk} args are coming on the stack — watch the next instruction.`
+                : `And all params go in registers, so rsp is already 16-aligned for the call. Nothing else to reserve.`] };
+    case 'sub': return { t:'sub rsp, 0x8 — alignment padding, not a local',
+      p:[`${P.nStk} pushes = ${8 * P.nStk} bytes. ${8 * P.nStk} isn't a multiple of 16, so gcc reserves <b>8 dead bytes first</b>: 8 + ${8 * P.nStk} = ${8 * P.nStk + 8} → rsp will be 16-aligned at the <code>call</code>.`,
+         `The slot is never written — it still holds <code>0x7fffffffd7b8</code> left over from before main.`] };
+    case 'pushimm': {
+      const k = e.v + 1;
+      return { t:`push ${hex(e.v)} — ${NAMES[e.v-1]} = arg ${k} → stack`,
+        p:[`Args 7+ are pushed <b>right-to-left</b>: the last arg (h) first, so it ends up highest; arg 7 (f) ends up at <code>[rsp]</code>.`,
+           `<code>push imm8</code> sign-extends to 8 bytes — every stack arg takes a full 8-byte slot, even a 4-byte int.`] };
+    }
+    case 'mov': {
+      const [r32, r64] = MOV32[e.v];
+      return { t:`mov ${r32}, ${hex(e.v)} — ${NAMES[e.v-1]} = arg ${e.v + 1} → ${r64}`,
+        p:[`Arg ${e.v + 1} of printf goes in <code>${r64}</code> (order: rdi rsi rdx rcx r8 r9). gcc fills them last-to-first; only the final contents matter.`,
+           `Writing a 32-bit register (<code>${r32}</code>) zero-extends into the whole <code>${r64}</code> — and it's a shorter encoding than a 64-bit mov.`] };
+    }
+    case 'lea': return { t:'lea rdi, [rip+…] — arg 1 = format string',
+      p:[`<code>rdi = ${hex(FADDR[P.n])}</code> → <code>"${FMT[P.n]}"</code> in .rodata. RIP-relative addressing: 7-byte lea, works even if the binary is moved.`,
+         `All register args are set. ${P.nStk ? 'The stack args were pushed earlier.' : 'No stack args in this example.'}`] };
+    case 'al0': return { t:'mov eax, 0x0 — al = number of vector regs used',
+      p:[`printf is <b>variadic</b>. For variadic calls the caller puts in <code>al</code> how many xmm registers carry float/double args. None here → 0.`,
+         `Check rsp now: <code>${short(r.rsp)}</code> → ${r.rsp % 16 === 0 ? '<b>16-aligned ✓</b>, as the ABI requires right before a call.' : 'NOT aligned ✗'}`] };
+    case 'call': {
+      const lines = [`call = push return address + jump. rsp → <code>${short(r.rsp)}</code>. printf now starts exactly like main did: <code>[rsp]</code> = ret, rsp ≡ 8 mod 16.`];
+      if (P.nStk) lines.push(`printf's view: <code>[rsp+0x8]</code> = f (arg 7), <code>[rsp+0x10]</code> = g, <code>[rsp+0x18]</code> = h. After its own <code>push rbp; mov rbp,rsp</code> they'd be <code>[rbp+0x10]</code>, <code>[rbp+0x18]</code>, <code>[rbp+0x20]</code>.`);
+      else lines.push(`Everything printf needs is in registers — the stack holds only the return address.`);
+      return { t:'call printf — return address pushed', p:lines };
+    }
+    case 'pret': return { t:'printf returned',
+      p:[`<code>ret</code> popped the return address. <code>rax = ${fmtOut(P.n).length}</code> = number of chars printed.`,
+         `<code>rdi rsi rdx rcx r8 r9</code> are <b>caller-saved</b>: printf was free to trash them, so the register args are gone.${P.nStk ? ' The stack args are still there — removing them is the caller\'s job.' : ''}`] };
+    case 'add': return { t:`add rsp, ${hex(e.v)} — caller cleans the stack args`,
+      p:[`${hex(e.v)} = ${P.nStk} × 8 (args) + 8 (padding). rsp is back to <code>…690</code>, right where it was after the prologue.`,
+         `The values 6, 7, 8 are not erased — they're just below rsp now (see <a href="noise-in-stack.html">noise in stack</a>).`] };
+    case 'ret0': return { t:'mov eax, 0x0 — return 0', p:[`Same instruction as before the call, different meaning: this is main's return value.`] };
+    case 'pop': return { t:'pop rbp — epilogue',
+      p:[`rsp never moved below rbp in this version, so a plain <code>pop rbp</code> restores the caller's rbp.`] };
+    case 'leave': return { t:'leave — epilogue',
+      p:[`<code>leave</code> = <code>mov rsp, rbp</code> + <code>pop rbp</code>. gcc uses it because this function moved rsp (<code>sub</code>/<code>push</code>). Here rsp already equals rbp after the <code>add</code>, but leave is safe either way.`] };
+    case 'ret': return { t:'ret — back to libc',
+      p:[`Pops <code>${hex(LIBC_RET)}</code> → <code>__libc_start_call_main+122</code>, which calls <code>exit(eax)</code>. rsp = <code>…6a0</code>, same as before main was called.`] };
+  }
+}
+
+/* ---------- rendering ---------- */
+const EX = [3, 4, 5, 8];
+let P, STATES, cur = 0, timer = null, exIdx = 0;
+
+function renderTabs(){
+  $('tabs').innerHTML = EX.map((n, i) =>
+    `<button class="${i === exIdx ? 'on' : ''}" data-i="${i}">${n} ints <small>(${n + 1} args)</small></button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => setEx(+b.dataset.i));
+}
+
+function renderSrc(){
+  const args = Array.from({ length:P.n }, (_, i) => `<span class="num">${i + 1}</span>`).join(', ');
+  $('csrc').innerHTML =
+`<span class="kw">#include</span> &lt;stdio.h&gt;
+
+<span class="kw">int</span> <span class="fn">main</span>()
+{
+    <span class="fn">printf</span>(<span class="str">"${FMT[P.n]}"</span>,
+           ${args});
+    <span class="kw">return</span> <span class="num">0</span>;
+};`;
+}
+
+function renderAsm(){
+  $('asm').innerHTML = P.ins.map((I, i) => I.virt
+    ? `<div class="row virt" id="ins${i}"><span class="rip-ptr">RIP ▶</span><span class="mn">${I.m}</span></div>`
+    : `<div class="row ${I.cls || ''}" id="ins${i}"><span class="rip-ptr">RIP ▶</span>
+         <span class="addr">${I.a.toString(16)}</span><span class="bytes">${I.bytes}</span>
+         <span class="mn">${I.m}</span><span class="ops">${I.o}</span>${I.cmt ? `<span class="cmt">${I.cmt}</span>` : ''}</div>`).join('');
+}
+
+function renderParams(S){
+  const chips = [{ k:0, n:'arg 1', v:'fmt', d:'rdi' }];
+  for (let i = 1; i <= P.n; i++) {
+    const k = i + 1;
+    chips.push({ k:i, n:`arg ${k}`, v:`${NAMES[i-1]}=${i}`, d: k <= 6 ? ARGREG[k-1] : `stack [rsp+${hex(8 * (k - 7))}]`, stk: k > 6 });
+  }
+  $('params').innerHTML = chips.map(c =>
+    `<div class="pchip ${c.stk ? 'stk' : ''} ${S.placed.has(c.k) ? 'on' : ''} ${S.justP === c.k ? 'just' : ''}">
+       <span class="pn">${c.n}</span><span class="pv">${c.v}</span><span class="pd">→ ${c.d}</span></div>`).join('');
+}
+
+const REGHINT = { rdi:'arg 1', rsi:'arg 2', rdx:'arg 3', rcx:'arg 4', r8:'arg 5', r9:'arg 6',
+                  rax:'al = # xmm args / return value', rsp:'top of stack', rbp:'frame base' };
+function regVal(S, name){
+  const v = S.r[name], st = S.regState[name];
+  if (st === 'trash') return `<span class="v-trash">?? (caller-saved, trashed)</span>`;
+  if (v === null) return `<span class="v-unk">? (junk)</span>`;
+  if (name === 'rdi' && v === FADDR[P.n]) return `<span class="v-arg">${hex(v)}</span> <span class="v-unk">"${FMT[P.n].slice(0, 12)}…"</span>`;
+  if (name === 'rsp') {
+    const ok = v % 16 === 0;
+    return `<span class="v-mod">${hex(v)}</span><span class="al ${ok ? 'ok' : 'off'}">${ok ? '16-aligned' : '≡ 8 mod 16'}</span>`;
+  }
+  if (name === 'rbp') return `<span class="v-plain" style="color:var(--sky)">${hex(v)}</span>`;
+  return `<span class="${st === 'arg' ? 'v-arg' : st === 'mod' ? 'v-mod' : 'v-plain'}">${hex(v)}</span>`;
+}
+function renderRegs(S){
+  const names = ['rdi','rsi','rdx','rcx','r8','r9','rax','rsp','rbp'];
+  $('regs').innerHTML = names.map(n =>
+    `<tr><td class="name">${n}</td><td class="${S.changedR.includes(n) ? 'flash' : ''}">${regVal(S, n)}</td><td class="hint">${REGHINT[n]}</td></tr>`).join('');
+}
+
+function renderStack(S){
+  const rows = ROWS.map((a, i) => {
+    const m = S.mem[a], ptr = [];
+    if (S.r.rbp === a) ptr.push('<span class="p-rbp">rbp→</span>');
+    if (i === 0 && S.r.rbp > a) ptr.push('<span class="p-rbp">rbp↑</span>');
+    if (S.r.rsp === a) ptr.push('<span class="p-rsp">rsp→</span>');
+    const rel = a >= S.r.rsp && a - S.r.rsp <= 0x30 && i > 0 ? `[rsp+${hex(a - S.r.rsp)}]` : '';
+    const dead = a < S.r.rsp;
+    return `<div class="srow ${dead ? 'dead' : ''} ${S.changedM.includes(a) ? 'just' : ''}">
+      <div class="cell ptr">${ptr.join('')}</div>
+      <div class="cell addr">…${short(a)}</div>
+      <div class="cell val">${m.v}</div>
+      <div class="cell who ${m.cls}">${m.who}</div>
+      <div class="cell rel">${rel}</div></div>`;
+  });
+  $('stack').innerHTML = rows.join('');
+}
+
+function render(){
+  const S = STATES[cur];
+  P.ins.forEach((I, i) => {
+    const el = $('ins' + i);
+    el.classList.toggle('executed', i < S.ip);
+    el.classList.toggle('current', !S.done && i === S.ip);
+    el.classList.remove('just-executed');
+  });
+  if (cur > 0 && STATES[cur].ip - 1 >= 0) { const el = $('ins' + (S.ip - 1)); void el.offsetWidth; el.classList.add('just-executed'); }
+  $('exitRow').classList.toggle('on', S.done);
+
+  const I = P.ins[S.ip];
+  $('ripVal').textContent = hex(S.rip);
+  $('ripCtx').textContent = S.done ? '__libc_start_call_main+122'
+                         : I.virt ? 'printf@plt → libc printf' : `main+${I.a - MAIN}  ${I.m} ${I.o}`;
+
+  $('stdout').innerHTML = `<span class="pr">$ ./a.out</span><br>${S.out || ''}`;
+  renderParams(S); renderRegs(S); renderStack(S);
+  $('note').innerHTML = `<h3>${S.note.t}</h3>` + S.note.p.map(p => `<p>${p}</p>`).join('');
+
+  $('stepInd').textContent = `step ${cur} / ${STATES.length - 1}`;
+  $('dots').innerHTML = STATES.map((_, i) => `<span class="dot ${i < cur ? 'done' : ''} ${i === cur ? 'now' : ''}" data-i="${i}"></span>`).join('');
+  $('dots').querySelectorAll('.dot').forEach(d => d.onclick = () => { stopPlay(); go(+d.dataset.i); });
+  $('btnPrev').disabled = $('btnReset').disabled = (cur === 0);
+  $('btnNext').disabled = $('btnEnd').disabled = (cur === STATES.length - 1);
+}
+
+function go(i){ cur = Math.max(0, Math.min(STATES.length - 1, i)); render(); if (cur === STATES.length - 1) stopPlay(); }
+function setEx(i){
+  stopPlay(); exIdx = i; P = build(EX[i]); STATES = simulate(P); cur = 0;
+  renderTabs(); renderSrc(); renderAsm(); render();
+}
+function startPlay(){
+  if (cur === STATES.length - 1) go(0);
+  timer = setInterval(() => go(cur + 1), 1500);
+  $('btnPlay').textContent = '⏸ Pause'; $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play'; $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', () => { stopPlay(); go(cur + 1); });
+$('btnPrev').addEventListener('click', () => { stopPlay(); go(cur - 1); });
+$('btnReset').addEventListener('click', () => { stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', () => { stopPlay(); go(STATES.length - 1); });
+$('btnPlay').addEventListener('click', () => timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e => {
+  switch (e.key){
+    case 'ArrowRight': stopPlay(); go(cur + 1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur - 1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0); e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STATES.length - 1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+    case '1': case '2': case '3': case '4': setEx(+e.key - 1); break;
+  }
+});
+
+setEx(3);
+</script>
+</body>
+</html>

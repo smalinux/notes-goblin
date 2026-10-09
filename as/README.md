@@ -1,0 +1,27 @@
+# TOC
+
+- [001_CallASubroutine1-stepper.html](001_CallASubroutine1-stepper.html)
+- [002_SingleLocalVariable-stepper.html](002_SingleLocalVariable-stepper.html)
+- [003_SingleLocalVariable2-stepper.html](003_SingleLocalVariable2-stepper.html)
+- [004_ArrayLocalVariable-stepper.html](004_ArrayLocalVariable-stepper.html)
+- [005_StructLocalVariable-stepper.html](005_StructLocalVariable-stepper.html)
+- [006_Pass1Parameter-stepper.html](006_Pass1Parameter-stepper.html)
+- [007_Pass1Parameter_Linux-stepper.html](007_Pass1Parameter_Linux-stepper.html)
+- [alloca.html](alloca.html)
+- [aslr-memory-layout.html](aslr-memory-layout.html)
+- [assembly_01.html](assembly_01.html)
+- [cpu-architecture-roadmap.html](cpu-architecture-roadmap.html)
+- [heap-poison-null-byte.html](heap-poison-null-byte.html)
+- [ret2libc-stack-alignment.html](ret2libc-stack-alignment.html)
+- [segment_registers.html](segment_registers.html)
+- [segments_32.html](segments_32.html)
+- [segments_64.html](segments_64.html)
+- [stack-visualizer.html](stack-visualizer.html)
+- [x86-64-cheatsheet.html](x86-64-cheatsheet.html)
+- [x86-64-mastery.html](x86-64-mastery.html)
+- [x86_instruction_length.html](x86_instruction_length.html)
+- [red_zone.html](red_zone.html) - _SMA: I hit this while reading RE4B & analysis with view.gdb_
+- [break-main-vs-star-main.html](break-main-vs-star-main.html) - _gdb: `b main` (after prologue) vs `b *main` (exact address)_
+- [noise-in-stack.html](noise-in-stack.html) - _RE4B p.73 1.9.4: f2() prints f1()'s leftover locals_
+- [sysv-abi-args-stack.html](sysv-abi-args-stack.html) - _SysV x86-64: printf with 3/4/5/8 args — regs vs stack, reverse push order, alignment padding, locals/params in the callee_
+- [cdecl-calling-convention.html](cdecl-calling-convention.html) - _32-bit cdecl stepper: right-to-left pushes, [ebp+8] args / [ebp-4] locals, caller cleanup; vs stdcall/fastcall_

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RE4B 1.9.4 — Noise in stack</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;
+    --red:       #ff6b6b;
+    --green:     #4ade80;
+    --purple:    #c084fc;
+    --amber:     #fbbf24;
+    --rip:       #f472b6;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+  a{color:var(--blue)}
+  code{color:var(--amber)}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1.2rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--red) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .out-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .out-chip b{ color:var(--green) }
+  .out-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; gap:1rem; align-items:start }
+  .layout.two  { grid-template-columns:1fr 1.3fr }
+  .layout.three{ grid-template-columns:repeat(3,1fr) }
+  @media (max-width: 960px){ .layout.two, .layout.three{ grid-template-columns:1fr } }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden; margin-bottom:1rem;
+  }
+  .layout .panel{ margin-bottom:0 }
+  .layout{ margin-bottom:1rem }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 b{ text-transform:none; letter-spacing:0; font-size:.95rem; color:var(--text) }
+  .panel p{ font-size:.84rem; line-height:1.6 }
+  .panel p+p{ margin-top:.45rem }
+
+  /* ============ C source ============ */
+  .csrc{ font-size:.86rem; line-height:1.55; white-space:pre }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .cm { color:var(--dim) }
+  .csrc .hl { background:rgba(255,107,107,.14); border-radius:4px }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.78rem; line-height:1.1 }
+  .asm .lbl{ color:var(--amber); padding:.4rem .5rem .15rem }
+  .asm .row{ display:flex; gap:.55rem; padding:.24rem .5rem; border-radius:6px; white-space:nowrap }
+  .asm .addr{ color:var(--dim); width:6ch; flex:none }
+  .asm .mn  { width:5ch; flex:none; color:var(--blue) }
+  .asm .cmt { color:var(--dim); margin-left:auto; font-size:.7rem; padding-left:1rem }
+  .asm .row.w { background:rgba(74,222,128,.10) }
+  .asm .row.w .ops{ color:var(--green) }
+  .asm .row.r { background:rgba(255,107,107,.10) }
+  .asm .row.r .ops{ color:var(--red) }
+  .asm .row.k { background:rgba(251,191,36,.10) }
+  .asm .row.k .ops, .asm .row.k .mn{ color:var(--amber) }
+
+  /* ============ stack snapshots ============ */
+  .snap h2 .n{ color:var(--rip) }
+  .stack{ border:2px solid var(--line); border-radius:8px; font-size:.74rem }
+  .stack .srow{
+    display:grid; grid-template-columns:5.2rem 1fr; height:32px;
+    border-bottom:1px solid var(--line); position:relative;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .cell{ display:flex; align-items:center; padding:0 .5rem; gap:.4rem }
+  .stack .cell.off{ color:var(--dim); border-right:1px solid var(--line); font-size:.7rem }
+  .stack .cell .tag{ margin-left:auto; color:var(--rip); font-size:.66rem }
+  .stack .cell .who{ color:var(--dim); font-size:.66rem }
+  .s-ret { background:rgba(251,191,36,.12) }  .s-ret  .v{ color:var(--amber) }
+  .s-sav { background:rgba(56,189,248,.12) }  .s-sav  .v{ color:var(--sky) }
+  .s-new { background:rgba(74,222,128,.14) }  .s-new  .v{ color:var(--green) }
+  .s-dead{ background:repeating-linear-gradient(135deg, transparent 0 7px, rgba(124,135,153,.10) 7px 10px) }
+  .s-dead .v{ color:var(--purple) }
+  .s-read{ background:rgba(255,107,107,.12); box-shadow:inset 3px 0 0 var(--red) }
+  .s-read .v{ color:var(--red) }
+  .s-rz  { box-shadow:inset 3px 0 0 rgba(255,107,107,.75) }
+  .snap .note{ margin-top:.7rem; font-size:.78rem; line-height:1.6; color:var(--dim) }
+  .snap .note b{ color:var(--text) }
+
+  /* ============ legend ============ */
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; font-size:.78rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .swatch{ width:1.15rem; height:1.15rem; border-radius:4px; flex:none; border:1px solid var(--line) }
+
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .pr{color:var(--green)} .codecard .bad{color:var(--red)}
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  .takeaways ul{ padding-left:1.2rem; font-size:.86rem; line-height:1.7 }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Noise in stack — <span>f2() prints f1()'s locals</span></h1>
+  <div class="subtitle">RE4B p.73 · 1.9.4 · gcc -O0 -fcf-protection=none · x86-64 · ASLR off · values taken from a real gdb run</div>
+  <div class="out-chip"><span class="ctx">$ ./a.out</span> <b>1, 2, 3</b> <span class="ctx">← f2 never set a, b, c</span></div>
+</header>
+
+<div class="layout two">
+  <div class="panel">
+    <h2>C source</h2>
+<div class="csrc"><span class="kw">void</span> <span class="fn">f1</span>()
+{
+    <span class="kw">int</span> <span class="hl">a=<span class="num">1</span>, b=<span class="num">2</span>, c=<span class="num">3</span></span>;   <span class="cm">// written, never used</span>
+};
+
+<span class="kw">void</span> <span class="fn">f2</span>()
+{
+    <span class="kw">int</span> <span class="hl">a, b, c</span>;           <span class="cm">// uninitialized!</span>
+    <span class="fn">printf</span> (<span class="num">"%d, %d, %d\n"</span>, a, b, c);
+};
+
+<span class="kw">int</span> <span class="fn">main</span>()
+{
+    <span class="fn">f1</span>();
+    <span class="fn">f2</span>();
+};</div>
+  </div>
+
+  <div class="panel">
+    <h2>disassembly <b>— same offsets in both functions</b></h2>
+    <div class="asm">
+      <div class="lbl">&lt;f1&gt;: 0x555555555139</div>
+      <div class="row"><span class="addr">+0</span><span class="mn">push</span><span class="ops">rbp</span></div>
+      <div class="row"><span class="addr">+1</span><span class="mn">mov</span><span class="ops">rbp,rsp</span><span class="cmt">no sub rsp → leaf, uses red zone</span></div>
+      <div class="row w"><span class="addr">+4</span><span class="mn">mov</span><span class="ops">DWORD PTR [rbp-0xc],0x1</span><span class="cmt">a</span></div>
+      <div class="row w"><span class="addr">+11</span><span class="mn">mov</span><span class="ops">DWORD PTR [rbp-0x8],0x2</span><span class="cmt">b</span></div>
+      <div class="row w"><span class="addr">+18</span><span class="mn">mov</span><span class="ops">DWORD PTR [rbp-0x4],0x3</span><span class="cmt">c</span></div>
+      <div class="row"><span class="addr">+25</span><span class="mn">nop</span><span class="ops"></span></div>
+      <div class="row"><span class="addr">+26</span><span class="mn">pop</span><span class="ops">rbp</span></div>
+      <div class="row"><span class="addr">+27</span><span class="mn">ret</span><span class="ops"></span><span class="cmt">nothing is erased</span></div>
+
+      <div class="lbl">&lt;f2&gt;: 0x555555555155</div>
+      <div class="row"><span class="addr">+0</span><span class="mn">push</span><span class="ops">rbp</span></div>
+      <div class="row"><span class="addr">+1</span><span class="mn">mov</span><span class="ops">rbp,rsp</span></div>
+      <div class="row k"><span class="addr">+4</span><span class="mn">sub</span><span class="ops">rsp,0x10</span><span class="cmt">reserves the same 16 bytes</span></div>
+      <div class="row r"><span class="addr">+8</span><span class="mn">mov</span><span class="ops">ecx,DWORD PTR [rbp-0x4]</span><span class="cmt">c → 3</span></div>
+      <div class="row r"><span class="addr">+11</span><span class="mn">mov</span><span class="ops">edx,DWORD PTR [rbp-0x8]</span><span class="cmt">b → 2</span></div>
+      <div class="row r"><span class="addr">+14</span><span class="mn">mov</span><span class="ops">eax,DWORD PTR [rbp-0xc]</span><span class="cmt">a → 1</span></div>
+      <div class="row"><span class="addr">+17</span><span class="mn">mov</span><span class="ops">esi,eax</span></div>
+      <div class="row"><span class="addr">+19</span><span class="mn">lea</span><span class="ops">rdi,[rip+0xe95]</span><span class="cmt">"%d, %d, %d\n"</span></div>
+      <div class="row"><span class="addr">+26</span><span class="mn">mov</span><span class="ops">eax,0x0</span></div>
+      <div class="row"><span class="addr">+31</span><span class="mn">call</span><span class="ops">printf@plt</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="item"><span class="swatch" style="background:rgba(251,191,36,.25)"></span>return address</div>
+  <div class="item"><span class="swatch" style="background:rgba(56,189,248,.25)"></span>saved rbp</div>
+  <div class="item"><span class="swatch" style="background:rgba(74,222,128,.25)"></span>just written</div>
+  <div class="item"><span class="swatch" style="background:repeating-linear-gradient(135deg, transparent 0 4px, rgba(124,135,153,.4) 4px 6px)"></span>dead but not erased</div>
+  <div class="item"><span class="swatch" style="background:rgba(255,107,107,.25)"></span>read by f2</div>
+</div>
+
+<div class="layout three">
+
+  <!-- ============ 1 ============ -->
+  <div class="panel snap">
+    <h2><span class="n">①</span> <b>inside f1</b> &nbsp;f1+25 (nop)</h2>
+    <div class="stack">
+      <div class="srow s-ret"><div class="cell off">d678</div><div class="cell"><span class="v">0x55555555518a</span><span class="who">ret → main+14</span></div></div>
+      <div class="srow s-sav"><div class="cell off">d670</div><div class="cell"><span class="v">0x7fffffffd680</span><span class="tag">← rsp = rbp</span></div></div>
+      <div class="srow s-new s-rz"><div class="cell off">rbp-0x4</div><div class="cell"><span class="v">3</span><span class="who">c</span></div></div>
+      <div class="srow s-new s-rz"><div class="cell off">rbp-0x8</div><div class="cell"><span class="v">2</span><span class="who">b</span></div></div>
+      <div class="srow s-new s-rz"><div class="cell off">rbp-0xc</div><div class="cell"><span class="v">1</span><span class="who">a</span></div></div>
+      <div class="srow"><div class="cell off">rbp-0x10</div><div class="cell"><span class="v" style="color:var(--dim)">0</span></div></div>
+    </div>
+    <p class="note">f1 is a leaf, so gcc skips <code>sub rsp</code>: a, b, c sit <b>below rsp</b>, in the <a href="red_zone.html">red zone</a>.</p>
+  </div>
+
+  <!-- ============ 2 ============ -->
+  <div class="panel snap">
+    <h2><span class="n">②</span> <b>back in main</b> &nbsp;after ret</h2>
+    <div class="stack">
+      <div class="srow s-dead"><div class="cell off">d678</div><div class="cell"><span class="v">0x55555555518a</span><span class="who">old ret</span></div></div>
+      <div class="srow s-dead"><div class="cell off">d670</div><div class="cell"><span class="v">0x7fffffffd680</span><span class="who">old rbp</span></div></div>
+      <div class="srow s-dead"><div class="cell off">d66c</div><div class="cell"><span class="v">3</span></div></div>
+      <div class="srow s-dead"><div class="cell off">d668</div><div class="cell"><span class="v">2</span></div></div>
+      <div class="srow s-dead"><div class="cell off">d664</div><div class="cell"><span class="v">1</span></div></div>
+      <div class="srow s-dead"><div class="cell off">d660</div><div class="cell"><span class="v">0</span></div></div>
+    </div>
+    <p class="note">rsp is back at <code>d680</code>. Everything below it is "free" — but <code>ret</code> and <code>pop</code> only move rsp, they <b>don't zero</b> anything.</p>
+  </div>
+
+  <!-- ============ 3 ============ -->
+  <div class="panel snap">
+    <h2><span class="n">③</span> <b>inside f2</b> &nbsp;f2+8</h2>
+    <div class="stack">
+      <div class="srow s-ret"><div class="cell off">d678</div><div class="cell"><span class="v">0x555555555194</span><span class="who">ret → main+24</span></div></div>
+      <div class="srow s-sav"><div class="cell off">d670</div><div class="cell"><span class="v">0x7fffffffd680</span><span class="tag">← rbp</span></div></div>
+      <div class="srow s-read"><div class="cell off">rbp-0x4</div><div class="cell"><span class="v">3</span><span class="who">c (never set)</span></div></div>
+      <div class="srow s-read"><div class="cell off">rbp-0x8</div><div class="cell"><span class="v">2</span><span class="who">b (never set)</span></div></div>
+      <div class="srow s-read"><div class="cell off">rbp-0xc</div><div class="cell"><span class="v">1</span><span class="who">a (never set)</span></div></div>
+      <div class="srow"><div class="cell off">rbp-0x10</div><div class="cell"><span class="v" style="color:var(--dim)">0</span><span class="tag">← rsp</span></div></div>
+    </div>
+    <p class="note">Same caller, same depth → <b>same rbp (d670)</b>. Only the return address changed (<code>518a</code> → <code>5194</code>). f2's a, b, c land on f1's leftovers.</p>
+  </div>
+
+</div>
+
+<div class="panel">
+  <h2>why it lines up exactly</h2>
+  <p>Both functions are called from <code>main</code> with the same rsp, both do <code>push rbp; mov rbp,rsp</code>, and both declare three <code>int</code>s in the same order, so gcc gives them the same slots: <code>a=[rbp-0xc]</code>, <code>b=[rbp-0x8]</code>, <code>c=[rbp-0x4]</code>.</p>
+  <p>That's luck, not a rule. Change the order, add a variable, call something between f1 and f2, or build with <code>-O2</code> and you get different garbage — that's the "noise" RE4B means. Reading an uninitialized local is undefined behaviour in C.</p>
+</div>
+
+<div class="panel">
+  <h2>reproduce in gdb</h2>
+<div class="codecard"><span class="pr">$</span> gcc -O0 -g -fcf-protection=none noise.c   <span class="cm"># no endbr64 → same addresses as here</span>
+<span class="pr">(gdb)</span> b *f1+25                  <span class="cm"># the nop — after all 3 stores</span>
+<span class="pr">(gdb)</span> b *f2+8                   <span class="cm"># after sub rsp,0x10, before the loads</span>
+<span class="pr">(gdb)</span> run
+<span class="pr">(gdb)</span> x/4wx $rbp-0x10
+0x7fffffffd660: 0x00000000  0x00000001  0x00000002  0x00000003
+<span class="pr">(gdb)</span> c
+<span class="pr">(gdb)</span> x/4wx $rbp-0x10            <span class="cm"># same address, same values</span>
+0x7fffffffd660: 0x00000000  0x00000001  0x00000002  0x00000003
+
+<span class="cm"># gotcha: `b *f1+20` lands in the MIDDLE of `mov [rbp-0x4],0x3` (+18..+24).</span>
+<span class="cm"># gdb writes int3 (0xcc) over the disp8 byte (fc → cc), so the 3 is stored to</span>
+<span class="cm"># [rbp-0x34] instead of [rbp-0x4]; c's slot keeps older junk and it prints</span>
+<span class="bad">1, 2, 32767</span><span class="cm">   ← always break on an instruction boundary</span></div>
+</div>
+
+<div class="panel takeaways">
+  <h2>takeaways</h2>
+  <ul>
+    <li>Returning from a function doesn't clean its stack — it only moves <code>rsp</code> up.</li>
+    <li>The next call at the same depth reuses the same bytes, so uninitialized locals show the previous callee's values.</li>
+    <li>f1 needs no <code>sub rsp</code> because it's a leaf (red zone); f2 calls printf, so it must reserve its frame.</li>
+    <li>Security angle: this is how info leaks happen (leftover pointers / canaries / secrets in uninitialized stack vars).</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · values from gdb, gcc 10.5 (Ubuntu)<br>
+  <a href="red_zone.html">red zone stepper</a> ·
+  <a href="break-main-vs-star-main.html">b main vs b *main</a> ·
+  <a href="001_CallASubroutine1-stepper.html">CallASubroutine stepper</a>
+</footer>
+
+</body>
+</html>

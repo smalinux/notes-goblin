@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gdb — b main vs b *main</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;
+    --red:       #ff6b6b;
+    --green:     #4ade80;
+    --purple:    #c084fc;
+    --amber:     #fbbf24;
+    --rip:       #f472b6;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1100px; margin:0 auto}
+  a{color:var(--blue)}
+  code{color:var(--amber)}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1.2rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--rip) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 900px){ .layout{ grid-template-columns:1fr } }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden; margin-bottom:1rem;
+  }
+  .layout .panel{ margin-bottom:0 }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 b{ text-transform:none; letter-spacing:0; font-size:1rem }
+  .panel.star h2 b{ color:var(--red) }
+  .panel.sym  h2 b{ color:var(--green) }
+  .panel.star{ border-color:rgba(255,107,107,.45) }
+  .panel.sym { border-color:rgba(74,222,128,.45) }
+  .panel p{ font-size:.86rem; line-height:1.6 }
+  .panel p+p{ margin-top:.45rem }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.8rem; line-height:1.1; margin:.4rem 0 .8rem }
+  .asm .row{
+    display:flex; gap:.55rem; padding:.3rem .5rem; border-radius:6px; white-space:nowrap;
+  }
+  .asm .ptr { width:1.4rem; flex:none; color:transparent; font-weight:bold }
+  .asm .addr{ color:var(--dim); width:15ch; flex:none }
+  .asm .lbl { color:var(--amber); width:9ch; flex:none }
+  .asm .mn  { width:5ch; flex:none; color:var(--blue) }
+  .asm .row.cur{ background:rgba(244,114,182,.12); box-shadow:inset 0 0 0 1px rgba(244,114,182,.5) }
+  .asm .row.cur .ptr{ color:var(--rip) }
+  .asm .row.pro{ background:repeating-linear-gradient(135deg, transparent 0 7px, rgba(124,135,153,.08) 7px 10px) }
+  .asm .row.pro .mn, .asm .row.pro .ops{ color:var(--dim) }
+  .asm .row.pro .tag{ color:var(--dim); font-size:.7rem; margin-left:auto }
+
+  /* ============ stack ============ */
+  .stack{ border:2px solid var(--line); border-radius:8px; font-size:.76rem }
+  .stack .srow{
+    display:grid; grid-template-columns:7rem 1fr 7rem; height:34px;
+    border-bottom:1px solid var(--line);
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .cell{ display:flex; align-items:center; padding:0 .5rem }
+  .stack .cell.off{ color:var(--dim); border-right:1px solid var(--line) }
+  .stack .cell.who{ border-left:1px solid var(--line); justify-content:center; font-size:.68rem }
+  .w-ret{ background:rgba(251,191,36,.14); color:var(--amber) }
+  .w-sav{ background:rgba(56,189,248,.14); color:var(--sky) }
+  .ptrs{ color:var(--rip); font-size:.72rem; margin-left:auto }
+
+  .regs{ margin-top:.7rem; font-size:.8rem; line-height:1.7 }
+  .regs .ok { color:var(--green) }
+  .regs .bad{ color:var(--red) }
+
+  /* ============ table ============ */
+  table.cmp{ width:100%; border-collapse:collapse; font-size:.82rem }
+  table.cmp th, table.cmp td{ border:1px solid var(--line); padding:.45rem .7rem; text-align:left; vertical-align:top }
+  table.cmp th{ color:var(--dim); font-weight:normal; text-transform:uppercase; letter-spacing:1px; font-size:.72rem }
+  table.cmp td:first-child{ color:var(--dim); width:28% }
+  table.cmp .r{ color:var(--red) } table.cmp .g{ color:var(--green) }
+
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .pr{color:var(--green)}
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  .takeaways ul{ padding-left:1.2rem; font-size:.86rem; line-height:1.7 }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>gdb — <span>b main</span> vs <span>b *main</span></h1>
+  <div class="subtitle">symbol breakpoint (after prologue) vs address breakpoint (exact byte) · x86-64 · same binary, ASLR off</div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ b *main ============ -->
+  <div class="panel star">
+    <h2><b>b *main</b> &nbsp;address → stops at main+0</h2>
+    <div class="asm">
+      <div class="row cur"><span class="ptr">=&gt;</span><span class="addr">0x55555555517c</span><span class="lbl">&lt;+0&gt;</span><span class="mn">push</span><span class="ops">rbp</span></div>
+      <div class="row"><span class="ptr">=&gt;</span><span class="addr">0x55555555517d</span><span class="lbl">&lt;+1&gt;</span><span class="mn">mov</span><span class="ops">rbp,rsp</span></div>
+      <div class="row"><span class="ptr">=&gt;</span><span class="addr">0x555555555180</span><span class="lbl">&lt;+4&gt;</span><span class="mn">mov</span><span class="ops">eax,0x0</span></div>
+      <div class="row"><span class="ptr">=&gt;</span><span class="addr">0x555555555185</span><span class="lbl">&lt;+9&gt;</span><span class="mn">call</span><span class="ops">0x555555555139 &lt;f1&gt;</span></div>
+    </div>
+    <div class="stack">
+      <div class="srow"><div class="cell off">rsp+0x0</div><div class="cell">ret → __libc_start_call_main<span class="ptrs">← rsp</span></div><div class="cell who w-ret">return addr</div></div>
+      <div class="srow"><div class="cell off">rsp+0x8</div><div class="cell" style="color:var(--dim)">caller's frame…</div><div class="cell who"></div></div>
+    </div>
+    <div class="regs">
+      rbp = <span class="bad">caller's rbp</span> (not main's frame yet)<br>
+      <span class="bad">✗</span> locals / <code>info frame</code> / <code>bt</code> may be off by one frame
+    </div>
+  </div>
+
+  <!-- ============ b main ============ -->
+  <div class="panel sym">
+    <h2><b>b main</b> &nbsp;symbol → stops at main+4</h2>
+    <div class="asm">
+      <div class="row pro"><span class="ptr">=&gt;</span><span class="addr">0x55555555517c</span><span class="lbl">&lt;+0&gt;</span><span class="mn">push</span><span class="ops">rbp</span><span class="tag">prologue · skipped</span></div>
+      <div class="row pro"><span class="ptr">=&gt;</span><span class="addr">0x55555555517d</span><span class="lbl">&lt;+1&gt;</span><span class="mn">mov</span><span class="ops">rbp,rsp</span><span class="tag">prologue · skipped</span></div>
+      <div class="row cur"><span class="ptr">=&gt;</span><span class="addr">0x555555555180</span><span class="lbl">&lt;+4&gt;</span><span class="mn">mov</span><span class="ops">eax,0x0</span></div>
+      <div class="row"><span class="ptr">=&gt;</span><span class="addr">0x555555555185</span><span class="lbl">&lt;+9&gt;</span><span class="mn">call</span><span class="ops">0x555555555139 &lt;f1&gt;</span></div>
+    </div>
+    <div class="stack">
+      <div class="srow"><div class="cell off">rsp+0x0</div><div class="cell">caller's rbp<span class="ptrs">← rsp = rbp</span></div><div class="cell who w-sav">saved rbp</div></div>
+      <div class="srow"><div class="cell off">rsp+0x8</div><div class="cell">ret → __libc_start_call_main</div><div class="cell who w-ret">return addr</div></div>
+    </div>
+    <div class="regs">
+      rbp = <span class="ok">rsp</span> (main's frame is built)<br>
+      <span class="ok">✓</span> <code>[rbp-N]</code> locals, <code>[rbp+8]</code> ret, <code>info frame</code> all valid
+    </div>
+  </div>
+
+</div>
+
+<div class="panel">
+  <h2>side by side</h2>
+  <table class="cmp">
+    <tr><th></th><th>b *main</th><th>b main</th></tr>
+    <tr><td>argument is</td><td>an <b>address</b> (the <code>*</code> = "this exact location")</td><td>a <b>linespec</b> (function name)</td></tr>
+    <tr><td>stops at</td><td class="r">main+0 — first byte, before <code>push rbp</code></td><td class="g">main+4 — first insn after the prologue</td></tr>
+    <tr><td>how gdb picks it</td><td>no thinking, uses the address as-is</td><td>debug info: 2nd line-table entry of main<br>no debug info: prologue analyzer (recognizes <code>push rbp; mov rbp,rsp</code>)</td></tr>
+    <tr><td>[rsp] at the stop</td><td>return address</td><td>saved rbp (ret is at [rsp+8])</td></tr>
+    <tr><td>use it when</td><td>you want to see the prologue itself, stack alignment on entry, ROP / ret2libc entry state, stripped binaries</td><td>you just want to start debugging the C code</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>check it yourself</h2>
+<div class="codecard"><span class="pr">(gdb)</span> b main
+Breakpoint 1 at 0x1180            <span class="cm"># main+4 — already past the prologue</span>
+<span class="pr">(gdb)</span> b *main
+Breakpoint 2 at 0x117c            <span class="cm"># main+0</span>
+<span class="pr">(gdb)</span> info line main             <span class="cm"># line table: where the first source line begins</span>
+<span class="pr">(gdb)</span> x/gx $rsp                   <span class="cm"># at *main → return addr ; at main → saved rbp</span>
+<span class="pr">(gdb)</span> b *main+4                   <span class="cm"># same spot as `b main` here (only because the prologue is 1+3 bytes)</span></div>
+</div>
+
+<div class="panel takeaways">
+  <h2>takeaways</h2>
+  <ul>
+    <li><code>*</code> means "address". Without it gdb treats <code>main</code> as a function and skips the prologue.</li>
+    <li>The skip size isn't fixed: <code>sub rsp,N</code>, stack canary setup or <code>endbr64</code> make it bigger, and with <code>-O2</code>/no frame pointer it can be 0.</li>
+    <li><code>start</code> = temporary <code>b main</code> + <code>run</code> → it also stops after the prologue.</li>
+    <li>For exploit work (stack alignment, what <code>ret</code> just landed on) always use <code>b *addr</code>.</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · gdb with view.gdb layout<br>
+  <a href="red_zone.html">red zone stepper</a> ·
+  <a href="ret2libc-stack-alignment.html">ret2libc stack alignment</a> ·
+  <a href="001_CallASubroutine1-stepper.html">CallASubroutine stepper</a>
+</footer>
+
+</body>
+</html>

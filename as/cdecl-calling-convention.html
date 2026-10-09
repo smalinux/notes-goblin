@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cdecl calling convention — interactive stepper (x86, 32-bit)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;   /* executed instruction */
+    --red:       #ff6b6b;   /* rsp / modified       */
+    --green:     #4ade80;   /* argument             */
+    --purple:    #c084fc;   /* modified badge       */
+    --amber:     #fbbf24;   /* return address       */
+    --rip:       #f472b6;
+    --sky:       #38bdf8;   /* rbp / saved rbp      */
+    --teal:      #2dd4bf;
+    --slate:     #94a3b8;
+    --row-h:     36px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1250px; margin:0 auto}
+  a{color:var(--blue)}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--green) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  /* ============ example tabs ============ */
+  .tabs{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-bottom:1rem }
+  .tabs button{
+    background:var(--panel); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.45rem .9rem; font:inherit; font-size:.85rem; cursor:pointer;
+  }
+  .tabs button:hover{ border-color:var(--blue) }
+  .tabs button.on{ border-color:var(--green); color:var(--green); background:#13261b }
+  .tabs button small{ color:var(--dim); font-size:.72rem }
+
+  /* ============ params strip ============ */
+  .params{
+    display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center;
+    padding:.6rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  }
+  .pchip{
+    display:flex; flex-direction:column; align-items:center; gap:.15rem;
+    min-width:5.4rem; padding:.35rem .5rem; border:1px dashed var(--line); border-radius:8px;
+    font-size:.78rem; transition:background .3s, border-color .3s;
+  }
+  .pchip .pn{ color:var(--dim); font-size:.66rem }
+  .pchip .pv{ font-weight:bold }
+  .pchip .pd{ color:var(--dim); font-size:.68rem }
+  .pchip.stk .pd{ color:var(--amber) }
+  .pchip.on{ border-style:solid; border-color:var(--green); background:rgba(74,222,128,.10) }
+  .pchip.on .pd{ color:var(--green) }
+  .pchip.on.stk .pd{ color:var(--amber) }
+  .pchip.just{ animation:valFlash .8s ease }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; grid-template-columns: 1fr 1fr; gap:1rem; align-items:start }
+  @media (max-width: 1000px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 small{ text-transform:none; letter-spacing:0; font-size:.78rem }
+
+  /* ============ C source ============ */
+  .csrc{ font-size:.82rem; line-height:1.55; white-space:pre; overflow-x:auto }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .str{ color:#f9a8d4 }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.78rem; line-height:1.1; padding-left:2.6rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.26rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s; white-space:nowrap;
+  }
+  .asm .addr { color:var(--dim); font-size:.72rem; width:6.2ch; flex:none }
+  .asm .bytes{ color:#5b6577; font-size:.7rem; width:15ch; flex:none }
+  .asm .mn   { width:5ch; flex:none }
+  .asm .cmt  { color:var(--dim); font-size:.7rem; margin-left:auto; padding-left:.8rem }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row.virt{ font-style:italic; color:var(--dim); border:1px dashed var(--line); margin:.15rem 0 }
+  .asm .row.virt .mn{ width:auto }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.72rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .asm .row.k-arg .ops{ text-decoration:underline dotted var(--green) }
+  .asm .row.k-stk .ops{ text-decoration:underline dotted var(--amber) }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  /* ============ stdout ============ */
+  .stdout{
+    background:#0a0d12; border:1px solid var(--line); border-radius:8px;
+    padding:.5rem .7rem; font-size:.8rem; min-height:2.1rem; color:var(--green);
+  }
+  .stdout .pr{ color:var(--dim) }
+
+  /* ============ registers ============ */
+  .regs table{ width:100%; border-collapse:collapse; font-size:.84rem }
+  .regs td{ border:1px solid var(--line); padding:.36rem .6rem }
+  .regs td.name{ width:3.6rem; color:var(--dim) }
+  .regs td.hint{ color:var(--dim); font-size:.7rem; width:42% }
+  .v-mod  { color:var(--red) }
+  .v-arg  { color:var(--green) }
+  .v-plain{ color:var(--text) }
+  .v-unk  { color:#5b6577; font-style:italic }
+  .v-trash{ color:var(--purple); font-style:italic }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+  .al{ margin-left:.5rem; font-size:.66rem; padding:.05rem .35rem; border-radius:4px; border:1px solid }
+  .al.ok { color:var(--green); border-color:var(--green) }
+  .al.off{ color:var(--amber); border-color:var(--amber) }
+
+  /* ============ stack ============ */
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack{ border:2px solid var(--line); border-radius:8px }
+  .stack .srow{
+    display:grid; grid-template-columns: 5.4rem 4.6rem 1fr 7.2rem 5.2rem; height:var(--row-h);
+    border-bottom:1px solid var(--line); transition:background .45s, opacity .45s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .srow.dead{ opacity:.42; background:repeating-linear-gradient(135deg, transparent 0 7px, rgba(124,135,153,.07) 7px 10px) }
+  .stack .cell{ display:flex; align-items:center; padding:0 .45rem; font-size:.74rem; overflow:hidden; white-space:nowrap }
+  .stack .cell.ptr{ gap:.25rem; font-weight:bold; font-size:.72rem; justify-content:flex-end }
+  .stack .cell.ptr .p-rsp{ color:var(--red) }
+  .stack .cell.ptr .p-rbp{ color:var(--sky) }
+  .stack .cell.addr{ color:var(--dim); border-left:1px solid var(--line); border-right:1px solid var(--line); font-size:.7rem }
+  .stack .cell.val{ justify-content:center }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.66rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.2; white-space:normal;
+  }
+  .stack .cell.rel{ border-left:1px solid var(--line); font-size:.66rem; color:var(--dim); justify-content:center }
+  .who.w-ret { background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-sav { background:rgba(56,189,248,.14); color:var(--sky) }
+  .who.w-arg { background:rgba(74,222,128,.14); color:var(--green) }
+  .who.w-pad { color:var(--purple); font-style:italic }
+  .who.w-junk{ color:#5b6577; font-style:italic }
+  .who.w-no  { color:#5b6577 }
+  .srow.just{ animation:valFlash .9s ease }
+  .stack-cap{ font-size:.7rem; color:var(--dim); margin-top:.55rem; line-height:1.55 }
+
+  /* ============ note panel ============ */
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7.5rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.6 }
+  .note p+p{ margin-top:.45rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+
+  /* ============ controls ============ */
+  .controls{
+    margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.6rem; height:.6rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  /* ============ explanation sections ============ */
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.6rem }
+  .sect h2 .n{
+    display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+    border-radius:6px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim); font-size:.8rem; margin-right:.5rem; vertical-align:middle;
+  }
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .sect p{ font-size:.86rem; line-height:1.65 }
+  .sect p+p{ margin-top:.5rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.35rem }
+  table.cmp{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.4rem }
+  table.cmp th, table.cmp td{ border:1px solid var(--line); padding:.42rem .6rem; text-align:left }
+  table.cmp th{ color:var(--dim); font-weight:normal; text-transform:uppercase; letter-spacing:1px; font-size:.7rem }
+  table.cmp .g{ color:var(--green) } table.cmp .a{ color:var(--amber) } table.cmp .p{ color:var(--purple) }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.6rem }
+  @media (max-width: 900px){ .two{ grid-template-columns:1fr } }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.76rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .pr{color:var(--green)} .codecard .hl{color:var(--amber)}
+  .codecard .sp{color:var(--sky)} .codecard .lc{color:var(--green)}
+  .codecard b{ color:var(--text) }
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+
+<style>
+  header h1 span{ color:var(--amber) }
+  .who.w-loc { background:rgba(45,212,191,.14); color:var(--teal) }
+  .who.w-old { color:var(--purple); font-style:italic }
+  .asm .fn-lbl{ color:var(--amber); font-size:.78rem; padding:.5rem .5rem .2rem; margin-left:-2.6rem }
+  .asm .fn-lbl small{ color:var(--dim) }
+  .asm .row.k-arg .ops{ text-decoration:underline dotted var(--green) }
+  .asm .row.k-loc .ops{ text-decoration:underline dotted var(--teal) }
+  .asm .bytes{ width:11ch }
+  .stack .srow{ grid-template-columns: 5.4rem 4.6rem 1fr 8.6rem 5.4rem }
+  .rules{ display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin-bottom:1rem }
+  @media (max-width: 900px){ .rules{ grid-template-columns:1fr 1fr } }
+  .rule{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:.55rem .7rem; font-size:.76rem; line-height:1.5 }
+  .rule b{ display:block; font-size:.68rem; color:var(--dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.2rem }
+  .rule .g{ color:var(--green) } .rule .a{ color:var(--amber) } .rule .s{ color:var(--sky) } .rule .r{ color:var(--red) }
+  .rule.on{ border-color:var(--green); background:#13261b }
+  table.cmp td.g{ color:var(--green) } table.cmp td.a{ color:var(--amber) } table.cmp td.r{ color:var(--red) }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>cdecl — <span>the C calling convention on 32-bit x86</span></h1>
+  <div class="subtitle">gcc-13 -m32 -O0 -no-pie -mpreferred-stack-boundary=2 · Linux i386 · every register &amp; stack value below is from a real gdb run</div>
+  <div class="rip-chip">
+    <b>EIP</b> = <span id="ripVal"></span>
+    <span class="ctx" id="ripCtx"></span>
+  </div>
+</header>
+
+<div class="rules" id="rules">
+  <div class="rule" id="ru-args"><b>① args</b>all on the <span class="g">stack</span>, pushed <span class="g">right → left</span></div>
+  <div class="rule" id="ru-clean"><b>② cleanup</b><span class="a">caller</span> pops them: <code>add esp, 4·n</code></div>
+  <div class="rule" id="ru-ret"><b>③ return value</b>in <span class="r">eax</span> (64-bit: edx:eax, float: st0)</div>
+  <div class="rule" id="ru-save"><b>④ registers</b><span class="r">eax ecx edx</span> caller-saved · <span class="s">ebx esi edi ebp</span> callee-saved</div>
+</div>
+
+<div class="layout">
+  <div class="col">
+    <div class="panel">
+      <h2>C source</h2>
+<div class="csrc"><span class="kw">int</span> <span class="fn">f</span>(<span class="kw">int</span> a, <span class="kw">int</span> b, <span class="kw">int</span> c)
+{
+    <span class="kw">int</span> s = a + b + c;
+    <span class="kw">return</span> s;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>()
+{
+    <span class="kw">int</span> r = <span class="fn">f</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>);
+    <span class="fn">printf</span>(<span class="str">"%d\n"</span>, r);
+    <span class="kw">return</span> <span class="num">0</span>;
+};</div>
+    </div>
+    <div class="panel">
+      <h2>disassembly <small>(caller main · callee f)</small></h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">✓ main returned into libc start code → exit(eax = 0)</div>
+    </div>
+    <div class="panel">
+      <h2>stdout</h2>
+      <div class="stdout" id="stdout"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>registers</h2>
+      <table id="regs"></table>
+    </div>
+    <div class="panel">
+      <h2>stack <small>(4-byte slots · 0xffffc9..)</small></h2>
+      <div class="stack-grow">↓ stack grows down ↓</div>
+      <div class="stack" id="stack"></div>
+      <div class="stack-cap">
+        <span style="color:var(--amber)">■</span> return address ·
+        <span style="color:var(--sky)">■</span> saved ebp ·
+        <span style="color:var(--green)">■</span> argument ·
+        <span style="color:var(--teal)">■</span> local ·
+        faded = below esp (free, but <b>not erased</b>) · offsets are relative to the <b>current</b> ebp
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note" id="note"></div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump · click a dot to jump</div>
+</div>
+
+<!-- ============ explanation ============ -->
+<div class="sect">
+  <h2><span class="n">1</span>The cdecl frame — one picture to remember</h2>
+  <p>Once the callee has run <code>push ebp; mov ebp,esp</code>, everything has a fixed ebp offset. <b>Positive = caller's stuff (args), negative = mine (locals).</b></p>
+<div class="codecard" style="margin-top:.6rem"><span class="cm">           f's frame at f+6, real addresses from gdb</span>
+  <b>ffffc920</b>  [ebp+0x10]   <span class="lc">3</span>            <span class="cm">c    arg 3  ┐</span>
+  <b>ffffc91c</b>  [ebp+0x0c]   <span class="lc">2</span>            <span class="cm">b    arg 2  │ pushed by main (right → left)</span>
+  <b>ffffc918</b>  [ebp+0x08]   <span class="lc">1</span>            <span class="cm">a    arg 1  ┘ ← first arg always at ebp+8</span>
+  <b>ffffc914</b>  [ebp+0x04]   <span class="hl">0x08049192</span>   <span class="cm">return address → main+17   (call)</span>
+  <b>ffffc910</b>  [ebp+0x00]   <span class="sp">0xffffc928</span>   <span class="cm">main's ebp                  (push ebp) ← ebp</span>
+  <b>ffffc90c</b>  [ebp-0x04]   <span class="lc">6</span>            <span class="cm">s    local                  (sub esp,4) ← esp</span></div>
+  <ul>
+    <li>The 32-bit RE rule of thumb: <code>[ebp+8]</code>, <code>[ebp+0xc]</code>, <code>[ebp+0x10]</code>… = args 1, 2, 3…; <code>[ebp-4]</code>, <code>[ebp-8]</code>… = locals. IDA/Binja name them <code>arg_0</code>, <code>arg_4</code> / <code>var_4</code>.</li>
+    <li>Args are 4-byte slots, even a <code>char</code> — the stack only does 4-byte pushes in 32-bit mode.</li>
+    <li>Right-to-left pushing is what puts arg 1 at <code>ebp+8</code> no matter how many args follow — needed for variadic functions like printf (<a href="sysv-abi-args-stack.html">more on reverse order</a>).</li>
+  </ul>
+</div>
+
+<div class="sect">
+  <h2><span class="n">2</span>cdecl vs the other 32-bit conventions</h2>
+  <p>Same function <code>a + b + c</code> compiled with gcc's <code>__attribute__((cdecl / stdcall / fastcall))</code>, called with <code>(1, 2, 3)</code>:</p>
+  <div class="two">
+<div class="codecard"><span class="cm">; ---- call sites (main) ----</span>
+  push 0x3
+  push 0x2
+  push 0x1
+  call f_cdecl
+  <span class="hl">add  esp,0xc</span>        <span class="cm">; cdecl: CALLER cleans</span>
+
+  push 0x3
+  push 0x2
+  push 0x1
+  call f_stdcall
+                       <span class="cm">; stdcall: nothing here</span>
+
+  push 0x3             <span class="cm">; only c on the stack</span>
+  <span class="sp">mov  edx,0x2</span>         <span class="cm">; fastcall: b → edx</span>
+  <span class="sp">mov  ecx,0x1</span>         <span class="cm">;           a → ecx</span>
+  call f_fastcall
+                       <span class="cm">; callee cleans</span></div>
+<div class="codecard"><span class="cm">; ---- the callees end differently ----</span>
+&lt;f_cdecl&gt;:
+  ...
+  pop  ebp
+  <span class="hl">ret</span>                  <span class="cm">; plain ret</span>
+
+&lt;f_stdcall&gt;:
+  ...
+  pop  ebp
+  <span class="hl">ret  0xc</span>             <span class="cm">; pop ret addr, THEN esp += 12</span>
+
+&lt;f_fastcall&gt;:
+  sub  esp,0x8
+  mov  [ebp-0x4],ecx    <span class="cm">; -O0 spills reg args</span>
+  mov  [ebp-0x8],edx
+  ...
+  mov  eax,[ebp+0x8]    <span class="cm">; c is still on the stack</span>
+  leave
+  <span class="hl">ret  0x4</span>             <span class="cm">; cleans only the 1 stack arg</span></div>
+  </div>
+  <table class="cmp" style="margin-top:.8rem">
+    <tr><th></th><th>args</th><th>who cleans</th><th>varargs?</th><th>seen in</th></tr>
+    <tr><td>cdecl</td><td>stack, right → left</td><td class="a">caller · add esp,N</td><td class="g">yes</td><td>default for C on x86 Linux &amp; Windows</td></tr>
+    <tr><td>stdcall</td><td>stack, right → left</td><td class="r">callee · ret N</td><td class="r">no</td><td>Win32 API (WINAPI)</td></tr>
+    <tr><td>fastcall</td><td>ecx, edx, then stack</td><td class="r">callee · ret N</td><td class="r">no</td><td>MS/gcc fastcall</td></tr>
+    <tr><td>SysV x86-64</td><td>rdi rsi rdx rcx r8 r9, then stack</td><td class="a">caller</td><td class="g">yes (al = # xmm)</td><td><a href="sysv-abi-args-stack.html">64-bit Linux</a></td></tr>
+  </table>
+  <h3>Why the caller cleans in cdecl</h3>
+  <p>Only the caller knows how many bytes it pushed. <code>printf("%d\n", r)</code> got 2 args here, but another call site might pass 9. A callee with <code>ret N</code> needs N fixed at compile time — which is why stdcall/fastcall can't do varargs. The price: every call site carries its own <code>add esp,N</code> (slightly bigger code). Bonus: gcc can merge several cleanups into one <code>add</code>, or skip it before <code>leave</code>.</p>
+  <h3>Callee-saved in action</h3>
+  <p>That same <code>main</code> starts with <code>push ebx</code>: it keeps the first result in <code>ebx</code> across the next calls, because cdecl promises <code>ebx</code> survives a call while <code>eax/ecx/edx</code> don't. Since main itself is a callee, it must restore ebx before returning (<code>mov ebx,[ebp-0x4]</code>).</p>
+</div>
+
+<div class="sect">
+  <h2><span class="n">3</span>Modern gcc: the same cdecl, plus 16-byte alignment</h2>
+  <p>The stepper uses <code>-mpreferred-stack-boundary=2</code> (4-byte alignment, the classic textbook / RE4B look). Without it, today's i386 System V ABI wants <code>esp % 16 == 0</code> at each call, so gcc adds padding — the convention is the same, only the numbers change:</p>
+  <div class="two">
+<div class="codecard"><span class="cm">; classic (stepper)</span>
+main:
+  push   ebp
+  mov    ebp,esp
+  sub    esp,0x4          <span class="cm">; r</span>
+  push   0x3
+  push   0x2
+  push   0x1
+  call   f
+  add    esp,0xc          <span class="cm">; 3 args</span>
+  mov    [ebp-0x4],eax
+  push   DWORD PTR [ebp-0x4]
+  push   0x804a008
+  call   printf
+  add    esp,0x8          <span class="cm">; 2 args</span>
+  mov    eax,0x0
+  leave
+  ret</div>
+<div class="codecard"><span class="cm">; default gcc-13 -m32</span>
+main:
+  <span class="hl">lea    ecx,[esp+0x4]</span>    <span class="cm">; realign: main can't trust</span>
+  <span class="hl">and    esp,0xfffffff0</span>    <span class="cm">;   the caller's alignment</span>
+  <span class="hl">push   DWORD PTR [ecx-0x4]</span>
+  push   ebp
+  mov    ebp,esp
+  push   ecx
+  sub    esp,0x14
+  push   0x3
+  push   0x2
+  push   0x1
+  call   f
+  add    esp,0xc
+  mov    [ebp-0xc],eax
+  <span class="hl">sub    esp,0x8</span>          <span class="cm">; pad: 8 + 2×4 = 16</span>
+  push   DWORD PTR [ebp-0xc]
+  push   0x804a008
+  call   printf
+  <span class="hl">add    esp,0x10</span>         <span class="cm">; pad + args</span>
+  ...</div>
+  </div>
+</div>
+
+<div class="sect takeaways">
+  <h2>takeaways</h2>
+  <ul>
+    <li>cdecl = all args on the stack, pushed right → left; caller cleans with <code>add esp,N</code>; result in <code>eax</code>.</li>
+    <li>Inside the callee: <code>[ebp+8]</code> = arg 1, <code>[ebp+4]</code> = return address, <code>[ebp]</code> = saved ebp, <code>[ebp-4]</code> = first local.</li>
+    <li><code>add esp,N</code> after a call tells you the arg count in cdecl: N / 4. A <code>ret N</code> in the callee instead → stdcall/fastcall.</li>
+    <li>eax/ecx/edx can be trashed by any call; ebx/esi/edi/ebp must come back unchanged.</li>
+    <li>Popped args aren't erased — watch printf's args land on the very same slots f's args used (<a href="noise-in-stack.html">noise in stack</a>).</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · disassembly from GNU objdump, register/stack values from gdb, gcc-13 -m32 (Ubuntu)<br>
+  <a href="sysv-abi-args-stack.html">SysV x86-64 args stepper</a> ·
+  <a href="noise-in-stack.html">noise in stack</a> ·
+  <a href="red_zone.html">red zone stepper</a> ·
+  <a href="break-main-vs-star-main.html">b main vs b *main</a>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const hex = v => '0x' + (v >>> 0).toString(16);
+const h8 = v => '0x' + (v >>> 0).toString(16).padStart(8, '0');
+
+/* ---------- program (bytes/addresses from objdump) ---------- */
+const MAIN = 0x8049181, F = 0x8049166, PRINTF = 0x8049040, FMT = 0x804a008, LIBC_RET = 0xf7d85cb9;
+const ESP0 = 0xffffc92c;
+const ROWS = [];
+for (let a = 0xffffc930; a >= 0xffffc90c; a -= 4) ROWS.push(a);
+
+/* each instruction: fn = effect on state S (regs r, mem m) */
+const INS = [
+  { fn:'main', a:0x8049181, b:'55',         m:'push', o:'ebp',                  x:S => push(S, S.r.ebp, "main's caller ebp", 'w-sav') },
+  { fn:'main', a:0x8049182, b:'89e5',       m:'mov',  o:'ebp, esp',             x:S => { S.r.ebp = S.r.esp; return ['ebp']; } },
+  { fn:'main', a:0x8049184, b:'83ec04',     m:'sub',  o:'esp, 0x4',             x:S => { S.r.esp -= 4; S.m[S.r.esp] = { ...S.m[S.r.esp], who:'r (local, uninit)', cls:'w-loc' }; S.cm = [S.r.esp]; return ['esp']; }, cmt:'r', cls:'k-loc' },
+  { fn:'main', a:0x8049187, b:'6a03',       m:'push', o:'0x3',                  x:S => push(S, 3, 'c · arg 3', 'w-arg'), cmt:'c · arg 3', cls:'k-arg' },
+  { fn:'main', a:0x8049189, b:'6a02',       m:'push', o:'0x2',                  x:S => push(S, 2, 'b · arg 2', 'w-arg'), cmt:'b · arg 2', cls:'k-arg' },
+  { fn:'main', a:0x804918b, b:'6a01',       m:'push', o:'0x1',                  x:S => push(S, 1, 'a · arg 1', 'w-arg'), cmt:'a · arg 1', cls:'k-arg' },
+  { fn:'main', a:0x804918d, b:'e8d4ffffff', m:'call', o:'f',                    x:S => { const c = push(S, 0x8049192, 'ret → main+17', 'w-ret'); S.r.eip = F; return c; } },
+  { fn:'f',    a:0x8049166, b:'55',         m:'push', o:'ebp',                  x:S => push(S, S.r.ebp, "saved ebp (main's)", 'w-sav') },
+  { fn:'f',    a:0x8049167, b:'89e5',       m:'mov',  o:'ebp, esp',             x:S => { S.r.ebp = S.r.esp; return ['ebp']; } },
+  { fn:'f',    a:0x8049169, b:'83ec04',     m:'sub',  o:'esp, 0x4',             x:S => { S.r.esp -= 4; S.m[S.r.esp] = { ...S.m[S.r.esp], who:'s (local, uninit)', cls:'w-loc' }; S.cm = [S.r.esp]; return ['esp']; }, cmt:'s', cls:'k-loc' },
+  { fn:'f',    a:0x804916c, b:'8b5508',     m:'mov',  o:'edx, [ebp+0x8]',       x:S => { S.r.edx = 1; S.rd = [S.r.ebp + 8]; return ['edx']; }, cmt:'a', cls:'k-arg' },
+  { fn:'f',    a:0x804916f, b:'8b450c',     m:'mov',  o:'eax, [ebp+0xc]',       x:S => { S.r.eax = 2; S.rd = [S.r.ebp + 12]; return ['eax']; }, cmt:'b', cls:'k-arg' },
+  { fn:'f',    a:0x8049172, b:'01c2',       m:'add',  o:'edx, eax',             x:S => { S.r.edx = 3; return ['edx']; }, cmt:'a+b' },
+  { fn:'f',    a:0x8049174, b:'8b4510',     m:'mov',  o:'eax, [ebp+0x10]',      x:S => { S.r.eax = 3; S.rd = [S.r.ebp + 16]; return ['eax']; }, cmt:'c', cls:'k-arg' },
+  { fn:'f',    a:0x8049177, b:'01d0',       m:'add',  o:'eax, edx',             x:S => { S.r.eax = 6; return ['eax']; }, cmt:'a+b+c' },
+  { fn:'f',    a:0x8049179, b:'8945fc',     m:'mov',  o:'[ebp-0x4], eax',       x:S => { const a = S.r.ebp - 4; S.m[a] = { v:'6', who:'s = 6', cls:'w-loc' }; S.cm = [a]; return []; }, cmt:'s = …', cls:'k-loc' },
+  { fn:'f',    a:0x804917c, b:'8b45fc',     m:'mov',  o:'eax, [ebp-0x4]',       x:S => { S.r.eax = 6; S.rd = [S.r.ebp - 4]; return ['eax']; }, cmt:'return s', cls:'k-loc' },
+  { fn:'f',    a:0x804917f, b:'c9',         m:'leave',o:'',                     x:S => { S.r.esp = S.r.ebp; S.r.ebp = 0xffffc928; S.r.esp += 4; return ['esp', 'ebp']; } },
+  { fn:'f',    a:0x8049180, b:'c3',         m:'ret',  o:'',                     x:S => { S.r.esp += 4; S.r.eip = 0x8049192; return ['esp']; } },
+  { fn:'main', a:0x8049192, b:'83c40c',     m:'add',  o:'esp, 0xc',             x:S => { S.r.esp += 12; return ['esp']; }, cmt:'caller cleans 3 args' },
+  { fn:'main', a:0x8049195, b:'8945fc',     m:'mov',  o:'[ebp-0x4], eax',       x:S => { const a = S.r.ebp - 4; S.m[a] = { v:'6', who:'r = 6', cls:'w-loc' }; S.cm = [a]; return []; }, cmt:'r = f(…)', cls:'k-loc' },
+  { fn:'main', a:0x8049198, b:'ff75fc',     m:'push', o:'DWORD PTR [ebp-0x4]',  x:S => push(S, 6, 'r · printf arg 2', 'w-arg'), cmt:'r · arg 2', cls:'k-arg' },
+  { fn:'main', a:0x804919b, b:'6808a00408', m:'push', o:'0x804a008',            x:S => push(S, FMT, 'fmt · printf arg 1', 'w-arg'), cmt:'"%d\\n" · arg 1', cls:'k-arg' },
+  { fn:'main', a:0x80491a0, b:'e89bfeffff', m:'call', o:'printf@plt',           x:S => { const c = push(S, 0x80491a5, 'ret → main+36', 'w-ret'); S.r.eip = PRINTF; return c; } },
+  { virt:true, fn:'main', m:'⤷ printf() runs in libc … ret',                    x:S => {
+      for (let a = S.r.esp - 4; a >= ROWS[ROWS.length - 1]; a -= 4) S.m[a] = { v:'?', who:"printf's frame", cls:'w-junk' };
+      S.r.esp += 4; S.r.eax = 2; S.r.ecx = null; S.r.edx = null; S.trash = ['ecx', 'edx']; S.out = '6'; S.r.eip = 0x80491a5;
+      return ['esp', 'eax', 'ecx', 'edx']; } },
+  { fn:'main', a:0x80491a5, b:'83c408',     m:'add',  o:'esp, 0x8',             x:S => { S.r.esp += 8; return ['esp']; }, cmt:'caller cleans 2 args' },
+  { fn:'main', a:0x80491a8, b:'b800000000', m:'mov',  o:'eax, 0x0',             x:S => { S.r.eax = 0; return ['eax']; }, cmt:'return 0' },
+  { fn:'main', a:0x80491ad, b:'c9',         m:'leave',o:'',                     x:S => { S.r.esp = S.r.ebp; S.r.ebp = 0; S.r.esp += 4; return ['esp', 'ebp']; } },
+  { fn:'main', a:0x80491ae, b:'c3',         m:'ret',  o:'',                     x:S => { S.r.esp += 4; S.r.eip = LIBC_RET; S.done = true; return ['esp']; } },
+];
+
+function push(S, v, who, cls){
+  S.r.esp -= 4;
+  S.m[S.r.esp] = { v: v > 0xffff ? h8(v) : String(v), who, cls };
+  S.cm = [S.r.esp];
+  return ['esp'];
+}
+
+/* ---------- notes ---------- */
+const NOTES = [
+  { t:'At main+0 — main is itself a cdecl callee', p:[
+    `<code>[esp]</code> = <code>0xf7d85cb9</code>, the return address into libc's start code. <code>[esp+4]</code> = argc = 1 — main's own args sit at the positive offsets, exactly like f's will.`,
+    `ebp = 0: the start code zeroes it so stack walkers know where the chain of frames ends.`], rule:null },
+  { t:'push ebp — prologue', p:[`Save the caller's ebp (callee-saved: main must give it back unchanged).`], rule:'ru-save' },
+  { t:'mov ebp, esp — main\'s frame anchor', p:[`From now on main's locals are <code>[ebp-N]</code>, its own args would be <code>[ebp+8]</code>, <code>[ebp+0xc]</code>…`] },
+  { t:'sub esp, 0x4 — room for local r', p:[`4 bytes reserved for <code>int r</code> at <code>[ebp-0x4]</code>. Not written yet — it holds whatever was there (0).`] },
+  { t:'push 0x3 — last arg first', p:[`cdecl rule ①: args go on the stack <b>right → left</b>. <code>c</code> is pushed first so it ends up at the highest address.`], rule:'ru-args' },
+  { t:'push 0x2 — b', p:[`Each push: <code>esp -= 4</code>, then store. Every arg gets a full 4-byte slot.`], rule:'ru-args' },
+  { t:'push 0x1 — a, the first arg, lands lowest', p:[`Now <code>[esp]</code> = a, <code>[esp+4]</code> = b, <code>[esp+8]</code> = c — args read in source order going <b>up</b>.`], rule:'ru-args' },
+  { t:'call f — return address pushed', p:[`call = <code>push 0x08049192</code> (next instruction) + <code>jmp f</code>. Now <code>[esp]</code> = ret, <code>[esp+4]</code> = a.`] },
+  { t:'f: push ebp', p:[`f saves main's ebp (<code>0xffffc928</code>). This is the link in the chain gdb's <code>bt</code> follows.`], rule:'ru-save' },
+  { t:'f: mov ebp, esp — f\'s frame is anchored', p:[`The magic offsets are fixed now: <code>[ebp+4]</code> = ret, <code>[ebp+8]</code> = a, <code>[ebp+0xc]</code> = b, <code>[ebp+0x10]</code> = c. Look at the <i>rel</i> column.`] },
+  { t:'f: sub esp, 0x4 — room for local s', p:[`Locals go <b>below</b> ebp: <code>s</code> at <code>[ebp-0x4]</code>. Args above, locals below.`] },
+  { t:'mov edx, [ebp+0x8] — read arg a', p:[`The callee reads its args straight from the caller's pushes — no copying. edx = 1.`] },
+  { t:'mov eax, [ebp+0xc] — read arg b', p:[`eax = 2. f freely uses eax and edx: they're caller-saved scratch registers.`], rule:'ru-save' },
+  { t:'add edx, eax', p:[`edx = a + b = 3.`] },
+  { t:'mov eax, [ebp+0x10] — read arg c', p:[`eax = 3.`] },
+  { t:'add eax, edx', p:[`eax = a + b + c = 6.`] },
+  { t:'mov [ebp-0x4], eax — store local s', p:[`<code>s = 6</code>. At -O0 every local gets a memory home, even if it's used just once.`] },
+  { t:'mov eax, [ebp-0x4] — return value goes in eax', p:[`cdecl rule ③: the result travels back in <b>eax</b>. Nothing on the stack.`], rule:'ru-ret' },
+  { t:'leave — tear down f\'s frame', p:[`<code>leave</code> = <code>mov esp, ebp</code> (drop locals) + <code>pop ebp</code> (main's ebp is back). esp now points at the return address.`] },
+  { t:'ret — back in main', p:[`Pops <code>0x08049192</code> into eip. <b>Note:</b> a plain <code>ret</code> — f did NOT remove its args. They're still on the stack at <code>[esp]</code>…<code>[esp+8]</code>.`], rule:'ru-clean' },
+  { t:'add esp, 0xc — caller cleans', p:[`cdecl rule ②: main pushed 3×4 = 12 bytes, main removes them. From the RE side: <code>add esp,0xc</code> after a call → the callee took 3 args.`,
+    `The values 1, 2, 3 are still in memory — now below esp (faded).`], rule:'ru-clean' },
+  { t:'mov [ebp-0x4], eax — r = f(1,2,3)', p:[`main stores the return value into its local r.`], rule:'ru-ret' },
+  { t:'push [ebp-0x4] — printf arg 2 = r', p:[`Right → left again: r first. It lands on the slot where <code>c</code> was — old args are simply overwritten.`], rule:'ru-args' },
+  { t:'push 0x804a008 — printf arg 1 = "%d\\n"', p:[`Format string pointer, lands where <code>b</code> was. 32-bit cdecl has no <code>al</code> trick for varargs — printf reads the format string at <code>[esp+4]</code> and walks up.`], rule:'ru-args' },
+  { t:'call printf', p:[`Return address <code>0x080491a5</code> overwrites the old <code>a</code> slot.`] },
+  { t:'printf returned', p:[`eax = 2 (chars printed: "6\\n"). printf was allowed to trash <code>ecx</code> and <code>edx</code> (caller-saved), and its own frame scribbled over everything below esp.`], rule:'ru-save' },
+  { t:'add esp, 0x8 — caller cleans 2 args', p:[`Different call, different count: 2 × 4 = 8. Only the caller knows this number — the reason varargs need caller cleanup.`], rule:'ru-clean' },
+  { t:'mov eax, 0x0 — main returns 0', p:[`main's return value, in eax like every cdecl function.`], rule:'ru-ret' },
+  { t:'leave', p:[`Drops r, restores ebp = 0. esp points at main's return address.`] },
+  { t:'ret — main is done', p:[`Back in libc's start code, which calls <code>exit(0)</code>.`] },
+];
+
+/* ---------- build states ---------- */
+function initial(){
+  const m = {};
+  m[0xffffc930] = { v:'0x00000001', who:'argc (main arg 1)', cls:'w-arg' };
+  m[0xffffc92c] = { v:h8(LIBC_RET), who:'ret → libc', cls:'w-ret' };
+  for (const a of ROWS) if (!m[a]) m[a] = { v:'?', who:'', cls:'w-junk' };
+  m[0xffffc924] = { v:'0', who:'', cls:'w-junk' };
+  return { r:{ eax:0x804907d, ecx:null, edx:0xffffc950, esp:ESP0, ebp:0, eip:MAIN }, m, out:'', ip:0, done:false, trash:[] };
+}
+const STATES = [];
+(function(){
+  let S = initial(); STATES.push({ ...JSON.parse(JSON.stringify(S)), cR:[], cm:[], rd:[] });
+  for (let i = 0; i < INS.length; i++) {
+    S.cm = []; S.rd = [];
+    const cR = INS[i].x(S) || [];
+    if (!INS[i].virt && INS[i].m !== 'call' && INS[i].m !== 'ret') S.r.eip = INS[i + 1] ? (INS[i + 1].a || PRINTF) : LIBC_RET;
+    S.ip = i + 1;
+    STATES.push({ ...JSON.parse(JSON.stringify(S)), cR });
+  }
+})();
+
+/* ---------- rendering ---------- */
+let cur = 0, timer = null;
+
+$('asm').innerHTML = INS.map((I, i) => {
+  const lbl = (i === 0 || INS[i - 1].fn !== I.fn) && !I.virt
+    ? `<div class="fn-lbl">&lt;${I.fn}&gt; <small>${I.fn === 'f' ? 'callee' : i === 0 ? 'caller' : 'caller (back)'}</small></div>` : '';
+  return lbl + (I.virt
+    ? `<div class="row virt" id="ins${i}"><span class="rip-ptr">EIP ▶</span><span class="mn">${I.m}</span></div>`
+    : `<div class="row ${I.cls || ''}" id="ins${i}"><span class="rip-ptr">EIP ▶</span>
+         <span class="addr">${I.a.toString(16).slice(-4)}</span><span class="bytes">${I.b}</span>
+         <span class="mn">${I.m}</span><span class="ops">${I.o}</span>${I.cmt ? `<span class="cmt">${I.cmt}</span>` : ''}</div>`);
+}).join('');
+
+const REGHINT = { eax:'return value · caller-saved', ecx:'caller-saved', edx:'caller-saved',
+                  esp:'top of stack', ebp:'frame base · callee-saved' };
+function regVal(S, n){
+  const v = S.r[n];
+  if (S.trash.includes(n) && v === null) return `<span class="v-trash">?? (trashed by printf)</span>`;
+  if (v === null) return `<span class="v-unk">? (junk)</span>`;
+  if (n === 'esp') return `<span class="v-mod">${h8(v)}</span>`;
+  if (n === 'ebp') return `<span style="color:var(--sky)">${h8(v)}</span>`;
+  return `<span class="v-plain">${hex(v)}</span>${v < 100 ? ` <span class="v-unk">(${v})</span>` : ''}`;
+}
+
+function relTo(a, ebp){
+  const d = a - ebp;
+  if (Math.abs(d) > 0x14) return '';
+  return d === 0 ? '[ebp]' : d > 0 ? `[ebp+${hex(d)}]` : `[ebp-${hex(-d)}]`;
+}
+
+function render(){
+  const S = STATES[cur];
+  INS.forEach((I, i) => {
+    const el = $('ins' + i);
+    el.classList.toggle('executed', i < S.ip);
+    el.classList.toggle('current', !S.done && i === S.ip);
+    el.classList.remove('just-executed');
+  });
+  if (cur > 0) { const el = $('ins' + (S.ip - 1)); void el.offsetWidth; el.classList.add('just-executed'); }
+  $('exitRow').classList.toggle('on', S.done);
+
+  const I = INS[S.ip];
+  $('ripVal').textContent = h8(S.r.eip);
+  $('ripCtx').textContent = S.done ? 'libc start code' : I.virt ? 'printf@plt → libc printf'
+                          : `${I.fn}+${I.a - (I.fn === 'f' ? F : MAIN)}  ${I.m} ${I.o}`;
+  $('stdout').innerHTML = `<span class="pr">$ ./classic</span><br>${S.out}`;
+
+  $('regs').innerHTML = ['eax','ecx','edx','esp','ebp'].map(n =>
+    `<tr><td class="name">${n}</td><td class="${S.cR.includes(n) ? 'flash' : ''}">${regVal(S, n)}</td><td class="hint">${REGHINT[n]}</td></tr>`).join('');
+
+  $('stack').innerHTML = ROWS.map(a => {
+    const m = S.m[a], ptr = [];
+    if (S.r.ebp === a) ptr.push('<span class="p-rbp">ebp→</span>');
+    if (S.r.esp === a) ptr.push('<span class="p-rsp">esp→</span>');
+    const dead = a < S.r.esp, rd = (S.rd || []).includes(a);
+    return `<div class="srow ${dead ? 'dead' : ''} ${(S.cm || []).includes(a) || rd ? 'just' : ''}">
+      <div class="cell ptr">${ptr.join('')}</div>
+      <div class="cell addr">…${a.toString(16).slice(-4)}</div>
+      <div class="cell val">${m.v}</div>
+      <div class="cell who ${m.cls}">${m.who}</div>
+      <div class="cell rel">${S.r.ebp ? relTo(a, S.r.ebp) : ''}</div></div>`;
+  }).join('');
+
+  const N = NOTES[cur];
+  $('note').innerHTML = `<h3>${N.t}</h3>` + N.p.map(p => `<p>${p}</p>`).join('');
+  document.querySelectorAll('.rule').forEach(r => r.classList.toggle('on', r.id === N.rule));
+
+  $('stepInd').textContent = `step ${cur} / ${STATES.length - 1}`;
+  $('dots').innerHTML = STATES.map((_, i) => `<span class="dot ${i < cur ? 'done' : ''} ${i === cur ? 'now' : ''}" data-i="${i}"></span>`).join('');
+  $('dots').querySelectorAll('.dot').forEach(d => d.onclick = () => { stopPlay(); go(+d.dataset.i); });
+  $('btnPrev').disabled = $('btnReset').disabled = (cur === 0);
+  $('btnNext').disabled = $('btnEnd').disabled = (cur === STATES.length - 1);
+}
+
+function go(i){ cur = Math.max(0, Math.min(STATES.length - 1, i)); render(); if (cur === STATES.length - 1) stopPlay(); }
+function startPlay(){
+  if (cur === STATES.length - 1) go(0);
+  timer = setInterval(() => go(cur + 1), 1500);
+  $('btnPlay').textContent = '⏸ Pause'; $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play'; $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', () => { stopPlay(); go(cur + 1); });
+$('btnPrev').addEventListener('click', () => { stopPlay(); go(cur - 1); });
+$('btnReset').addEventListener('click', () => { stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', () => { stopPlay(); go(STATES.length - 1); });
+$('btnPlay').addEventListener('click', () => timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e => {
+  switch (e.key){
+    case 'ArrowRight': stopPlay(); go(cur + 1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur - 1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0); e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STATES.length - 1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+  }
+});
+
+go(0);
+</script>
+</body>
+</html>
