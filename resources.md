@@ -60,6 +60,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Arm assembly](#arm-assembly)
 - [Stephen Eckels (Google/Mandiant FLARE)](#stephen-eckels-googlemandiant-flare)
 - [CVE / SBOM scanning — firmware & binaries](#cve--sbom-scanning--firmware--binaries)
+- [CTF competitions to watch — advanced livestreams & VODs](#ctf-competitions-to-watch--advanced-livestreams--vods)
 
 ---
 
@@ -1050,7 +1051,7 @@ Industry pattern is three stages: **generate an SBOM → match components agains
 
 ### General purpose (de-facto standards)
 - [Trivy](https://github.com/aquasecurity/trivy) — Aqua. Container images, filesystems/rootfs, SBOMs, IaC. Most widely deployed single tool; `trivy rootfs ./extracted-fs` works on an unpacked image if it has a distro package DB.
-- [Syft](https://github.com/anchore/syft) + [Grype](https://github.com/anchore/grype) — Anchore. Syft builds the SBOM (SPDX/CycloneDX), Grype matches it. Separable, which matters when archiving an SBOM per release.
+- [Syft](https://github.com/anchore/syft) + [Grype](https://github.com/anchore/grype) ⭐⭐ — Anchore. Syft builds the SBOM (SPDX/CycloneDX), Grype matches it. Separable, which matters when archiving an SBOM per release.
 - [OSV-Scanner](https://github.com/google/osv-scanner) — Google, fronts [OSV.dev](https://osv.dev). Aggregates distro trackers with per-package fix status rather than raw CPE ranges → fewer false positives when the component *is* a distro package.
 - [OWASP Dependency-Track](https://github.com/DependencyTrack/dependency-track) — the org-level piece. Upload an SBOM per build, it re-scans continuously as new CVEs land, with VEX support and notifications. How companies learn about a new glibc CVE in *shipped* firmware without re-running anything.
 
@@ -1104,3 +1105,21 @@ Raw scanner output on glibc is **noisy**. Budget for triage:
 
 ### Recommendation
 Run `cve-bin-tool` first for a fast answer on the specific glibc → run EMBA once for the full image picture → if the firmware ships to customers, put Syft SBOMs into Dependency-Track so future CVEs find you. If you own the Yocto/Buildroot build, fix it *there* with `cve-check`; scanning the finished image is strictly worse than knowing your own patch set.
+
+## CTF competitions to watch — advanced livestreams & VODs
+⭐ _Watchable high-level CTF finals and live solvers; from asking for fun, advanced CTF content beyond pwn.college level._
+
+- LiveCTF (DEF CON CTF 1v1 speedruns, 2022–2025) — https://livectf.com · https://www.youtube.com/results?search_query=LiveCTF+DEF+CON+CTF+2025+finals
+- Google CTF Hackceler8 (game-hacking finals) — https://www.youtube.com/results?search_query=Google+CTF+Hackceler8+finals
+- Gynvael Coldwind — https://www.youtube.com/@GynvaelEN
+- LiveOverflow — https://www.youtube.com/@LiveOverflow
+- DEF CON CTF finals archives — https://media.defcon.org/
+- DARPA Cyber Grand Challenge (DEF CON 24) — https://www.youtube.com/results?search_query=DARPA+Cyber+Grand+Challenge+DEF+CON+24+full+event
+- Pwn2Own live — https://www.youtube.com/results?search_query=Pwn2Own+livestream+ZDI
+- DARPA AIxCC finals (DEF CON 33) — https://www.youtube.com/results?search_query=DARPA+AIxCC+finals+DEF+CON+33
+- Hack-A-Sat finals — https://www.youtube.com/results?search_query=Hack-A-Sat+finals+livestream
+- Zardus CTF streams — https://www.youtube.com/results?search_query=Zardus+CTF+stream
+- PwnFunction — https://www.youtube.com/@PwnFunction
+- IppSec (Insane boxes only) — https://www.youtube.com/@ippsec
+- SRLabs: competing at DEF CON CTF Finals 2025 — https://srlabs.de/blog/competing-at-the-def-con-ctf-finals-2025
+- CTF Radiooo (podcast) — https://ctfradi.ooo
