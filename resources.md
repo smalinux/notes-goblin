@@ -1008,3 +1008,26 @@ Web searches that produced the facts above (dates, podcast names):
 - [Assembly Language Programming with ARM — Full Tutorial for Beginners](https://www.youtube.com/watch?v=gfmRrPjnEw4) — freeCodeCamp, one long single-sitting course.
 - More: Google → YouTube: `"aarch64 assembly tutorial"`
 - Reference while doing the above: A64 lookups + `esr.arm64.dev` in [Assembly & number bases](#assembly--number-bases); written track = Azeria Labs; book = Blue Fox (Markstedter).
+
+
+## Stephen Eckels (Google/Mandiant FLARE)
+SUBMARINE (Mandiant name: DEPTHCHARGE) is the Barracuda ESG backdoor from UNC4841 (CVE-2023-2868). Eckels is **not** on any of those bylines — checked both Mandiant posts' authors and acknowledgements:
+
+- CISA AR23-209A (SUBMARINE): https://www.cisa.gov/news-events/analysis-reports/ar23-209a
+- Mandiant, Jun 15 2023 — Larsen, Palmisano, Potaczek, Wolfram, McWhirt: https://cloud.google.com/blog/topics/threat-intelligence/barracuda-esg-exploited-globally
+- Mandiant, Aug 29 2023 (DEPTHCHARGE) — same crew + Raggi: https://cloud.google.com/blog/topics/threat-intelligence/unc4841-post-barracuda-zero-day-remediation
+
+**SolarWinds / SUNBURST** — he *is* a co-author here:
+
+- Additional Technical Details (Eckels, Smith, Ballenthin): https://cloud.google.com/blog/topics/threat-intelligence/sunburst-additional-technical-details
+- Original backdoor post: https://cloud.google.com/blog/topics/threat-intelligence/evasive-attacker-leverages-solarwinds-supply-chain-compromises-with-sunburst-backdoor
+- SANS CTI Summit keynote "Solar Winds of Change": https://www.sans.org/presentations/keynote---solar-winds-of-change
+
+**Actually known for** (Staff RE, FLARE; GitHub `stevemk14ebr`):
+
+- GoReSym — Go symbol recovery: https://github.com/mandiant/GoReSym · blog: https://cloud.google.com/blog/topics/threat-intelligence/golang-internals-symbol-recovery/
+- STrace — DTrace-on-Windows (DEF CON 30): https://github.com/mandiant/STrace · slides: https://media.defcon.org/DEF%20CON%2030/DEF%20CON%2030%20presentations/Stephen%20Eckels%20-%20STrace%20-%20A%20DTrace%20on%20windows%20reimplementation.pdf
+- PolyHook 2.0 — x86/x64 hooking: https://github.com/stevemk14ebr/PolyHook_2_0
+- Pulse Secure 0-day / SLOWPULSE (co-author): https://cloud.google.com/blog/topics/threat-intelligence/suspected-apt-actors-leverage-bypass-techniques-pulse-secure-zero-day · https://cloud.google.com/blog/topics/threat-intelligence/updates-on-chinese-apt-compromising-pulse-secure-vpn-devices
+- APT41 / DUSTTRAP (co-author): https://cloud.google.com/blog/topics/threat-intelligence/apt41-arisen-from-dust
+- Profiles: https://github.com/stevemk14ebr · https://infocondb.org/presenter/stephen-eckels · https://www.linkedin.com/in/stephen-eckels-995211102/
