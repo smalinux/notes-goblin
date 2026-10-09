@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>main.c — alloca(600) (interactive single-stepper)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;   /* executed instruction */
+    --red:       #ff6b6b;   /* modified value       */
+    --green:     #4ade80;   /* start value          */
+    --purple:    #c084fc;   /* alloca block         */
+    --amber:     #fbbf24;
+    --rip:       #f472b6;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    --slate:     #94a3b8;
+    --row-h:     36px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+  a{color:var(--blue)}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--purple) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  /* ============ legend ============ */
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.8rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; height:1.25rem; border-radius:4px; font-size:.8rem; flex:none;
+  }
+  .badge.exec { color:var(--blue);   border:1px solid var(--blue) }
+  .badge.mod  { color:#fff; background:var(--purple) }
+  .badge.start{ color:var(--green);  border:1px solid var(--green) }
+  .swatch{ width:1.25rem; height:1.25rem; border-radius:4px; flex:none }
+  .swatch.al{ background:rgba(192,132,252,.18); border:1px solid var(--purple) }
+  .swatch.rz{ background:rgba(255,107,107,.14); border:1px dashed var(--red) }
+  .swatch.no{ border:1px dashed var(--line);
+    background:repeating-linear-gradient(135deg, transparent 0 4px, rgba(124,135,153,.25) 4px 6px) }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; grid-template-columns: 1fr 1.08fr; gap:1rem; align-items:start }
+  @media (max-width: 960px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 small{ text-transform:none; letter-spacing:0; font-size:.78rem }
+
+  /* ============ C source ============ */
+  .csrc{ font-size:.86rem; line-height:1.55 }
+  .csrc .cl{ padding:.05rem .55rem; border-radius:6px; white-space:pre; transition:background .3s }
+  .csrc .cl.cur{ background:rgba(244,114,182,.14); box-shadow:inset 0 0 0 1px rgba(244,114,182,.45) }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+  .csrc .pp { color:var(--purple) }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.82rem; line-height:1.1; padding-left:3rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.28rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s; white-space:nowrap;
+  }
+  .asm .row.al{ box-shadow: inset 3px 0 0 rgba(192,132,252,.7) }
+  .asm .lbl{ color:var(--amber); padding-left:.5rem; margin-top:.3rem }
+  .asm .grp{ color:var(--purple); padding-left:.5rem; font-size:.72rem; margin:.25rem 0 .1rem }
+  .asm .addr{ color:var(--dim); font-size:.74rem; width:12ch; flex:none }
+  .asm .mark{ width:1.2rem; flex:none; text-align:center; color:transparent }
+  .asm .mn  { width:4.5ch; flex:none }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.executed .mark{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.72rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  /* ============ registers ============ */
+  .regs table{ width:100%; border-collapse:collapse; font-size:.88rem }
+  .regs td{ border:1px solid var(--line); padding:.38rem .7rem }
+  .regs td.name{ width:4.2rem; color:var(--dim) }
+  .regs .val{ display:inline-flex; align-items:center; gap:.5rem }
+  .v-start{ color:var(--green); text-decoration:underline }
+  .v-mod  { color:var(--red) }
+  .v-plain{ color:var(--text) }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+
+  /* ============ size math chips ============ */
+  .chips{ display:flex; flex-wrap:wrap; gap:.4rem; align-items:center }
+  .chip{
+    border:1px solid var(--line); border-radius:7px; padding:.3rem .5rem; font-size:.74rem;
+    color:#4d5768; background:transparent; transition:all .35s;
+  }
+  .chip small{ display:block; font-size:.62rem; color:inherit; opacity:.8 }
+  .chip.done{ color:var(--blue); border-color:rgba(97,165,255,.5) }
+  .chip.now { color:#fff; border-color:var(--rip); background:rgba(244,114,182,.16);
+              box-shadow:0 0 0 3px rgba(244,114,182,.12) }
+  .chip.final.done, .chip.final.now{ color:var(--purple); border-color:var(--purple); background:rgba(192,132,252,.12) }
+  .chips .ar{ color:var(--line); font-size:.8rem }
+  .math-sum{ margin-top:.55rem; font-size:.74rem; color:var(--dim); line-height:1.5 }
+  .math-sum b{ color:var(--purple) }
+
+  /* ============ stack ============ */
+  .stack-outer{ position:relative; padding-left:7.6rem; padding-right:2.4rem }
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack-grow .arr{ font-size:.95rem; display:block; line-height:1 }
+  .stack{ position:relative; border:2px solid var(--line); border-radius:8px; overflow:visible }
+  .stack .srow{
+    display:grid; grid-template-columns: .88fr 1.15fr 1fr; height:var(--row-h);
+    border-bottom:1px solid var(--line); position:relative;
+    transition:background .45s, box-shadow .45s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .srow.rz { background:rgba(255,107,107,.07); box-shadow:inset 3px 0 0 rgba(255,107,107,.75) }
+  .stack .srow.no { background:repeating-linear-gradient(135deg, transparent 0 7px, rgba(124,135,153,.07) 7px 10px) }
+  .stack .srow.own{ background:rgba(192,132,252,.10); box-shadow:inset 3px 0 0 var(--purple) }
+  .stack .srow.grab{ animation:grab .9s ease }
+  @keyframes grab{ 0%{background:rgba(192,132,252,.55)} 100%{background:rgba(192,132,252,.10)} }
+  .stack .srow.dotsrow{ height:calc(var(--row-h) * 1.6) }
+  .stack .cell{ display:flex; align-items:center; padding:0 .5rem; font-size:.76rem; overflow:hidden }
+  .stack .cell.addr{ color:var(--dim); border-right:1px solid var(--line); font-size:.72rem }
+  .stack .cell.val{ justify-content:center; gap:.3rem }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.66rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.25; transition:background .45s, color .45s;
+  }
+  .who.w-ret{ background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-sav{ background:rgba(56,189,248,.14); color:var(--sky) }
+  .who.w-al { color:var(--purple) }
+  .who.w-rz { color:var(--red); font-style:italic }
+  .who.w-no { color:#5b6577; font-style:italic }
+  .stack .cell.val .badge{ width:1rem; height:1rem; font-size:.62rem }
+  .undef{ color:var(--dim); font-style:italic }
+  .stale{ opacity:.4 }
+  .dotsv{ color:var(--dim); letter-spacing:1px; text-align:center; line-height:1.35 }
+  .srow .pop-in{ animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  @keyframes popIn{ 0%{transform:translateY(-10px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  #rspArrow, #rbpArrow{
+    position:absolute; display:flex; align-items:center; gap:.15rem;
+    font-weight:bold; font-size:.85rem;
+    transition: top .7s cubic-bezier(.4,0,.2,1); z-index:5; transform:translateY(-50%);
+  }
+  #rspArrow{ left:3.9rem; color:var(--red) }
+  #rbpArrow{ left:.5rem;  color:var(--sky) }
+  #rspArrow::after, #rbpArrow::after{ content:"⟶"; font-size:1rem }
+  #sizeBrace{
+    position:absolute; right:1.5rem; width:.8rem; border:2px solid var(--purple); border-left:none;
+    border-radius:0 8px 8px 0; opacity:0; transition:opacity .5s, top .5s, height .5s; pointer-events:none;
+  }
+  #sizeBrace.on{ opacity:1 }
+  #sizeBrace span{
+    position:absolute; left:1.05rem; top:50%; transform:translateY(-50%);
+    writing-mode:vertical-rl; color:var(--purple); font-size:.68rem; white-space:nowrap;
+  }
+  #bubble{
+    position:absolute; left:38%; z-index:8; max-width:17.5rem;
+    background:#256b2f; color:#fff; border:2px solid #77c877; border-radius:9px;
+    padding:.4rem .55rem; font-size:.72rem; line-height:1.35;
+    transform:translateY(.3rem); opacity:0; transition:opacity .4s, top .4s;
+    pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  #bubble.on{ opacity:1 }
+  #bubble::before{
+    content:""; position:absolute; top:-.55rem; left:1.2rem;
+    border:.55rem solid transparent; border-bottom-color:#77c877; border-top:none;
+  }
+  .stack-cap{ font-size:.7rem; color:var(--dim); margin-top:.55rem; line-height:1.55 }
+
+  /* ============ note panel ============ */
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:8rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.6 }
+  .note p+p{ margin-top:.45rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .al-box{
+    margin-top:.6rem; background:#22123a; border:2px solid var(--purple); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.55; color:#eadcff;
+  }
+  .al-box code{ background:rgba(0,0,0,.3) }
+
+  /* ============ controls ============ */
+  .controls{
+    margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.6rem; height:.6rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  /* ============ explanation sections ============ */
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.6rem }
+  .sect h2 .n{
+    display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+    border-radius:6px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim); font-size:.8rem; margin-right:.5rem; vertical-align:middle;
+  }
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .sect p{ font-size:.86rem; line-height:1.65 }
+  .sect p+p{ margin-top:.5rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.35rem }
+  .def{
+    margin:.3rem 0 .9rem; padding:.8rem 1rem; border-radius:10px;
+    background:linear-gradient(180deg, #170f24, #22123a); border:2px solid #5b2d8a;
+    font-size:.95rem; line-height:1.6; text-align:center;
+  }
+  .def b{ color:var(--purple) }
+
+  /* calculator */
+  .calc-top{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:.4rem 0 .9rem; font-size:.88rem }
+  .calc-top input[type=range]{ flex:1; min-width:14rem; accent-color:var(--purple) }
+  .calc-top input[type=number]{
+    width:6rem; background:var(--panel2); color:var(--amber); border:1px solid var(--line);
+    border-radius:6px; padding:.3rem .5rem; font:inherit; font-size:.95rem;
+  }
+  .presets{ display:flex; gap:.4rem; flex-wrap:wrap }
+  .presets button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:6px;
+    padding:.25rem .55rem; font:inherit; font-size:.75rem; cursor:pointer;
+  }
+  .presets button:hover{ border-color:var(--purple) }
+  .pipe{ display:flex; flex-wrap:wrap; gap:.45rem; align-items:stretch }
+  .pipe .st{
+    background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:.5rem .7rem;
+    font-size:.8rem; min-width:7.5rem;
+  }
+  .pipe .st small{ display:block; color:var(--dim); font-size:.66rem; margin-bottom:.15rem }
+  .pipe .st b{ color:var(--amber) }
+  .pipe .st.res{ border-color:var(--purple) }
+  .pipe .st.res b{ color:var(--purple) }
+  .pipe .ar{ align-self:center; color:var(--dim) }
+  .bar-wrap{ margin-top:1rem }
+  .bar-ends{ display:flex; justify-content:space-between; font-size:.7rem; color:var(--dim); margin-bottom:.25rem }
+  .bar-ends b.r{ color:var(--red) } .bar-ends b.s{ color:var(--sky) }
+  .bar{ display:flex; height:2.1rem; border:2px solid var(--line); border-radius:8px; overflow:hidden }
+  .bar div{ transition:width .3s; display:flex; align-items:center; justify-content:center;
+            font-size:.68rem; white-space:nowrap; overflow:hidden }
+  .bar .used{ background:rgba(97,165,255,.28); color:#cfe2ff }
+  .bar .slack{ background:rgba(192,132,252,.45); color:#fff }
+  .bar .pad{ background:repeating-linear-gradient(135deg, rgba(124,135,153,.25) 0 4px, transparent 4px 8px); color:var(--dim) }
+  .bar-legend{ display:flex; gap:1.1rem; flex-wrap:wrap; margin-top:.45rem; font-size:.72rem; color:var(--dim) }
+  .bar-legend i{ display:inline-block; width:.8rem; height:.8rem; border-radius:3px; vertical-align:-1px; margin-right:.3rem }
+
+  .al-table{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.6rem }
+  .al-table td, .al-table th{ border:1px solid var(--line); padding:.5rem .7rem; text-align:left; vertical-align:top; line-height:1.5 }
+  .al-table th{ color:var(--dim); font-weight:normal; text-transform:uppercase; font-size:.64rem; letter-spacing:1px }
+  .al-table td:first-child{ color:var(--sky) }
+  .yes{ color:var(--green) } .no{ color:var(--red) }
+  .cmp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem; align-items:start }
+  @media (max-width: 940px){ .cmp-grid{ grid-template-columns:1fr } }
+  .mini-title{ font-size:.76rem; color:var(--dim); margin-bottom:.45rem; line-height:1.45 }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .lb{color:var(--amber)} .codecard .num{color:var(--green)}
+  .codecard .hl{
+    display:inline-block; border:1px solid var(--purple); border-radius:4px;
+    background:rgba(192,132,252,.10); padding:0 .2rem; margin:0 -.2rem;
+  }
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>main.c — <span>alloca(600), step by step</span></h1>
+  <div class="subtitle">RE4B · gcc 10.2 -O0 · Linux x86-64 · real values from gdb · the book's <code>f()</code> = your <code>main()</code>, same code</div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span id="ripVal"></span>
+    <span class="ctx" id="ripCtx"></span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="badge exec">☒</span><span style="color:var(--blue)">executed instruction</span></div>
+  <div class="item"><span class="badge mod">♍</span><span style="color:var(--red)">modified value</span></div>
+  <div class="item"><span class="badge start">⌘</span><span style="color:var(--green);text-decoration:underline">start value</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▶</span><span style="color:var(--dim)">next instruction</span></div>
+  <div class="item"><span style="color:var(--sky);font-weight:bold">rbp⟶</span><span style="color:var(--dim)">frame base</span></div>
+  <div class="item"><span class="swatch al"></span><span style="color:var(--purple)">alloca block (owned)</span></div>
+  <div class="item"><span class="swatch rz"></span><span style="color:var(--red)">red zone</span></div>
+  <div class="item"><span class="swatch no"></span><span style="color:var(--dim)">not yours</span></div>
+</div>
+
+<div class="layout">
+
+  <div class="col">
+    <div class="panel">
+      <h2>C source <small>(main.c)</small></h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>Disassembly <small>(objdump -d -M intel a.out)</small></h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">⤴ back in __libc_start_main+234 → exit(123) → <b>echo $? → 123</b></div>
+    </div>
+    <div class="panel">
+      <h2>alloca size math <small>(lights up as it runs)</small></h2>
+      <div class="chips" id="chips"></div>
+      <div class="math-sum">size = ((600 + 8) + 15) / 16 × 16 = <b>608 = 0x260</b> &nbsp;·&nbsp; 76 rows of 8 bytes</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>Registers</h2>
+      <table>
+        <tr><td class="name">rax</td><td><span class="val" id="rax"></span></td></tr>
+        <tr><td class="name">rcx</td><td><span class="val" id="rcx"></span></td></tr>
+        <tr><td class="name">rdx</td><td><span class="val" id="rdx"></span></td></tr>
+        <tr><td class="name">rsp</td><td><span class="val" id="rsp"></span></td></tr>
+        <tr><td class="name">rbp</td><td><span class="val" id="rbp"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Stack <small>(one row = 8 bytes · 72 rows folded)</small></h2>
+      <div class="stack-outer" id="stackOuter">
+        <div class="stack-grow"><span class="arr">↑</span>higher addresses</div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-grow">lower addresses (stack grows down)<span class="arr">↓</span></div>
+        <div id="rspArrow">rsp</div>
+        <div id="rbpArrow">rbp</div>
+        <div id="sizeBrace"><span>0x260 = 608 bytes</span></div>
+        <div id="bubble"></div>
+      </div>
+      <p class="stack-cap">
+        <code>p</code> = the pointer alloca returns. <code>p[0]</code> is at the <b>bottom</b> (the new rsp);
+        the 600 bytes go up from there. The top row is 8 bytes of slack.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump · click a dot to jump</div>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">1</span>What is alloca?</h2>
+  <div class="def">
+    <code>alloca(n)</code> = memory <b>on the stack</b>. It is not a real function call.<br>
+    The compiler turns it into a few instructions, and the important one is <b>sub rsp, size</b>.
+  </div>
+  <p>The stack grows down. So "make space" just means "move rsp down". The bytes between the new
+     rsp and the old one now belong to the function. When the function returns, rsp goes back up,
+     and the space is gone. You never call <code>free()</code>.</p>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">2</span>Where does 0x260 come from? Try any size</h2>
+  <p>I compiled <code>alloca(n)</code> for many <code>n</code>. The constant in
+     <code>add rax, …</code> is always <b>n + 8</b>: alloca(1) → <code>0x9</code>, alloca(600) →
+     <code>0x260</code>, alloca(601) → <code>0x261</code>. gcc adds 8 bytes of <b>slack</b> so it can
+     always align the returned pointer to 16. Then the run-time code rounds up to a multiple of 16,
+     because <b>rsp must stay 16-byte aligned</b> (an ABI rule).</p>
+
+  <div class="calc-top">
+    <span>n =</span>
+    <input type="number" id="cnum" min="1" max="4096" value="600">
+    <input type="range"  id="crange" min="1" max="1024" value="600">
+    <div class="presets">
+      <button data-n="1">1</button><button data-n="8">8</button><button data-n="9">9</button>
+      <button data-n="100">100</button><button data-n="600">600</button><button data-n="601">601</button>
+    </div>
+  </div>
+
+  <div class="pipe" id="pipe"></div>
+
+  <div class="bar-wrap">
+    <div class="bar-ends"><span><b class="r">new rsp</b> = p (low address)</span><span>old rsp = <b class="s">rbp</b> (high address)</span></div>
+    <div class="bar" id="bar"><div class="used" id="bUsed"></div><div class="slack" id="bSlack"></div><div class="pad" id="bPad"></div></div>
+    <div class="bar-legend">
+      <span><i style="background:rgba(97,165,255,.5)"></i>your n bytes (p[0] … p[n−1])</span>
+      <span><i style="background:rgba(192,132,252,.6)"></i>8 bytes slack</span>
+      <span><i style="background:repeating-linear-gradient(135deg, rgba(124,135,153,.5) 0 3px, transparent 3px 6px)"></i>round-up padding</span>
+    </div>
+  </div>
+
+  <h3>The code gcc would emit for this n</h3>
+  <div class="codecard" id="casm"></div>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">3</span>Using the pointer, and what -O2 does</h2>
+  <p>In <code>main.c</code> the result of alloca is thrown away. Real code keeps it:
+     <code>char *p = alloca(600);</code>. Then gcc adds 4 instructions after <code>sub rsp</code>
+     to make <code>p</code> 16-byte aligned. Here rsp is already aligned, so <code>p</code> = rsp.</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>char *p = alloca(600);</b> at -O0 (after the same size math):</div>
+      <div class="codecard">sub    rsp, rax              <span class="cm">; the allocation</span>
+<span class="hl">mov    rax, rsp</span>
+<span class="hl">add    rax, 0xf</span>              <span class="cm">; + 15</span>
+<span class="hl">shr    rax, 0x4</span>              <span class="cm">; ÷ 16 (drop rest)</span>
+<span class="hl">shl    rax, 0x4</span>              <span class="cm">; × 16</span>
+mov    QWORD PTR [rbp-0x8], rax  <span class="cm">; p = (rsp + 15) &amp; ~15</span></div>
+    </div>
+    <div>
+      <div class="mini-title"><b>gcc -O2 main.c</b>, the whole main:</div>
+      <div class="codecard"><span class="lb">main:</span>
+mov    eax, 0x7b
+ret
+
+<span class="cm">; The memory is never used,</span>
+<span class="cm">; so the optimizer deletes alloca.</span>
+<span class="cm">; No push rbp, no sub rsp. Nothing.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">4</span>alloca vs malloc</h2>
+  <table class="al-table">
+    <tr><th></th><th>alloca(n)</th><th>malloc(n)</th></tr>
+    <tr><td>Where</td><td>stack</td><td>heap</td></tr>
+    <tr><td>Cost</td><td class="yes">a few instructions, one <code>sub rsp</code></td><td>a library call with bookkeeping</td></tr>
+    <tr><td>Free</td><td class="yes">automatic, when the function returns (<code>leave</code>)</td><td>you must call <code>free()</code></td></tr>
+    <tr><td>Lives after return?</td><td class="no">no: never return the pointer</td><td class="yes">yes</td></tr>
+    <tr><td>Too big?</td><td class="no">stack overflow → crash, no error code</td><td>returns <code>NULL</code></td></tr>
+    <tr><td>In a listing you see</td><td><code>sub rsp, &lt;register&gt;</code> in the middle of a function</td><td><code>call malloc</code></td></tr>
+  </table>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect takeaways">
+  <h2>Takeaways</h2>
+  <ul>
+    <li><code>alloca(n)</code> = <b>size = round_up_16(n + 8)</b>, then <b>sub rsp, size</b>. No call, no heap.</li>
+    <li>The memory is between the new rsp (the bottom, <code>p[0]</code>) and rbp.</li>
+    <li><code>leave</code> (= <code>mov rsp, rbp</code> + <code>pop rbp</code>) frees it in one move. That is
+        why a function with alloca <b>always keeps rbp</b> as a frame pointer.</li>
+    <li>RE pattern: <code>sub rsp, &lt;register&gt;</code> mid-function, often with the
+        <code>add 0xf / shr 4 / shl 4</code> alignment trick → alloca, or a C99 variable-length array (VLA).</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · main.c compiled with gcc 10.2.1 (Debian) -O0 · addresses from a gdb session (ASLR off)<br>
+  <a href="red_zone.html">red zone stepper</a> ·
+  <a href="x86_instruction_length.html">x86 instruction length</a>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------- helpers ---------------- */
+
+const $  = id => document.getElementById(id);
+const hx = (n, w = 16) => n.toString(16).padStart(w, '0');
+const Q  = n => { const s = hx(n); return s.slice(0, 8) + '`' + s.slice(8); };
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------------- data ---------------- */
+
+const CSRC = [
+  {id:'c0', h:'<span class="pp">#include</span> <span class="num">&lt;alloca.h&gt;</span>'},
+  {id:'c1', h:'<span class="kw">int</span> <span class="fn">main</span>()'},
+  {id:'c2', h:'{'},
+  {id:'c3', h:'    <span class="fn">alloca</span> (<span class="num">600</span>);'},
+  {id:'c4', h:'    <span class="kw">return</span> <span class="num">123</span>;'},
+  {id:'c5', h:'};'},
+];
+
+const LISTING = [
+  {label:'main:'},
+  {key:'5125', mn:'push', ops:'rbp'},
+  {key:'5126', mn:'mov',  ops:'rbp, rsp'},
+  {grp:'┌─ alloca(600) ─────────────'},
+  {key:'5129', mn:'mov',  ops:'eax, 0x10', al:true},
+  {key:'512e', mn:'sub',  ops:'rax, 0x1', al:true},
+  {key:'5132', mn:'add',  ops:'rax, 0x260', al:true},
+  {key:'5138', mn:'mov',  ops:'ecx, 0x10', al:true},
+  {key:'513d', mn:'mov',  ops:'edx, 0x0', al:true},
+  {key:'5142', mn:'div',  ops:'rcx', al:true},
+  {key:'5145', mn:'imul', ops:'rax, rax, 0x10', al:true},
+  {key:'5149', mn:'sub',  ops:'rsp, rax', al:true},
+  {grp:'└───────────────────────────'},
+  {key:'514c', mn:'mov',  ops:'eax, 0x7b'},
+  {key:'5151', mn:'leave',ops:''},
+  {key:'5152', mn:'ret',  ops:''},
+];
+const BASE = 0x555555550000;
+
+/* stack rows, high → low (8 bytes each) */
+const ROWS = [
+  {addr:0x7fffffffdaf8, label:'return addr → libc', wcls:'w-ret'},
+  {addr:0x7fffffffdaf0, label:'saved rbp (libc’s)', wcls:'w-sav'},
+  {addr:0x7fffffffdae8, label:'8 bytes slack', wcls:'w-al', al:true},
+  {addr:0x7fffffffdae0, label:'p[592..599]', wcls:'w-al', al:true},
+  {addr:0x7fffffffdad8, dots:72, low:0x7fffffffd8a0, label:'p[16..591]', wcls:'w-al', al:true},
+  {addr:0x7fffffffd898, label:'p[8..15]', wcls:'w-al', al:true},
+  {addr:0x7fffffffd890, label:'p[0..7] ← p', wcls:'w-al', al:true},
+  {addr:0x7fffffffd888},
+];
+
+const RA_LIBC  = 0x7ffff7df9d7a;   // __libc_start_main+234
+const RBP_LIBC = 0x555555555160;   // libc's rbp at main entry (= &__libc_csu_init)
+
+const INIT = {
+  rip: 0x555555555125,
+  rax: 0x555555555125, rcx: 0x7ffff7fa4718, rdx: 0x7fffffffdbf8,
+  rsp: 0x7fffffffdaf8, rbp: RBP_LIBC,
+  mem: [Q(RA_LIBC), null, null, null, null, null, null, null],
+};
+
+/* chips of the size math: lit when that instruction has run */
+const CHIPS = [
+  {at:3,  t:'rax = 0x10',      s:'alignment 16'},
+  {at:4,  t:'− 1 → 0xf',       s:'the "+15"'},
+  {at:5,  t:'+ 0x260 → 0x26f', s:'600 + 8 slack'},
+  {at:8,  t:'÷ 0x10 → 0x26',   s:'rest 0xf dropped'},
+  {at:9,  t:'× 0x10 → 0x260',  s:'= 608'},
+  {at:10, t:'rsp −= 0x260',    s:'the allocation', final:true},
+];
+
+const META0 = {
+  cur:'5125', cline:'c1', ctx:'— nothing executed yet',
+  bubble:{row:0, text:'Pushed by call in __libc_start_main. main will return here.'},
+  title:'Step 0 — We are at the first instruction of main',
+  note:`<p>Nothing has run yet. <code>rsp</code> points to the <b>return address</b> into
+    <code>__libc_start_main</code>. Some registers already have values from libc:
+    <code>rax</code> = the address of main itself (libc called it with <code>call rax</code>),
+    <code>rdx</code> = <code>envp</code>, the 3rd argument of main.</p>
+    <p>The purple-labelled rows below will become the <b>alloca block</b>. Right now they are
+    <b>not</b> ours: they are only red zone or free stack.</p>`,
+};
+
+const TRACE = [
+  { exec:'5125', run:s=>{ s.rsp -= 8; s.mem[1] = Q(RBP_LIBC); },
+    cur:'5126', cline:'c1', ctx:'— after push rbp',
+    title:'Step 1 — push rbp',
+    note:`<p>Save libc's rbp (<code>0x555555555160</code>) on the stack. rsp: <code>daf8 → daf0</code>.</p>` },
+
+  { exec:'5126', run:s=>{ s.rbp = s.rsp; },
+    cur:'5129', cline:'c3', ctx:'— frame base set',
+    bubble:{row:1, text:'rbp = daf0: the fixed point. leave will jump back here.'},
+    title:'Step 2 — mov rbp, rsp (the fixed point)',
+    note:`<p>rbp = rsp = <code>daf0</code>, main's <b>frame base</b>.</p>
+      <p>A function with alloca <b>always</b> gets a frame pointer. rsp is about to move by a size
+      that is computed <b>at run time</b>. To find the way back later, the function needs a fixed
+      point that does not move. That fixed point is rbp.</p>` },
+
+  { exec:'5129', run:s=>{ s.rax = 0x10; },
+    cur:'512e', cline:'c3', ctx:'— size math',
+    title:'Step 3 — mov eax, 0x10 (alloca starts here)',
+    note:`<p>This is the first instruction of the purple block in the listing: the code for
+      <code>alloca(600)</code>. First the CPU computes the size.</p>
+      <p>rax = 0x10 = 16, the stack alignment. (Writing <code>eax</code> also clears the upper half
+      of <code>rax</code>, so the old value <code>0x555555555125</code> is gone completely.)</p>` },
+
+  { exec:'512e', run:s=>{ s.rax = 0xf; },
+    cur:'5132', cline:'c3', ctx:'— size math',
+    title:'Step 4 — sub rax, 0x1',
+    note:`<p>rax = 16 − 1 = <b>15</b>. This is the "+15" of the classic round-up formula:</p>
+      <p style="text-align:center"><code>round_up_16(x) = (x + 15) / 16 × 16</code></p>` },
+
+  { exec:'5132', run:s=>{ s.rax = 0x26f; },
+    cur:'5138', cline:'c3', ctx:'— size math',
+    title:'Step 5 — add rax, 0x260 (600 + 8)',
+    note:`<p>rax = 15 + 0x260 = <b>0x26f = 623</b>.</p>
+      <p>Where does <code>0x260</code> (608) come from? It is <b>not</b> "600 rounded up". It is
+      <b>600 + 8</b>. gcc always adds 8 bytes of slack, so it can align the returned pointer to 16.
+      Test: <code>alloca(601)</code> gives <code>0x261</code>, <code>alloca(1)</code> gives <code>0x9</code>.
+      (Try it in section 2 below.)</p>` },
+
+  { exec:'5138', run:s=>{ s.rcx = 0x10; },
+    cur:'513d', cline:'c3', ctx:'— size math',
+    title:'Step 6 — mov ecx, 0x10 (the divisor)',
+    note:`<p>rcx = 16. We will divide by it.</p>` },
+
+  { exec:'513d', run:s=>{ s.rdx = 0; },
+    cur:'5142', cline:'c3', ctx:'— size math',
+    title:'Step 7 — mov edx, 0x0',
+    note:`<p><code>div rcx</code> divides the <b>128-bit</b> number <code>rdx:rax</code> by rcx.
+      rdx is the high half, so it must be 0 first. (Before this, rdx held <code>envp</code>.)</p>` },
+
+  { exec:'5142', run:s=>{ s.rax = 0x26; s.rdx = 0xf; },
+    cur:'5145', cline:'c3', ctx:'— size math',
+    title:'Step 8 — div rcx (623 ÷ 16)',
+    note:`<p>623 ÷ 16 = <b>38</b>, remainder 15. The quotient goes to rax (<code>0x26</code>),
+      the remainder to rdx (<code>0xf</code>).</p>
+      <p>The remainder is simply ignored. Throwing it away is the "round down" part of the trick.</p>` },
+
+  { exec:'5145', run:s=>{ s.rax = 0x260; },
+    cur:'5149', cline:'c3', ctx:'— size is ready',
+    title:'Step 9 — imul rax, rax, 0x10 (38 × 16)',
+    note:`<p>38 × 16 = <b>608 = 0x260</b>. So <code>(608 + 15) / 16 × 16 = 608</code>: the next
+      multiple of 16. (608 was already one, so nothing changed this time.)</p>
+      <p>Why a multiple of 16? The ABI says rsp must stay <b>16-byte aligned</b>. If the size were
+      not a multiple of 16, rsp would become misaligned.</p>` },
+
+  { exec:'5149', run:s=>{ s.rsp -= 0x260; },
+    cur:'514c', cline:'c4', ctx:'— 608 bytes allocated',
+    bubble:{row:6, text:'new rsp = d890 = p. 608 bytes, 76 rows, now belong to main.'},
+    title:'Step 10 — sub rsp, rax (THIS is the allocation)',
+    note:`<p>One instruction. rsp: <code>daf0 → d890</code>, 0x260 = 608 bytes lower.
+      Everything between the new rsp and rbp now belongs to main. No library call, no heap,
+      no bookkeeping.</p>
+      <div class="al-box">If the code kept the pointer (<code>char *p = alloca(600)</code>), gcc would
+      now compute <code>p = (rsp + 15) &amp; ~15</code>. rsp is already aligned, so
+      <b>p = rsp = d890</b>. <code>p[0..599]</code> go up from the bottom. The top row
+      (<code>dae8</code>) is the 8 bytes of slack.</div>` },
+
+  { exec:'514c', run:s=>{ s.rax = 0x7b; },
+    cur:'5151', cline:'c5', ctx:'— return value set',
+    title:'Step 11 — mov eax, 0x7b (return 123)',
+    note:`<p>eax = 0x7b = 123, the return value. We never touched the 608 bytes. They still hold
+      whatever garbage was there before (<span class="undef">undef</span>).</p>` },
+
+  { exec:'5151', run:s=>{ s.rsp = s.rbp + 8; s.rbp = RBP_LIBC; },
+    cur:'5152', cline:'c5', ctx:'— block freed',
+    bubble:{row:2, text:'Freed. rsp jumped over all 76 rows in one move.'},
+    title:'Step 12 — leave (the "free")',
+    note:`<p><code>leave</code> = <code>mov rsp, rbp</code> + <code>pop rbp</code>.</p>
+      <p>The first half sets rsp straight back to <code>daf0</code>: it jumps over all 608 bytes in
+      one move. It does not care how big the block was. The second half restores libc's rbp,
+      so rsp ends at <code>daf8</code>.</p>
+      <p>That is the whole "free". No <code>free()</code> call: once rsp is above the block,
+      the block is not ours anymore.</p>` },
+
+  { exec:'5152', run:s=>{ s.rsp += 8; s.rip = RA_LIBC; },
+    cur:null, cline:null, ctx:'— back in __libc_start_main+234',
+    bubble:{row:0, text:'ret popped this into rip'},
+    title:'Step 13 — ret (main returns)',
+    note:`<p>Back in <code>__libc_start_main+234</code>, which calls <code>exit(eax)</code>.
+      Run <code>./a.out; echo $?</code> and you get <b>123</b>.</p>
+      <p>The 608 bytes are still in memory, under rsp. They are garbage now.</p>` },
+];
+
+/* ---------------- build states ---------------- */
+
+const REGS = ['rax', 'rcx', 'rdx', 'rsp', 'rbp'];
+const STATES = [Object.assign(clone(INIT), META0, {executed:[]})];
+TRACE.forEach(t => {
+  const prev = STATES[STATES.length - 1];
+  const s = clone({rip:prev.rip, rax:prev.rax, rcx:prev.rcx, rdx:prev.rdx, rsp:prev.rsp, rbp:prev.rbp, mem:prev.mem});
+  s.rip = t.cur ? BASE + parseInt(t.cur, 16) : prev.rip;
+  t.run(s);
+  Object.assign(s, {cur:t.cur, cline:t.cline, ctx:t.ctx, bubble:t.bubble,
+                    title:t.title, note:t.note, exec:t.exec,
+                    executed: prev.executed.concat([t.exec])});
+  STATES.push(s);
+});
+
+/* ---------------- build static DOM ---------------- */
+
+const asmEl = $('asm'), stackEl = $('stack'), dotsEl = $('dots'), csrcEl = $('csrc');
+
+const clineEls = {};
+CSRC.forEach(l => {
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = l.h;
+  csrcEl.appendChild(d); clineEls[l.id] = d;
+});
+
+const asmRows = {};
+LISTING.forEach(ins => {
+  if (ins.label || ins.grp){
+    const d = document.createElement('div');
+    d.className = ins.label ? 'lbl' : 'grp'; d.textContent = ins.label || ins.grp;
+    asmEl.appendChild(d); return;
+  }
+  const r = document.createElement('div');
+  r.className = 'row' + (ins.al ? ' al' : '');
+  r.innerHTML = `<span class="rip-ptr">RIP▶</span>` +
+    `<span class="addr">${hx(BASE + parseInt(ins.key, 16), 12)}</span>` +
+    `<span class="mark">☒</span><span class="mn">${ins.mn}</span><span class="ops">${ins.ops}</span>`;
+  asmEl.appendChild(r); asmRows[ins.key] = r;
+});
+
+const chipEls = [];
+CHIPS.forEach((c, k) => {
+  if (k) { const a = document.createElement('span'); a.className = 'ar'; a.textContent = '→'; $('chips').appendChild(a); }
+  const d = document.createElement('div');
+  d.className = 'chip' + (c.final ? ' final' : '');
+  d.innerHTML = `${c.t}<small>${c.s}</small>`;
+  $('chips').appendChild(d); chipEls.push(d);
+});
+
+const stackRows = ROWS.map(rw => {
+  const r = document.createElement('div');
+  r.className = 'srow' + (rw.dots ? ' dotsrow' : '');
+  const a = rw.dots ? `${hx(rw.addr, 12).slice(-4)}<br>⋮<br>${hx(rw.low, 12).slice(-4)}` : '0x' + hx(rw.addr, 12);
+  r.innerHTML = `<div class="cell addr" style="${rw.dots ? 'line-height:1.1' : ''}">${a}</div>` +
+                `<div class="cell val"></div><div class="cell who"></div>`;
+  stackEl.appendChild(r);
+  return r;
+});
+
+STATES.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot'; d.title = 'Step ' + i;
+  d.addEventListener('click', () => { stopPlay(); go(i); });
+  dotsEl.appendChild(d);
+});
+
+/* ---------------- rendering ---------------- */
+
+const BADGE_MOD   = '<span class="badge mod">♍</span>';
+const BADGE_START = '<span class="badge start">⌘</span>';
+
+function tagOf(get, i){
+  const v = get(STATES[i]);
+  if (i > 0 && get(STATES[i - 1]) !== v) return 'mod';
+  for (let k = 0; k <= i; k++) if (get(STATES[k]) !== v) return '';
+  return 'start';
+}
+const clsOf = t => t === 'mod' ? 'v-mod' : t === 'start' ? 'v-start' : 'v-plain';
+const badgeOf = t => t === 'mod' ? BADGE_MOD : t === 'start' ? BADGE_START : '';
+
+function regHTML(name, i){
+  const t = tagOf(s => s[name], i);
+  return `<span class="${clsOf(t)}">${Q(STATES[i][name])}</span>` + badgeOf(t);
+}
+
+function memHTML(idx, i){
+  const v = STATES[i].mem[idx];
+  if (v === null) return '<span class="undef">undef</span>';
+  const t = tagOf(s => s.mem[idx], i);
+  return `<span class="${clsOf(t)}">${v}</span>` + badgeOf(t);
+}
+
+/* who owns this row right now? depends on rsp */
+function whoOf(rw, s){
+  if (rw.addr >= s.rsp) return [rw.label || '', rw.label ? rw.wcls : '', rw.al ? 'own' : ''];
+  const off = s.rsp - rw.addr;
+  const d = rw.dots ? ' ⋮' : ` · rsp−0x${off.toString(16)}`;
+  if (off <= 0x80) return ['red zone' + d, 'w-rz', 'rz'];
+  return ['not yours' + d, 'w-no', 'no'];
+}
+
+function rowOf(addr){
+  if (addr > ROWS[0].addr) return -1;
+  return ROWS.findIndex(r => !r.dots && r.addr === addr);
+}
+function rowMid(idx){ const r = stackRows[idx]; return stackEl.offsetTop + r.offsetTop + r.offsetHeight / 2; }
+function placeArrow(arrow, idx){ arrow.style.top = (idx < 0 ? stackEl.offsetTop - 10 : rowMid(idx)) + 'px'; }
+
+let cur = 0, prevSnap = null, timer = null;
+
+function render(i, animate = true){
+  const s = STATES[i];
+
+  const ripEl = $('ripVal');
+  if (animate && prevSnap && prevSnap.rip !== s.rip){ ripEl.classList.remove('flash'); void ripEl.offsetWidth; ripEl.classList.add('flash'); }
+  ripEl.textContent = Q(s.rip);
+  $('ripCtx').textContent = s.ctx;
+
+  for (const id in clineEls) clineEls[id].classList.toggle('cur', s.cline === id);
+
+  for (const name of REGS){
+    const el = $(name);
+    el.innerHTML = regHTML(name, i);
+    if (animate && prevSnap && prevSnap[name] !== s[name]){
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+
+  for (const key in asmRows){
+    const r = asmRows[key];
+    r.classList.toggle('executed', s.executed.includes(key));
+    r.classList.toggle('current', s.cur === key);
+    r.classList.remove('just-executed');
+  }
+  if (animate && s.exec && prevSnap && prevSnap.step === i - 1){
+    const r = asmRows[s.exec]; void r.offsetWidth; r.classList.add('just-executed');
+  }
+  $('exitRow').classList.toggle('on', s.cur === null);
+
+  CHIPS.forEach((c, k) => {
+    chipEls[k].classList.toggle('done', i > c.at);
+    chipEls[k].classList.toggle('now', i === c.at);
+  });
+
+  ROWS.forEach((rw, idx) => {
+    const row = stackRows[idx];
+    const cell = row.querySelector('.val'), who = row.querySelector('.who');
+    if (rw.dots){
+      cell.innerHTML = `<span class="dotsv">⋮<br>${rw.dots} more rows<br>⋮</span>`;
+    } else {
+      const v = s.mem[idx];
+      let html = memHTML(idx, i);
+      if (v !== null && rw.addr < s.rsp) html = `<span class="stale">${html}</span>`;
+      cell.innerHTML = html;
+      if (animate && prevSnap && prevSnap.mem[idx] !== v){
+        const sp = cell.firstElementChild; if (sp) sp.classList.add('pop-in');
+      }
+    }
+    const [txt, wcls, zone] = whoOf(rw, s);
+    who.className = 'cell who ' + wcls;
+    who.innerHTML = txt;
+    const wasOwn = row.classList.contains('own');
+    row.classList.toggle('rz', zone === 'rz');
+    row.classList.toggle('no', zone === 'no');
+    row.classList.toggle('own', zone === 'own');
+    row.classList.remove('grab');
+    if (animate && zone === 'own' && !wasOwn){ void row.offsetWidth; row.classList.add('grab'); }
+  });
+
+  placeArrow($('rspArrow'), rowOf(s.rsp));
+  placeArrow($('rbpArrow'), rowOf(s.rbp));
+
+  /* purple brace on the right edge while the block is allocated */
+  const brace = $('sizeBrace');
+  const allocated = s.rsp === 0x7fffffffd890;
+  if (allocated){
+    const top = stackEl.offsetTop + stackRows[2].offsetTop;
+    const bot = stackEl.offsetTop + stackRows[6].offsetTop + stackRows[6].offsetHeight;
+    brace.style.top = top + 'px'; brace.style.height = (bot - top) + 'px';
+  }
+  brace.classList.toggle('on', allocated);
+
+  const bub = $('bubble');
+  if (s.bubble){
+    const row = stackRows[s.bubble.row];
+    bub.textContent = s.bubble.text;
+    bub.style.top = (stackEl.offsetTop + row.offsetTop + row.offsetHeight) + 'px';
+    bub.classList.add('on');
+  } else bub.classList.remove('on');
+
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  $('stepInd').textContent = `Step ${i} / ${STATES.length - 1}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled = (i === STATES.length - 1);
+  [...dotsEl.children].forEach((d, k) => { d.classList.toggle('now', k === i); d.classList.toggle('done', k < i); });
+
+  prevSnap = {step:i, rip:s.rip, mem:s.mem.slice()};
+  REGS.forEach(r => prevSnap[r] = s[r]);
+  cur = i;
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= STATES.length) return;
+  render(i, animate);
+  if (i === STATES.length - 1) stopPlay();
+}
+
+/* ---------------- autoplay + wiring ---------------- */
+
+function startPlay(){
+  if (cur === STATES.length - 1) go(0, false);
+  timer = setInterval(() => { if (cur >= STATES.length - 1) stopPlay(); else go(cur + 1); }, 3000);
+  $('btnPlay').textContent = '⏸ Pause'; $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play'; $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', () => { stopPlay(); go(cur + 1); });
+$('btnPrev').addEventListener('click', () => { stopPlay(); go(cur - 1); });
+$('btnReset').addEventListener('click', () => { stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', () => { stopPlay(); go(STATES.length - 1); });
+$('btnPlay').addEventListener('click', () => timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  switch (e.key){
+    case 'ArrowRight': stopPlay(); go(cur + 1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur - 1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0); e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STATES.length - 1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+  }
+});
+
+window.addEventListener('resize', () => render(cur, false));
+window.addEventListener('load',   () => render(cur, false));
+render(0, false);
+
+/* ================================================================
+   Size calculator: what gcc -O0 emits for alloca(n)
+   ================================================================ */
+(function(){
+  const h = n => '0x' + n.toString(16);
+
+  function calc(n){
+    n = Math.max(1, Math.min(4096, n | 0));
+    $('cnum').value = n;
+    $('crange').value = Math.min(n, 1024);
+    const k = n + 8, t = k + 15, q = Math.floor(t / 16), size = q * 16, pad = size - k;
+
+    $('pipe').innerHTML =
+      `<div class="st"><small>you ask</small><b>n = ${n}</b></div><span class="ar">→</span>` +
+      `<div class="st"><small>+ 8 slack</small><b>${k}</b> (${h(k)})</div><span class="ar">→</span>` +
+      `<div class="st"><small>+ 15</small><b>${t}</b> (${h(t)})</div><span class="ar">→</span>` +
+      `<div class="st"><small>÷ 16, drop rest ${t % 16}</small><b>${q}</b> (${h(q)})</div><span class="ar">→</span>` +
+      `<div class="st res"><small>× 16 = rsp moves</small><b>${size}</b> (${h(size)})</div>`;
+
+    $('bUsed').style.width  = (n / size * 100) + '%';
+    $('bSlack').style.width = (8 / size * 100) + '%';
+    $('bPad').style.width   = (pad / size * 100) + '%';
+    $('bUsed').textContent  = n / size > .18 ? `p[0] … p[${n - 1}]` : '';
+    $('bSlack').textContent = 8 / size > .08 ? 'slack' : '';
+    $('bPad').textContent   = pad / size > .12 ? `+${pad}` : '';
+
+    $('casm').innerHTML =
+`mov    eax, 0x10
+sub    rax, 0x1
+add    rax, <span class="hl">${h(k)}</span>             <span class="cm">; n + 8 = ${n} + 8</span>
+mov    ecx, 0x10
+mov    edx, 0x0
+div    rcx                   <span class="cm">; rax = ${h(t)} / 16 = ${h(q)}</span>
+imul   rax, rax, 0x10        <span class="cm">; rax = ${h(size)}</span>
+sub    rsp, rax              <span class="cm">; rsp -= ${size} bytes (${size / 8} rows)</span>`;
+  }
+
+  $('crange').addEventListener('input', e => calc(+e.target.value));
+  $('cnum').addEventListener('input',   e => { if (e.target.value !== '') calc(+e.target.value); });
+  document.querySelectorAll('.presets button').forEach(b => b.addEventListener('click', () => calc(+b.dataset.n)));
+  calc(600);
+})();
+</script>
+</body>
+</html>

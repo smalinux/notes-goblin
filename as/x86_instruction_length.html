@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>x86 instruction length — where does an instruction end?</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;
+    --red:       #ff6b6b;
+    --green:     #4ade80;
+    --purple:    #c084fc;
+    --amber:     #fbbf24;
+    --rip:       #f472b6;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    --orange:    #fb923c;
+
+    /* instruction fields */
+    --f-pfx:   var(--purple);
+    --f-rex:   var(--orange);
+    --f-op:    var(--blue);
+    --f-modrm: var(--green);
+    --f-sib:   var(--teal);
+    --f-disp:  var(--amber);
+    --f-imm:   var(--red);
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+  a{color:var(--blue)}
+  code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--teal) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+
+  /* ============ legend ============ */
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.8rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .sw{ width:1.1rem; height:1.1rem; border-radius:4px; flex:none; border:2px solid }
+
+  /* field colours: used by bytes, table rows, format bar */
+  .r-pfx  { --c:var(--f-pfx) }   .r-rex { --c:var(--f-rex) }  .r-op  { --c:var(--f-op) }
+  .r-modrm{ --c:var(--f-modrm) } .r-sib { --c:var(--f-sib) }  .r-disp{ --c:var(--f-disp) }
+  .r-imm  { --c:var(--f-imm) }
+  .sw[class*="r-"]{ border-color:var(--c); background:color-mix(in srgb, var(--c) 25%, transparent) }
+
+  /* ============ tl;dr ============ */
+  .def{
+    margin:0 0 1rem; padding:.9rem 1.1rem; border-radius:12px;
+    background:linear-gradient(180deg, #0c1b1d, #0f2426); border:2px solid #1f5f5a;
+    font-size:.9rem; line-height:1.7;
+  }
+  .def b{ color:var(--teal) }
+
+  /* ============ decoder ============ */
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 small{ text-transform:none; letter-spacing:0; font-size:.78rem }
+  .modes{ display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin-bottom:.9rem }
+  .modes button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:999px;
+    padding:.45rem 1rem; font:inherit; font-size:.82rem; cursor:pointer; transition:all .2s;
+  }
+  .modes button:hover{ border-color:var(--teal) }
+  .modes button.on.good{ border-color:var(--green); color:var(--green); background:rgba(74,222,128,.08) }
+  .modes button.on.bad { border-color:var(--red);   color:var(--red);   background:rgba(255,107,107,.08) }
+
+  .strip{ display:grid; grid-template-columns:repeat(8, 1fr); gap:.5rem; max-width:46rem; margin:0 auto }
+  .ripm{ text-align:center; color:var(--rip); font-weight:bold; font-size:.78rem; height:1.3rem;
+         opacity:0; transition:opacity .3s }
+  .ripm.on{ opacity:1 }
+  .byte{ text-align:center }
+  .byte .off{ font-size:.7rem; color:var(--dim); margin-bottom:.2rem }
+  .byte .hex{
+    font-size:1.35rem; font-weight:bold; padding:.65rem 0; border-radius:9px;
+    border:2px solid var(--line); background:var(--panel2); color:#56607a;
+    transition:background .35s, border-color .35s, color .35s, box-shadow .35s, transform .35s;
+  }
+  .byte .role{ font-size:.66rem; color:var(--dim); margin-top:.3rem; min-height:1rem }
+  .byte[class*="r-"] .hex{ border-color:var(--c); color:var(--text); background:color-mix(in srgb, var(--c) 24%, var(--panel2)) }
+  .byte[class*="r-"] .role{ color:var(--c) }
+  .byte.cur .hex{ box-shadow:0 0 0 3px rgba(244,114,182,.35); transform:translateY(-3px) }
+  .byte.skip .hex{ opacity:.35; text-decoration:line-through }
+  .byte.nxt .hex{ border-style:dashed; color:var(--dim) }
+  .byte.eaten .hex{ box-shadow:0 0 0 3px rgba(255,107,107,.55) }
+  .spans{ display:grid; grid-template-columns:repeat(8, 1fr); gap:.5rem; max-width:46rem; margin:.35rem auto 0; min-height:3rem }
+  .span{ text-align:center; animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  .span .br{ height:.6rem; border:2px solid var(--teal); border-top:none; border-radius:0 0 7px 7px }
+  .span .tx{ font-size:.78rem; margin-top:.25rem; color:var(--teal); white-space:nowrap }
+  .span .tx small{ color:var(--dim) }
+  .span.bad .br{ border-color:var(--red) } .span.bad .tx{ color:var(--red) }
+  @keyframes popIn{ 0%{transform:translateY(-10px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+
+  .dec-grid{ display:grid; grid-template-columns:1.15fr 1fr; gap:1rem; margin-top:1rem; align-items:start }
+  @media (max-width: 960px){ .dec-grid{ grid-template-columns:1fr } }
+  .ftab{ width:100%; border-collapse:collapse; font-size:.8rem }
+  .ftab td{ border:1px solid var(--line); padding:.42rem .65rem; vertical-align:top; line-height:1.45 }
+  .ftab td.k{ width:7.5rem; color:var(--c); white-space:nowrap; box-shadow:inset 3px 0 0 var(--c) }
+  .ftab td.k.len{ color:var(--text); box-shadow:inset 3px 0 0 var(--line) }
+  .ftab td.v{ transition:color .3s }
+  .ftab td.v.empty{ color:#4d5768 }
+  .ftab tr.active td.v{ color:#fff; background:rgba(244,114,182,.07) }
+
+  .modrm{ display:flex; justify-content:center; gap:.4rem; margin:.3rem 0 .6rem }
+  .modrm .grp{ text-align:center }
+  .modrm .bits{ display:inline-flex; border:2px solid var(--f-modrm); border-radius:7px; overflow:hidden }
+  .modrm .bits span{ padding:.35rem .45rem; font-size:1.05rem; font-weight:bold }
+  .modrm .bits span+span{ border-left:1px solid rgba(74,222,128,.3) }
+  .modrm .k{ font-size:.66rem; color:var(--dim); margin-top:.25rem }
+  .modrm .m{ font-size:.72rem; color:var(--f-modrm); margin-top:.1rem }
+  .modrm-empty{ color:#4d5768; font-size:.8rem; text-align:center; padding:1.2rem 0 }
+  .out{ background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:.6rem .8rem;
+        font-size:.8rem; line-height:1.7; min-height:4.2rem; white-space:pre; overflow-x:auto }
+  .out .o{ color:var(--dim) } .out .b{ color:var(--amber) } .out .i{ color:var(--teal) }
+  .out .bad{ color:var(--red) }
+  .out .ph{ color:#4d5768; font-style:italic }
+
+  /* ============ note + controls ============ */
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:7.5rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.6 }
+  .note p+p{ margin-top:.45rem }
+  .warn-box{
+    margin-top:.6rem; background:#3d1113; border:2px solid var(--red); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.55; color:#ffd9d9;
+  }
+  .controls{
+    margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.6rem; height:.6rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  /* ============ sections ============ */
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.6rem }
+  .sect h2 .n{
+    display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+    border-radius:6px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim); font-size:.8rem; margin-right:.5rem; vertical-align:middle;
+  }
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .sect p{ font-size:.86rem; line-height:1.65 }
+  .sect p+p{ margin-top:.5rem }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.35rem }
+
+  .fmt{ display:flex; gap:.35rem; margin:.4rem 0 .6rem; flex-wrap:wrap }
+  .fmt div{
+    flex:1; min-width:7.5rem; text-align:center; padding:.7rem .4rem; border-radius:9px;
+    border:2px solid var(--c); background:color-mix(in srgb, var(--c) 14%, transparent);
+    color:var(--c); font-weight:bold; font-size:.82rem;
+  }
+  .fmt div small{ display:block; font-weight:normal; color:var(--text); opacity:.75; font-size:.68rem; margin-top:.25rem; line-height:1.4 }
+  .fmt div.opt{ border-style:dashed }
+
+  .flow{ display:flex; flex-direction:column; gap:0; max-width:50rem; margin:.4rem auto 0 }
+  .fstep{
+    display:grid; grid-template-columns:2.2rem 1fr; gap:.7rem; align-items:start;
+    background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--c, var(--text));
+    border-radius:9px; padding:.6rem .8rem;
+  }
+  .fstep .n{ font-size:1.05rem; font-weight:bold; color:var(--c, var(--text)) }
+  .fstep b{ display:block; font-size:.85rem; margin-bottom:.15rem }
+  .fstep p{ font-size:.78rem; color:#aab3c3; line-height:1.55 }
+  .farrow{ text-align:center; color:var(--line); font-size:.9rem; line-height:1.3rem }
+
+  .pipe{ display:flex; gap:0; flex-wrap:wrap; margin-top:.6rem }
+  .pipe div{
+    flex:1; min-width:9rem; padding:.7rem .8rem; background:var(--panel2); border:1px solid var(--line);
+    position:relative; font-size:.76rem; line-height:1.5; color:#aab3c3;
+  }
+  .pipe div:first-child{ border-radius:9px 0 0 9px } .pipe div:last-child{ border-radius:0 9px 9px 0 }
+  .pipe div b{ display:block; color:var(--teal); font-size:.82rem; margin-bottom:.2rem }
+  .pipe div:not(:last-child)::after{ content:"▶"; position:absolute; right:-.45rem; top:42%; color:var(--dim); z-index:1; font-size:.75rem }
+
+  .al-table{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.6rem }
+  .al-table td, .al-table th{ border:1px solid var(--line); padding:.5rem .7rem; text-align:left; vertical-align:top; line-height:1.5 }
+  .al-table th{ color:var(--dim); font-weight:normal; text-transform:uppercase; font-size:.64rem; letter-spacing:1px }
+  .al-table td:first-child{ color:var(--c); white-space:nowrap; box-shadow:inset 3px 0 0 var(--c) }
+  .cmp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem; align-items:start }
+  @media (max-width: 940px){ .cmp-grid{ grid-template-columns:1fr } }
+  .mini-title{ font-size:.76rem; color:var(--dim); margin-bottom:.45rem; line-height:1.45 }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .pr{color:var(--green)} .codecard .ok{color:var(--teal)} .codecard .bad{color:var(--red)}
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>x86 instruction length — <span>where does an instruction end?</span></h1>
+  <div class="subtitle">variable-length decoding · x86-64 · running example <code>31 c0 b8 00 00 00 00</code> (+ the next byte <code>05</code>)</div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span id="ripVal"></span>
+    <span class="ctx" id="ripCtx"></span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="sw r-pfx"></span><span style="color:var(--f-pfx)">prefix</span></div>
+  <div class="item"><span class="sw r-rex"></span><span style="color:var(--f-rex)">REX / VEX</span></div>
+  <div class="item"><span class="sw r-op"></span><span style="color:var(--f-op)">opcode</span></div>
+  <div class="item"><span class="sw r-modrm"></span><span style="color:var(--f-modrm)">ModRM</span></div>
+  <div class="item"><span class="sw r-sib"></span><span style="color:var(--f-sib)">SIB</span></div>
+  <div class="item"><span class="sw r-disp"></span><span style="color:var(--f-disp)">displacement</span></div>
+  <div class="item"><span class="sw r-imm"></span><span style="color:var(--f-imm)">immediate</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▼</span><span style="color:var(--dim)">decoder position</span></div>
+</div>
+
+<div class="def">
+  <b>Short answer.</b> The bytes have <b>no separators</b>. The CPU knows only where an instruction
+  <b>starts</b>: the address in RIP. It reads the first byte, and <b>the opcode says which fields follow
+  and how big they are</b> (ModRM? SIB? displacement? immediate?). Add the sizes, and you have the length:
+  <code>next RIP = RIP + length</code>. Every boundary after that follows from the first one.
+  Start at the wrong byte, and you get a <b>different</b> instruction stream that still looks valid.
+</div>
+
+<!-- ===================================================================== -->
+<div class="panel">
+  <h2>Decode it yourself <small>(one field per step)</small></h2>
+  <div class="modes">
+    <button id="mA" class="good">▶ start at +0 &nbsp;(correct)</button>
+    <button id="mB" class="bad">▶ start at +1 &nbsp;(one byte too late)</button>
+  </div>
+
+  <div class="strip" id="ripRow"></div>
+  <div class="strip" id="strip"></div>
+  <div class="spans" id="spans"></div>
+
+  <div class="dec-grid">
+    <div>
+      <h2 style="margin-top:.4rem">Decoder state <small>(current instruction)</small></h2>
+      <table class="ftab" id="ftab"></table>
+    </div>
+    <div>
+      <h2 style="margin-top:.4rem">ModRM byte</h2>
+      <div id="modrm"></div>
+      <h2 style="margin-top:.8rem">Decoded so far <small>(like objdump)</small></h2>
+      <div class="out" id="out"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump · <kbd>M</kbd> switch start byte</div>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">1</span>The general instruction format</h2>
+  <div class="fmt">
+    <div class="r-pfx opt">Legacy prefixes<small>0–4 bytes<br>66 67 F0 F2 F3 2E…</small></div>
+    <div class="r-rex opt">REX / VEX / EVEX<small>0–1 / 2–3 / 4 bytes<br>REX = 40–4F (64-bit)</small></div>
+    <div class="r-op">Opcode<small>1–3 bytes<br>xx · 0F xx · 0F 38/3A xx</small></div>
+    <div class="r-modrm opt">ModRM<small>0–1 byte<br>only if the opcode needs it</small></div>
+    <div class="r-sib opt">SIB<small>0–1 byte<br>only if ModRM says so</small></div>
+    <div class="r-disp opt">Displacement<small>0 / 1 / 2 / 4 bytes<br>size set by ModRM.mod</small></div>
+    <div class="r-imm opt">Immediate<small>0 / 1 / 2 / 4 / 8 bytes<br>size set by the opcode</small></div>
+  </div>
+  <p>Only the opcode is always there (dashed = optional). Each field tells the decoder whether the
+     next field exists, and how big it is. An instruction can be <b>at most 15 bytes</b>. A longer one
+     raises a general-protection fault (<code>#GP</code>).</p>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">2</span>The decoder's algorithm, for one instruction</h2>
+  <div class="flow">
+    <div class="fstep"><div class="n">0</div><div><b>Start at RIP</b><p>The entry point, or the target of a jump / call / ret. That address is the only thing the CPU "knows".</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep r-pfx" style="--c:var(--f-pfx)"><div class="n">1</div><div><b>Is this byte a prefix?</b><p>66, 67, F0, F2, F3, 2E, 36, 3E, 26, 64, 65. If yes: take it, and look at the next byte. <code>66</code> changes the immediate size (imm32 → imm16); <code>67</code> changes the address / displacement size.</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep" style="--c:var(--f-rex)"><div class="n">2</div><div><b>REX (40–4F)? VEX (C4, C5)? EVEX (62)?</b><p>REX.W can turn some imm32 into imm64: <code>mov r64, imm64</code> = <code>48 B8</code> + 8 bytes.</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep" style="--c:var(--f-op)"><div class="n">3</div><div><b>Read the opcode, look it up in the opcode map</b><p><code>0F</code> = go to the 2-byte map; <code>0F 38</code> / <code>0F 3A</code> = 3-byte maps. Each entry says: <i>"has ModRM?"</i> and <i>"immediate size?"</i>.</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep" style="--c:var(--f-modrm)"><div class="n">4</div><div><b>ModRM? Read it and split the bits</b><p><code>mod</code> (2 bits) and <code>r/m</code> (3 bits) decide if a SIB byte follows and how big the displacement is.</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep" style="--c:var(--f-sib)"><div class="n">5</div><div><b>SIB, if mod ≠ 11 and r/m = 100</b><p>If SIB.base = 101 and mod = 00, a disp32 follows.</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep" style="--c:var(--f-disp)"><div class="n">6</div><div><b>Displacement</b><p>mod = 00 → none (but r/m = 101 → disp32, RIP-relative) · mod = 01 → disp8 · mod = 10 → disp32 · mod = 11 → register, none.</p></div></div>
+    <div class="farrow">▼</div>
+    <div class="fstep" style="--c:var(--f-imm)"><div class="n">7</div><div><b>Immediate, of the size the opcode said</b><p>Done. <code>length = sum of all fields</code>, and <code>next RIP = RIP + length</code>.</p></div></div>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">3</span>Why this matters for reverse engineering</h2>
+  <p>x86 code is <b>not self-synchronizing</b>. Nothing in a byte says "I am the first byte of an
+     instruction". You saw it in the stepper: start one byte late, and the <code>b8</code> that was an
+     opcode becomes a ModRM byte, the zeros that were an immediate become a displacement, and the
+     instruction even eats the first byte of the next one.</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title">objdump from <b>+0</b>:</div>
+      <div class="codecard">0:  31 c0              <span class="ok">xor    eax,eax</span>
+2:  b8 00 00 00 00     <span class="ok">mov    eax,0x0</span>
+7:  05                 .byte 0x5</div>
+    </div>
+    <div>
+      <div class="mini-title">objdump from <b>+1</b>, same bytes:</div>
+      <div class="codecard">1:  c0 b8 00 00 00 00 05   <span class="bad">sar    BYTE PTR [rax+0x0],0x5</span></div>
+    </div>
+  </div>
+  <ul>
+    <li><b>Overlapping instructions / anti-disassembly:</b> code can jump into the middle of another
+        instruction on purpose. Both decodings are real, and both run.</li>
+    <li><b>Linear sweep</b> (objdump) decodes byte after byte. Data inside code can push it off the
+        right boundaries, and it may stay wrong for a few instructions.</li>
+    <li><b>Recursive descent</b> (IDA, Ghidra, Binary Ninja) starts at known entry points and follows
+        jumps and calls, the same way the CPU does. That is why it is harder to fool.</li>
+  </ul>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">4</span>How the hardware does it fast</h2>
+  <p>Decoding byte by byte is serial and slow. Real cores split the work into stages:</p>
+  <div class="pipe">
+    <div><b>Fetch</b>Take an aligned 16–32 byte block from the L1 instruction cache, at the predicted RIP.</div>
+    <div><b>Length decode</b>Compute a length at <i>every</i> byte offset in parallel, then chain them from the known start and mark the boundaries.</div>
+    <div><b>Instruction queue</b>Holds the instructions, now split apart.</div>
+    <div><b>Decoders</b>Several decoders turn x86 instructions into µops.</div>
+    <div><b>µop cache</b>Keeps already-decoded µops by address, so hot loops skip length decoding.</div>
+  </div>
+  <ul>
+    <li>AMD cores have stored <b>boundary bits in the L1 instruction cache</b>, next to the bytes, so
+        each cache line is length-decoded only once.</li>
+    <li>A <code>66</code> prefix on an opcode with an imm32 changes the length: a <b>length-changing
+        prefix</b> (LCP). Intel decoders need a slow path of several cycles for it, a known performance trap.</li>
+    <li>Branch prediction gives the next start address, so the front-end knows where the next chain of
+        boundaries begins.</li>
+  </ul>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">5</span>Quick reference: what decides each length</h2>
+  <table class="al-table">
+    <tr><th>Field</th><th>Present when…</th><th>Size decided by</th></tr>
+    <tr><td style="--c:var(--f-pfx)">Prefixes</td><td>the byte is in the prefix set</td><td>1 byte each (total ≤ 15)</td></tr>
+    <tr><td style="--c:var(--f-rex)">REX</td><td>64-bit mode and the byte is 40–4F</td><td>1 byte. REX.W may widen the immediate</td></tr>
+    <tr><td style="--c:var(--f-op)">Opcode</td><td>always</td><td>escape bytes <code>0F</code>, <code>0F 38</code>, <code>0F 3A</code></td></tr>
+    <tr><td style="--c:var(--f-modrm)">ModRM</td><td>the opcode map entry says so (<code>/r</code> or <code>/digit</code>)</td><td>1 byte</td></tr>
+    <tr><td style="--c:var(--f-sib)">SIB</td><td>mod ≠ 11 and r/m = 100 (32/64-bit addressing)</td><td>1 byte</td></tr>
+    <tr><td style="--c:var(--f-disp)">Displacement</td><td>mod = 01 / mod = 10 / (mod = 00 and r/m = 101) / SIB.base = 101</td><td>disp8 / disp32 (disp16 with 16-bit addressing via <code>67</code>)</td></tr>
+    <tr><td style="--c:var(--f-imm)">Immediate</td><td>the opcode map entry: ib / iw / id / io</td><td>opcode + <code>66</code> prefix + REX.W</td></tr>
+  </table>
+  <h3>Try it yourself</h3>
+  <div class="codecard"><span class="pr">$</span> printf '\x31\xc0\xb8\0\0\0\0\x05' &gt; b.bin
+<span class="pr">$</span> objdump -D -b binary -m i386:x86-64 -M intel b.bin                 <span class="cm"># start at +0</span>
+<span class="pr">$</span> objdump -D -b binary -m i386:x86-64 -M intel --start-address=1 b.bin <span class="cm"># start at +1</span></div>
+</div>
+
+<div class="sect takeaways">
+  <h2>Takeaways</h2>
+  <ul>
+    <li>The CPU finds the end of an instruction by <b>decoding it</b>: prefixes → opcode → (ModRM → SIB → displacement) → immediate.</li>
+    <li>The <b>opcode</b> decides if there is a ModRM byte and how big the immediate is; <b>ModRM</b> decides SIB and displacement.</li>
+    <li>Only the <b>first</b> boundary is known (RIP). A wrong start gives a different, valid-looking stream.</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · decodings checked with GNU objdump (binutils, Debian 11)<br>
+  <a href="red_zone.html">red zone stepper</a> ·
+  <a href="alloca.html">alloca() stepper</a>
+</footer>
+
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+const BYTES = ['31', 'c0', 'b8', '00', '00', '00', '00', '05'];
+const ROLE_NAME = {pfx:'prefix', rex:'REX', op:'opcode', modrm:'ModRM', sib:'SIB', disp:'disp32', imm:'imm'};
+const FIELDS = [
+  {k:'pfx',   n:'Prefixes'},
+  {k:'rex',   n:'REX'},
+  {k:'op',    n:'Opcode'},
+  {k:'modrm', n:'ModRM'},
+  {k:'sib',   n:'SIB'},
+  {k:'disp',  n:'Displacement'},
+  {k:'imm',   n:'Immediate'},
+  {k:'len',   n:'Length'},
+];
+const EMPTY = {pfx:'—', rex:'—', op:'—', modrm:'—', sib:'—', disp:'—', imm:'—', len:'—'};
+
+/* each step = full picture; built from the previous one with a patch */
+function build(first, patches){
+  const out = [first];
+  patches.forEach(p => {
+    const prev = out[out.length - 1];
+    const s = Object.assign({}, prev, p);
+    s.roles = Object.assign({}, prev.roles, p.roles || {});
+    s.f = p.freset ? Object.assign({}, EMPTY, p.freset) : Object.assign({}, prev.f, p.f || {});
+    s.spans = prev.spans.concat(p.span ? [p.span] : []);
+    s.out = prev.out.concat(p.line ? [p.line] : []);
+    if (!('modrm' in p)) s.modrm = prev.modrm;
+    if (!('active' in p)) s.active = null;
+    out.push(s);
+  });
+  return out;
+}
+
+const MODES = {
+  A: build({
+      rip:0, roles:{}, cur:[], spans:[], out:[], f:Object.assign({}, EMPTY), modrm:null, active:null,
+      ctx:'— decoding has not started',
+      title:'Step 0 — The CPU knows only where to start',
+      note:`<p>Eight bytes in memory. No commas, no spaces, no length field. The only thing the CPU knows
+        is <b>RIP</b>: here, offset <code>+0</code>.</p>
+        <p>From that one fact it will find every boundary. Press <b>Next</b>.</p>`,
+    }, [
+    { roles:{0:'op'}, cur:[0], active:'op', ctx:'— reading the first byte',
+      f:{pfx:'none: 31 is not 66/67/F0/F2/F3/2E…', rex:'none: 31 is not 40–4F',
+         op:'31 → XOR r/m32, r32', modrm:'needed (opcode map: /r)', imm:'none (opcode map: no imm)', len:'1 so far'},
+      title:'Step 1 — 31: not a prefix, not REX, so it is the opcode',
+      note:`<p>Is <code>31</code> a prefix? No. A REX byte (40–4F)? No. So it is the <b>opcode</b>.</p>
+        <p>The opcode map says: <code>31</code> = <b>XOR r/m32, r32</b>. The entry also says two things
+        that matter for the length: <b>"a ModRM byte follows"</b> and <b>"no immediate"</b>.</p>` },
+    { roles:{1:'modrm'}, cur:[0, 1], active:'modrm', ctx:'— reading ModRM',
+      modrm:{hex:'c0', mod:'11', reg:'000', rm:'000', mm:'register', rr:'eax', rmm:'eax'},
+      f:{modrm:'c0 → mod=11 reg=eax r/m=eax', sib:'no (mod = 11)', disp:'no (mod = 11)', len:'2 so far'},
+      title:'Step 2 — c0 is the ModRM byte',
+      note:`<p>Split <code>c0</code> = <code>11 000 000</code> into mod | reg | r/m.</p>
+        <p><b>mod = 11</b> means "both operands are registers". So there is <b>no SIB</b> and <b>no
+        displacement</b>. reg = 000 = eax, r/m = 000 = eax.</p>` },
+    { span:{start:0, len:2, tx:'xor eax, eax', n:2}, cur:[], active:'len', rip:2, ctx:'— next instruction starts at +2',
+      line:'<span class="o">+0</span>  <span class="b">31 c0</span>                 <span class="i">xor eax, eax</span>',
+      f:{len:'2 → next RIP = +0 + 2 = +2'},
+      title:'Step 3 — Done: 2 bytes, xor eax, eax',
+      note:`<p>Opcode (1) + ModRM (1) = <b>2 bytes</b>. The decoder now knows: the next instruction starts
+        at <code>+2</code>.</p>
+        <p>Notice that nobody "marked" this boundary. It is the <b>result</b> of decoding.</p>` },
+    { roles:{2:'op'}, cur:[2], active:'op', modrm:null, ctx:'— reading the opcode at +2',
+      freset:{pfx:'none', rex:'none', op:'b8 → MOV r32, imm32 (B8+r, r = 000 = eax)', modrm:'none (no /r in this entry)',
+            imm:'imm32 → 4 bytes follow', len:'1 so far'},
+      title:'Step 4 — b8: MOV eax, imm32',
+      note:`<p><code>b8</code> is in the <b>B8+r</b> family: <b>MOV r32, imm32</b>. The low 3 bits of the
+        opcode pick the register: 000 = eax.</p>
+        <p>This entry has <b>no ModRM</b>, and an <b>imm32</b>: 4 more bytes.</p>` },
+    { roles:{3:'imm', 4:'imm', 5:'imm', 6:'imm'}, cur:[2, 3, 4, 5, 6], active:'imm', ctx:'— reading imm32',
+      f:{imm:'00 00 00 00 → 0x00000000 (little-endian)', len:'5 so far'},
+      title:'Step 5 — 4 bytes of immediate',
+      note:`<p>Read 4 bytes: <code>00 00 00 00</code>. Little-endian, so the value is 0.</p>` },
+    { span:{start:2, len:5, tx:'mov eax, 0x0', n:5}, cur:[], active:'len', rip:7, nxt:true,
+      ctx:'— next instruction starts at +7',
+      line:'<span class="o">+2</span>  <span class="b">b8 00 00 00 00</span>        <span class="i">mov eax, 0x0</span>',
+      f:{len:'5 → next RIP = +2 + 5 = +7'},
+      title:'Step 6 — Done: 5 bytes, mov eax, 0x0',
+      note:`<p>Opcode (1) + imm32 (4) = <b>5 bytes</b>. Next RIP = <code>+7</code>.</p>
+        <p><code>05</code> at +7 is the start of the <b>next</b> instruction (<code>05</code> = ADD eax, imm32,
+        so it would need 4 more bytes). Now switch to <b>"start at +1"</b> and see what happens to the
+        same bytes.</p>` },
+  ]),
+
+  B: build({
+      rip:1, roles:{}, cur:[], spans:[], out:[], f:Object.assign({}, EMPTY), modrm:null, active:null, skip:[0],
+      ctx:'— start one byte too late',
+      title:'Step 0 — Start at +1 instead of +0',
+      note:`<p>Same bytes. But now we start at <code>+1</code>. This happens when a disassembler guesses a
+        wrong start, or when code jumps into the middle of an instruction on purpose.</p>
+        <p>The CPU cannot know it is wrong. It just decodes.</p>`,
+    }, [
+    { roles:{1:'op'}, cur:[1], active:'op', ctx:'— reading the opcode at +1',
+      f:{pfx:'none', rex:'none', op:'c0 → Shift Group 2: r/m8, imm8 (C0 /digit ib)', modrm:'needed (/digit)', imm:'imm8 → 1 byte', len:'1 so far'},
+      title:'Step 1 — c0 is now an opcode',
+      note:`<p>Before, <code>c0</code> was a ModRM byte. Now it is the first byte, so it is read as an
+        <b>opcode</b>: <b>Shift Group 2, r/m8, imm8</b>.</p>
+        <p>The map says: a ModRM byte follows (its reg field picks the shift: ROL, ROR, … SAR), and an
+        <b>imm8</b>.</p>` },
+    { roles:{2:'modrm'}, cur:[1, 2], active:'modrm', ctx:'— reading ModRM',
+      modrm:{hex:'b8', mod:'10', reg:'111', rm:'000', mm:'disp32 follows', rr:'/7 = SAR', rmm:'[rax]'},
+      f:{modrm:'b8 → mod=10 reg=/7 (SAR) r/m=[rax]', sib:'no (r/m ≠ 100)', disp:'disp32 (mod = 10) → 4 bytes', len:'2 so far'},
+      title:'Step 2 — b8 is now a ModRM byte',
+      note:`<p>The <code>b8</code> that was <b>MOV</b> is now a <b>ModRM</b> byte: <code>10 111 000</code>.</p>
+        <p><b>mod = 10</b> → memory operand with a <b>disp32</b>. reg = 111 → <b>/7 = SAR</b>.
+        r/m = 000 → <code>[rax]</code>. r/m is not 100, so there is no SIB.</p>` },
+    { roles:{3:'disp', 4:'disp', 5:'disp', 6:'disp'}, cur:[1, 2, 3, 4, 5, 6], active:'disp', ctx:'— reading disp32',
+      f:{disp:'00 00 00 00 → +0x0', len:'6 so far'},
+      title:'Step 3 — the old immediate is now a displacement',
+      note:`<p>The 4 zero bytes were the immediate of <code>mov</code>. Now they are a <b>displacement</b>:
+        <code>[rax + 0x0]</code>.</p>` },
+    { roles:{7:'imm'}, cur:[1, 2, 3, 4, 5, 6, 7], active:'imm', eaten:true, ctx:'— reading imm8',
+      f:{imm:'05 → 5', len:'7 so far'},
+      title:'Step 4 — it eats the next instruction’s first byte',
+      note:`<p>The imm8 is <code>05</code>: the byte that was the start of the <b>next</b> instruction.
+        The wrong decoding has now swallowed it.</p>` },
+    { span:{start:1, len:7, tx:'sar BYTE PTR [rax+0x0], 0x5', n:7, bad:true}, cur:[], active:'len', rip:8, eaten:true,
+      ctx:'— next instruction would start at +8',
+      line:'<span class="o">+1</span>  <span class="b">c0 b8 00 00 00 00 05</span>  <span class="bad">sar BYTE PTR [rax+0x0], 0x5</span>',
+      f:{len:'7 → next RIP = +1 + 7 = +8'},
+      title:'Step 5 — Done: 7 bytes of a completely different instruction',
+      note:`<p>Same 7 bytes, but <b>one instruction</b> instead of two, and it does something completely
+        different: it shifts a byte in memory.</p>
+        <div class="warn-box"><b>x86 is not self-synchronizing.</b> The boundaries exist only because
+        decoding started at the right place. This is the basis of overlapping instructions and
+        anti-disassembly tricks.</div>` },
+  ]),
+};
+
+/* ---------------- static DOM ---------------- */
+
+const ripCells = BYTES.map(() => { const d = document.createElement('div'); d.className = 'ripm'; d.textContent = 'RIP▼'; $('ripRow').appendChild(d); return d; });
+const byteEls = BYTES.map((b, i) => {
+  const d = document.createElement('div');
+  d.className = 'byte';
+  d.innerHTML = `<div class="off">+${i}</div><div class="hex">${b}</div><div class="role"></div>`;
+  $('strip').appendChild(d);
+  return d;
+});
+const fRows = {};
+FIELDS.forEach(f => {
+  const tr = document.createElement('tr');
+  tr.className = f.k === 'len' ? '' : 'r-' + f.k;
+  tr.innerHTML = `<td class="k ${f.k === 'len' ? 'len' : ''}">${f.n}</td><td class="v"></td>`;
+  $('ftab').appendChild(tr);
+  fRows[f.k] = tr;
+});
+
+let mode = 'A', cur = 0, prev = null, timer = null;
+const steps = () => MODES[mode];
+
+function buildDots(){
+  $('dots').innerHTML = '';
+  steps().forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot'; d.title = 'Step ' + i;
+    d.addEventListener('click', () => { stopPlay(); go(i); });
+    $('dots').appendChild(d);
+  });
+}
+
+function render(i, animate = true){
+  const s = steps()[i];
+
+  const ripTxt = s.rip < 8 ? '+' + s.rip : '+' + s.rip + ' (past our bytes)';
+  if (animate && prev && prev.rip !== s.rip){ const e = $('ripVal'); e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+  $('ripVal').textContent = ripTxt;
+  $('ripCtx').textContent = s.ctx;
+  ripCells.forEach((c, k) => c.classList.toggle('on', k === s.rip));
+
+  byteEls.forEach((el, k) => {
+    const r = s.roles[k];
+    el.className = 'byte' + (r ? ' r-' + r : '') +
+      (s.cur.includes(k) ? ' cur' : '') +
+      ((s.skip || []).includes(k) ? ' skip' : '') +
+      (s.nxt && k === 7 ? ' nxt' : '') +
+      (s.eaten && k === 7 ? ' eaten' : '');
+    el.querySelector('.role').textContent =
+      (s.skip || []).includes(k) ? 'skipped' : r ? (r === 'imm' && mode === 'B' ? 'imm8' : r === 'imm' ? 'imm32' : ROLE_NAME[r])
+      : (s.nxt && k === 7 ? 'next insn' : '');
+  });
+
+  $('spans').innerHTML = s.spans.map(sp =>
+    `<div class="span${sp.bad ? ' bad' : ''}" style="grid-column:${sp.start + 1} / span ${sp.len}">` +
+    `<div class="br"></div><div class="tx">${sp.tx} <small>(${sp.n} bytes)</small></div></div>`).join('');
+
+  FIELDS.forEach(f => {
+    const td = fRows[f.k].querySelector('.v');
+    const v = s.f[f.k];
+    td.textContent = v;
+    td.classList.toggle('empty', v === '—');
+    fRows[f.k].classList.toggle('active', s.active === f.k);
+    if (animate && prev && prev.f[f.k] !== v){ td.classList.remove('flash'); void td.offsetWidth; td.classList.add('flash'); }
+  });
+
+  const m = s.modrm;
+  $('modrm').innerHTML = m
+    ? `<div class="modrm">
+         <div class="grp"><div class="bits">${[...m.mod].map(b => `<span>${b}</span>`).join('')}</div><div class="k">mod</div><div class="m">${m.mm}</div></div>
+         <div class="grp"><div class="bits">${[...m.reg].map(b => `<span>${b}</span>`).join('')}</div><div class="k">reg</div><div class="m">${m.rr}</div></div>
+         <div class="grp"><div class="bits">${[...m.rm].map(b => `<span>${b}</span>`).join('')}</div><div class="k">r/m</div><div class="m">${m.rmm}</div></div>
+       </div><div style="text-align:center;font-size:.72rem;color:var(--dim)">0x${m.hex} = ${m.mod} ${m.reg} ${m.rm}</div>`
+    : `<div class="modrm-empty">${s.f.modrm.startsWith('none') ? 'this opcode has no ModRM byte' : 'no ModRM byte read yet'}</div>`;
+
+  $('out').innerHTML = s.out.length ? s.out.join('\n') : '<span class="ph">nothing decoded yet</span>';
+
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  const n = steps().length - 1;
+  $('stepInd').textContent = `Step ${i} / ${n}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled = (i === n);
+  [...$('dots').children].forEach((d, k) => { d.classList.toggle('now', k === i); d.classList.toggle('done', k < i); });
+
+  prev = s; cur = i;
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= steps().length) return;
+  render(i, animate);
+  if (i === steps().length - 1) stopPlay();
+}
+
+function setMode(m){
+  stopPlay();
+  mode = m;
+  $('mA').classList.toggle('on', m === 'A');
+  $('mB').classList.toggle('on', m === 'B');
+  prev = null;
+  buildDots();
+  go(0, false);
+}
+
+function startPlay(){
+  if (cur === steps().length - 1) go(0, false);
+  timer = setInterval(() => { if (cur >= steps().length - 1) stopPlay(); else go(cur + 1); }, 2600);
+  $('btnPlay').textContent = '⏸ Pause'; $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play'; $('btnPlay').classList.remove('active');
+}
+
+$('mA').addEventListener('click', () => setMode('A'));
+$('mB').addEventListener('click', () => setMode('B'));
+$('btnNext').addEventListener('click', () => { stopPlay(); go(cur + 1); });
+$('btnPrev').addEventListener('click', () => { stopPlay(); go(cur - 1); });
+$('btnReset').addEventListener('click', () => { stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', () => { stopPlay(); go(steps().length - 1); });
+$('btnPlay').addEventListener('click', () => timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e => {
+  switch (e.key){
+    case 'ArrowRight': stopPlay(); go(cur + 1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur - 1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0); e.preventDefault(); break;
+    case 'End':        stopPlay(); go(steps().length - 1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+    case 'm': case 'M': setMode(mode === 'A' ? 'B' : 'A'); break;
+  }
+});
+
+setMode('A');
+</script>
+</body>
+</html>

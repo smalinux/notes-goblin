@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>main.c — The Red Zone (interactive single-stepper)</title>
+<style>
+  :root{
+    --bg:        #0e1117;
+    --panel:     #161b24;
+    --panel2:    #1b2230;
+    --line:      #2b3548;
+    --text:      #dbe2ee;
+    --dim:       #7c8799;
+    --blue:      #61a5ff;   /* executed instruction */
+    --red:       #ff6b6b;   /* modified value / red zone */
+    --green:     #4ade80;   /* start value          */
+    --purple:    #c084fc;   /* modified badge       */
+    --amber:     #fbbf24;
+    --rip:       #f472b6;
+    --sky:       #38bdf8;
+    --teal:      #2dd4bf;
+    --slate:     #94a3b8;
+    --row-h:     38px;
+    font-size: 16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;}
+  body{padding:1.2rem 1.4rem 4rem; max-width:1200px; margin:0 auto}
+  a{color:var(--blue)}
+
+  /* ============ header ============ */
+  header{ text-align:center; margin-bottom:1rem }
+  header h1{ font-size:1.55rem; letter-spacing:.5px }
+  header h1 span{ color:var(--red) }
+  .subtitle{ color:var(--dim); font-size:.85rem; margin-top:.3rem }
+  .rip-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    margin-top:.7rem; padding:.4rem .9rem; border:1px solid var(--line);
+    border-radius:999px; background:var(--panel); font-size:.95rem;
+  }
+  .rip-chip b{ color:var(--rip) }
+  .rip-chip .ctx{ color:var(--dim); font-size:.78rem }
+
+  /* ============ legend ============ */
+  .legend{
+    display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center;
+    padding:.55rem .9rem; margin-bottom:1rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:.8rem;
+  }
+  .legend .item{ display:flex; align-items:center; gap:.45rem }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; height:1.25rem; border-radius:4px; font-size:.8rem; flex:none;
+  }
+  .badge.exec { color:var(--blue);   border:1px solid var(--blue) }
+  .badge.mod  { color:#fff; background:var(--purple) }
+  .badge.start{ color:var(--green);  border:1px solid var(--green) }
+  .swatch{ width:1.25rem; height:1.25rem; border-radius:4px; flex:none }
+  .swatch.rz{ background:rgba(255,107,107,.14); border:1px dashed var(--red) }
+  .swatch.no{ border:1px dashed var(--line);
+    background:repeating-linear-gradient(135deg, transparent 0 4px, rgba(124,135,153,.25) 4px 6px) }
+
+  /* ============ layout ============ */
+  .layout{ display:grid; grid-template-columns: 1fr 1.08fr; gap:1rem; align-items:start }
+  @media (max-width: 960px){ .layout{ grid-template-columns:1fr } }
+  .col{ display:flex; flex-direction:column; gap:1rem }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:.9rem 1rem; overflow:hidden;
+  }
+  .panel h2{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--dim); margin-bottom:.7rem;
+  }
+  .panel h2 small{ text-transform:none; letter-spacing:0; font-size:.78rem }
+
+  /* ============ C source ============ */
+  .csrc{ font-size:.86rem; line-height:1.55 }
+  .csrc .cl{ padding:.05rem .55rem; border-radius:6px; white-space:pre; transition:background .3s }
+  .csrc .cl.cur{ background:rgba(244,114,182,.14); box-shadow:inset 0 0 0 1px rgba(244,114,182,.45) }
+  .csrc .kw { color:var(--blue) }
+  .csrc .fn { color:var(--amber) }
+  .csrc .num{ color:var(--green) }
+
+  /* ============ disassembly ============ */
+  .asm{ font-size:.82rem; line-height:1.1; padding-left:3rem }
+  .asm .row{
+    display:flex; align-items:center; gap:.55rem;
+    padding:.28rem .5rem; border-radius:6px; position:relative;
+    transition: background .3s, color .3s; white-space:nowrap;
+  }
+  .asm .lbl{ color:var(--amber); padding-left:.5rem; margin-top:.3rem }
+  .asm .addr{ color:var(--dim); font-size:.74rem; width:12ch; flex:none }
+  .asm .mark{ width:1.2rem; flex:none; text-align:center; color:transparent }
+  .asm .mn  { width:4.5ch; flex:none }
+  .asm .row.executed .addr, .asm .row.executed .mn, .asm .row.executed .ops{ color:var(--blue) }
+  .asm .row.executed .mark{ color:var(--blue) }
+  .asm .row.current{ background:rgba(244,114,182,.10); box-shadow: inset 0 0 0 1px rgba(244,114,182,.45) }
+  .asm .row .rip-ptr{
+    position:absolute; left:-0.2rem; transform:translateX(-100%);
+    color:var(--rip); font-weight:bold; font-size:.72rem;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .asm .row.current .rip-ptr{ opacity:1 }
+  .asm .row.just-executed{ animation:execFlash .9s ease }
+  @keyframes execFlash{ 0%{background:rgba(97,165,255,.35)} 100%{background:transparent} }
+  .asm .ops .rzop{ border-bottom:1px dashed var(--red) }
+  .exit-row{
+    margin-top:.6rem; padding:.4rem .6rem; border-radius:7px; font-size:.78rem;
+    color:var(--dim); border:1px dashed var(--line); opacity:0; transition:opacity .4s;
+  }
+  .exit-row.on{ opacity:1; color:var(--green); border-color:var(--green) }
+
+  /* ============ registers ============ */
+  .regs table{ width:100%; border-collapse:collapse; font-size:.9rem }
+  .regs td{ border:1px solid var(--line); padding:.42rem .7rem }
+  .regs td.name{ width:4.5rem; color:var(--dim) }
+  .regs td.hint{ color:var(--dim); font-size:.72rem; width:40% }
+  .regs .val{ display:inline-flex; align-items:center; gap:.5rem }
+  .v-start{ color:var(--green); text-decoration:underline }
+  .v-mod  { color:var(--red) }
+  .v-plain{ color:var(--text) }
+  .flash{ animation:valFlash .8s ease }
+  @keyframes valFlash{ 0%{background:rgba(192,132,252,.4)} 100%{background:transparent} }
+
+  /* ============ stack ============ */
+  .stack-outer{ position:relative; padding-left:7.6rem }
+  .stack-grow{ text-align:center; color:var(--dim); font-size:.7rem; padding:.22rem 0 }
+  .stack-grow .arr{ font-size:.95rem; display:block; line-height:1 }
+  .stack{ position:relative; border:2px solid var(--line); border-radius:8px; overflow:visible }
+  .stack .srow{
+    display:grid; grid-template-columns: .8fr 1.2fr 1fr; height:var(--row-h);
+    border-bottom:1px solid var(--line); position:relative;
+    transition:background .45s, box-shadow .45s;
+  }
+  .stack .srow:last-child{ border-bottom:none }
+  .stack .srow.rz{ background:rgba(255,107,107,.07); box-shadow:inset 3px 0 0 rgba(255,107,107,.75) }
+  .stack .srow.no{ background:repeating-linear-gradient(135deg, transparent 0 7px, rgba(124,135,153,.07) 7px 10px) }
+  .stack .cell{ display:flex; align-items:center; padding:0 .5rem; font-size:.76rem; overflow:hidden }
+  .stack .cell.addr{ color:var(--dim); border-right:1px solid var(--line); font-size:.72rem }
+  .stack .cell.val{ justify-content:center; gap:.3rem }
+  .stack .cell.who{
+    border-left:1px solid var(--line); font-size:.66rem; justify-content:center; color:var(--dim);
+    text-align:center; line-height:1.25; transition:background .45s, color .45s;
+  }
+  .who.w-ret{ background:rgba(251,191,36,.14); color:var(--amber) }
+  .who.w-sav{ background:rgba(56,189,248,.14); color:var(--sky) }
+  .who.w-loc{ background:rgba(74,222,128,.12); color:var(--green) }
+  .who.w-rz { color:var(--red); font-style:italic }
+  .who.w-no { color:#5b6577; font-style:italic }
+  .stack .cell.val .badge{ width:1rem; height:1rem; font-size:.62rem }
+  .undef{ color:var(--dim); font-style:italic }
+  .stale{ opacity:.4 }
+  .sep{ color:var(--dim); padding:0 .05rem }
+  .dotsv{ color:var(--dim); letter-spacing:1px }
+  .srow .pop-in{ animation:popIn .5s cubic-bezier(.2,1.4,.4,1) }
+  @keyframes popIn{ 0%{transform:translateY(-10px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  #rspArrow, #rbpArrow{
+    position:absolute; display:flex; align-items:center; gap:.15rem;
+    font-weight:bold; font-size:.85rem;
+    transition: top .55s cubic-bezier(.4,0,.2,1); z-index:5; transform:translateY(-50%);
+  }
+  #rspArrow{ left:3.9rem; color:var(--red) }
+  #rbpArrow{ left:.5rem;  color:var(--sky) }
+  #rspArrow::after, #rbpArrow::after{ content:"⟶"; font-size:1rem }
+  #bubble{
+    position:absolute; left:40%; z-index:8; max-width:17.5rem;
+    background:#256b2f; color:#fff; border:2px solid #77c877; border-radius:9px;
+    padding:.4rem .55rem; font-size:.72rem; line-height:1.35;
+    transform:translateY(.3rem); opacity:0; transition:opacity .4s, top .4s;
+    pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  #bubble.on{ opacity:1 }
+  #bubble::before{
+    content:""; position:absolute; top:-.55rem; left:1.2rem;
+    border:.55rem solid transparent; border-bottom-color:#77c877; border-top:none;
+  }
+  .stack-cap{ font-size:.7rem; color:var(--dim); margin-top:.55rem; line-height:1.55 }
+
+  /* ============ note panel ============ */
+  .note{
+    margin-top:1rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1rem 1.2rem; min-height:8rem;
+  }
+  .note h3{ font-size:1rem; margin-bottom:.45rem; color:var(--blue) }
+  .note p{ font-size:.88rem; line-height:1.6 }
+  .note p+p{ margin-top:.45rem }
+  .note code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .rz-box{
+    margin-top:.6rem; background:#3d1113; border:2px solid var(--red); border-radius:9px;
+    padding:.6rem .8rem; font-size:.85rem; line-height:1.55; color:#ffd9d9;
+  }
+  .rz-box code{ background:rgba(0,0,0,.3) }
+
+  /* ============ controls ============ */
+  .controls{
+    margin-top:1rem; padding:.7rem .9rem;
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  }
+  .controls button{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:.5rem .85rem; font:inherit; font-size:.85rem; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .controls button:hover{ border-color:var(--blue); background:#223049 }
+  .controls button:disabled{ opacity:.35; cursor:default }
+  .controls button.primary{ background:#1d3557; border-color:var(--blue) }
+  .controls button.active{ border-color:var(--amber); color:var(--amber) }
+  .step-ind{ color:var(--dim); font-size:.85rem; min-width:8.5rem; text-align:center }
+  .dots{ display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center }
+  .dots .dot{
+    width:.6rem; height:.6rem; border-radius:50%; background:var(--line);
+    cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .dots .dot.done{ background:var(--blue) }
+  .dots .dot.now{ background:var(--rip); transform:scale(1.4) }
+  .kbd-hint{ width:100%; text-align:center; color:var(--dim); font-size:.7rem }
+  kbd{ border:1px solid var(--line); border-radius:4px; padding:0 .3rem; background:var(--panel2); font-size:.9em }
+
+  /* ============ explanation sections ============ */
+  .sect{
+    margin-top:1.6rem; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:1.1rem 1.3rem;
+  }
+  .sect h2{ font-size:1.05rem; margin-bottom:.6rem }
+  .sect h2 .n{
+    display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+    border-radius:6px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim); font-size:.8rem; margin-right:.5rem; vertical-align:middle;
+  }
+  .sect h3{ font-size:.9rem; margin-top:1.1rem; margin-bottom:.4rem; color:var(--sky) }
+  .sect p{ font-size:.86rem; line-height:1.65 }
+  .sect p+p{ margin-top:.5rem }
+  .sect code{ background:var(--panel2); padding:.05rem .35rem; border-radius:4px; font-size:.85em }
+  .sect ul{ margin:.6rem 0 0 1.2rem; font-size:.85rem; line-height:1.65 }
+  .sect li+li{ margin-top:.35rem }
+  .def{
+    margin:.3rem 0 .9rem; padding:.8rem 1rem; border-radius:10px;
+    background:linear-gradient(180deg, #1a0d0d, #2b0f10); border:2px solid #7a1c1e;
+    font-size:.95rem; line-height:1.6; text-align:center;
+  }
+  .def b{ color:var(--red) }
+  .svgbox{ margin:.6rem 0 .2rem; text-align:center }
+  .svgbox svg{ max-width:100%; height:auto }
+  .al-table{ width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.6rem }
+  .al-table td, .al-table th{ border:1px solid var(--line); padding:.5rem .7rem; text-align:left; vertical-align:top; line-height:1.5 }
+  .al-table th{ color:var(--dim); font-weight:normal; text-transform:uppercase; font-size:.64rem; letter-spacing:1px }
+  .al-table td:first-child{ color:var(--sky) }
+  .yes{ color:var(--green); font-weight:bold; white-space:nowrap }
+  .no { color:var(--red);   font-weight:bold; white-space:nowrap }
+  .cmp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.7rem; align-items:start }
+  @media (max-width: 940px){ .cmp-grid{ grid-template-columns:1fr } }
+  .mini-title{ font-size:.76rem; color:var(--dim); margin-bottom:.45rem; line-height:1.45 }
+  .codecard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:.8rem 1rem; font-size:.78rem; line-height:1.6; white-space:pre; overflow-x:auto;
+  }
+  .codecard .cm{color:var(--dim)} .codecard .lb{color:var(--amber)} .codecard .num{color:var(--green)}
+  .codecard .hl{
+    display:inline-block; border:1px solid var(--red); border-radius:4px;
+    background:rgba(255,107,107,.08); padding:0 .2rem; margin:0 -.2rem;
+  }
+  .codecard .hlb{
+    display:inline-block; border:1px solid var(--sky); border-radius:4px;
+    background:rgba(56,189,248,.08); padding:0 .2rem; margin:0 -.2rem;
+  }
+  .codecard .rzl{ color:var(--red) }
+  .codecard .pr{ color:var(--green) }
+  .takeaways{ border-color:rgba(74,222,128,.45) }
+  .takeaways h2{ color:var(--green) }
+  footer{ margin-top:1.4rem; text-align:center; color:var(--dim); font-size:.72rem; line-height:1.8 }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>main.c — <span>the red zone</span></h1>
+  <div class="subtitle">RE4B · gcc 10.2 -O0 · Linux x86-64 (System V ABI) · Intel syntax · real values from gdb</div>
+  <div class="rip-chip">
+    <b>RIP</b> = <span id="ripVal"></span>
+    <span class="ctx" id="ripCtx"></span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="badge exec">☒</span><span style="color:var(--blue)">executed instruction</span></div>
+  <div class="item"><span class="badge mod">♍</span><span style="color:var(--red)">modified value</span></div>
+  <div class="item"><span class="badge start">⌘</span><span style="color:var(--green);text-decoration:underline">start value</span></div>
+  <div class="item"><span style="color:var(--rip);font-weight:bold">RIP▶</span><span style="color:var(--dim)">next instruction</span></div>
+  <div class="item"><span style="color:var(--sky);font-weight:bold">rbp⟶</span><span style="color:var(--dim)">frame base</span></div>
+  <div class="item"><span class="swatch rz"></span><span style="color:var(--red)">red zone: 128 bytes under rsp</span></div>
+  <div class="item"><span class="swatch no"></span><span style="color:var(--dim)">below the red zone: not yours</span></div>
+</div>
+
+<div class="layout">
+
+  <div class="col">
+    <div class="panel">
+      <h2>C source <small>(main.c)</small></h2>
+      <div class="csrc" id="csrc"></div>
+    </div>
+    <div class="panel">
+      <h2>Disassembly <small>(objdump -d -M intel)</small></h2>
+      <div class="asm" id="asm"></div>
+      <div class="exit-row" id="exitRow">⤴ back in __libc_start_main+234 → exit(eax) → <b>echo $? → 0</b></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel regs">
+      <h2>Registers</h2>
+      <table>
+        <tr><td class="name">rax</td><td><span class="val" id="rax"></span></td></tr>
+        <tr><td class="name">rsp</td><td><span class="val" id="rsp"></span></td></tr>
+        <tr><td class="name">rbp</td><td><span class="val" id="rbp"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Stack <small>(one row = 8 bytes · the red rows move with rsp)</small></h2>
+      <div class="stack-outer" id="stackOuter">
+        <div class="stack-grow"><span class="arr">↑</span>higher addresses</div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-grow">lower addresses (stack grows down)<span class="arr">↓</span></div>
+        <div id="rspArrow">rsp</div>
+        <div id="rbpArrow">rbp</div>
+        <div id="bubble"></div>
+      </div>
+      <p class="stack-cap">
+        Right column = who owns the row <b>right now</b>. Rows under rsp are labelled with their
+        distance from rsp. Watch them change every time rsp moves.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <h3 id="noteTitle"></h3>
+  <div id="noteBody"></div>
+</div>
+
+<div class="controls">
+  <button id="btnReset" title="Reset (Home)">⏮ Reset</button>
+  <button id="btnPrev"  title="Previous (←)">◀ Prev</button>
+  <button id="btnPlay"  class="primary" title="Autoplay (Space)">▶ Play</button>
+  <button id="btnNext"  class="primary" title="Next (→)">Next ▶</button>
+  <button id="btnEnd"   title="End (End)">End ⏭</button>
+  <span class="step-ind" id="stepInd"></span>
+  <div class="dots" id="dots"></div>
+  <div class="kbd-hint"><kbd>←</kbd>/<kbd>→</kbd> step · <kbd>Space</kbd> play/pause · <kbd>Home</kbd>/<kbd>End</kbd> jump · click a dot to jump</div>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">1</span>What is the red zone?</h2>
+  <div class="def">
+    The <b>red zone</b> is the <b>128 bytes just below rsp</b>.<br>
+    A function may use them <b>without moving rsp</b>. Nobody else will write there.
+  </div>
+  <p>Think of <code>rsp</code> as a line on the floor. Everything <b>above</b> the line is the normal,
+     "official" stack. The 128 bytes <b>under</b> the line are a small private area. The rules of
+     the ABI promise that no one else (not a signal handler, not the kernel) will write there.
+     So a function can use it as a free scratch pad.</p>
+
+  <div class="svgbox">
+  <svg viewBox="0 0 860 430" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace">
+    <defs>
+      <pattern id="hatchR" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="10" height="10" fill="#1d1216"/>
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#3a1a1f" stroke-width="4"/>
+      </pattern>
+      <pattern id="hatchG" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="10" height="10" fill="#11151d"/>
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#1d2431" stroke-width="4"/>
+      </pattern>
+      <marker id="arU" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#7c8799"/>
+      </marker>
+    </defs>
+
+    <!-- address axis -->
+    <path d="M 60 395 L 60 40" stroke="#7c8799" stroke-width="1.5" marker-end="url(#arU)"/>
+    <text x="72" y="44" fill="#7c8799" font-size="12" font-style="italic">higher addresses</text>
+
+    <!-- caller frames -->
+    <rect x="300" y="30" width="270" height="44" fill="none" stroke="#2b3548" stroke-dasharray="5 4" rx="4"/>
+    <text x="435" y="57" text-anchor="middle" fill="#7c8799" font-size="13" font-style="italic">main's frame, libc's frame …</text>
+
+    <!-- return address -->
+    <rect x="300" y="78" width="270" height="44" fill="rgba(251,191,36,.12)" stroke="#fbbf24" stroke-width="1.5" rx="4"/>
+    <text x="435" y="98" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">return address</text>
+    <text x="435" y="114" text-anchor="middle" fill="#a3895a" font-size="11">pushed by call</text>
+
+    <!-- saved rbp -->
+    <rect x="300" y="126" width="270" height="44" fill="rgba(56,189,248,.12)" stroke="#38bdf8" stroke-width="1.5" rx="4"/>
+    <text x="435" y="146" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="bold">saved rbp</text>
+    <text x="435" y="162" text-anchor="middle" fill="#6d9cb5" font-size="11">pushed by push rbp</text>
+
+    <!-- rsp line -->
+    <line x1="244" y1="174" x2="720" y2="174" stroke="#ff6b6b" stroke-width="2.5" stroke-dasharray="9 5"/>
+    <text x="236" y="179" text-anchor="end" fill="#ff6b6b" font-size="15" font-weight="bold">rsp = rbp ⟶</text>
+
+    <!-- red zone -->
+    <rect x="300" y="178" width="270" height="150" fill="url(#hatchR)" stroke="#ff6b6b" stroke-width="2" rx="4"/>
+    <rect x="300" y="178" width="270" height="40" fill="rgba(74,222,128,.14)" stroke="#4ade80" stroke-width="1.5" rx="4"/>
+    <text x="368" y="203" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">var_a</text>
+    <text x="503" y="203" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">var_b</text>
+    <line x1="435" y1="182" x2="435" y2="214" stroke="#4ade80" stroke-opacity=".5"/>
+    <text x="435" y="258" text-anchor="middle" fill="#ff6b6b" font-size="20" font-weight="bold" letter-spacing="4">RED ZONE</text>
+    <text x="435" y="282" text-anchor="middle" fill="#dbe2ee" font-size="12">free scratch pad for this function</text>
+    <text x="435" y="300" text-anchor="middle" fill="#dbe2ee" font-size="12">rsp does not move</text>
+
+    <!-- left offsets -->
+    <text x="290" y="194" text-anchor="end" fill="#7c8799" font-size="11">rbp−0x4 / rbp−0x8</text>
+    <text x="290" y="332" text-anchor="end" fill="#ff6b6b" font-size="12">rsp − 0x80</text>
+
+    <!-- brace -->
+    <path d="M 588 180 q 10 0 10 10 L 598 243 q 0 10 10 10 q -10 0 -10 10 L 598 316 q 0 10 -10 10" fill="none" stroke="#ff6b6b" stroke-width="2"/>
+    <text x="618" y="249" fill="#ff6b6b" font-size="14" font-weight="bold">0x80 = 128 bytes</text>
+    <text x="618" y="267" fill="#a88" font-size="11.5">rsp−0x80 … rsp−1</text>
+
+    <!-- below red zone -->
+    <rect x="300" y="334" width="270" height="56" fill="url(#hatchG)" stroke="#2b3548" stroke-dasharray="5 4" rx="4"/>
+    <text x="435" y="358" text-anchor="middle" fill="#7c8799" font-size="13" font-style="italic">not yours</text>
+    <text x="435" y="376" text-anchor="middle" fill="#5b6577" font-size="11">signal handlers may write here</text>
+
+    <text x="72" y="400" fill="#7c8799" font-size="12" font-style="italic">lower addresses (stack grows down)</text>
+  </svg>
+  </div>
+  <p>This is the picture at step 8 of the stepper. <code>local()</code> stores both <code>int</code>s
+     under rsp, and that is legal, because they are inside the 128 bytes.</p>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">2</span>Why does it exist? Count the instructions</h2>
+  <p>Normally a function must <b>reserve</b> space before it uses it: move rsp down, and later move it back.
+     The red zone lets small functions skip both steps. Here is <code>local()</code> twice. On the left
+     is the normal build. On the right, the red zone is switched off with <code>gcc -O0 -mno-red-zone</code>:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title"><b>gcc -O0</b> (red zone on, the default on Linux):</div>
+      <div class="codecard"><span class="lb">local:</span>
+push   rbp
+mov    rbp, rsp
+                                  <span class="cm">; nothing here!</span>
+mov    DWORD PTR [rbp-0x4], 0xdad   <span class="cm">; ↓ red zone</span>
+mov    DWORD PTR [rbp-0x8], 0xb00d  <span class="cm">; ↓ red zone</span>
+nop
+pop    rbp
+ret</div>
+    </div>
+    <div>
+      <div class="mini-title"><b>gcc -O0 -mno-red-zone</b> (red zone off):</div>
+      <div class="codecard"><span class="lb">local:</span>
+push   rbp
+mov    rbp, rsp
+<span class="hl">sub    rsp, 0x10</span>                    <span class="cm">; reserve 16 bytes</span>
+mov    DWORD PTR [rbp-0x4], 0xdad   <span class="cm">; now above rsp</span>
+mov    DWORD PTR [rbp-0x8], 0xb00d
+nop
+<span class="hl">leave</span>                              <span class="cm">; = mov rsp,rbp + pop rbp</span>
+ret</div>
+    </div>
+  </div>
+  <p style="margin-top:.7rem">Same memory, same offsets. The only difference is the extra
+     <code>sub rsp</code> and the <code>leave</code> that gives the space back. Thousands of small
+     functions in a program each save that work, so the code is smaller and a little faster.</p>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">3</span>When is a function allowed to use it?</h2>
+  <table class="al-table">
+    <tr><th>Situation</th><th>Red zone?</th><th>Why</th></tr>
+    <tr><td><b>Leaf function</b>: calls nothing, small locals</td><td class="yes">✓ yes</td>
+        <td>Nothing else runs on this stack while it works. <code>local()</code> is one.</td></tr>
+    <tr><td>Function that <b>calls</b> another function</td><td class="no">✗ not across the call</td>
+        <td><code>call</code> pushes a return address <b>under rsp</b>, right into the red zone.
+            You saw it in step 4: <code>main</code>'s red-zone row <code>dae8</code> was overwritten.</td></tr>
+    <tr><td>Locals bigger than 128 bytes</td><td class="no">✗ not all of them</td>
+        <td>The zone is only 128 bytes. Bigger frames need a real <code>sub rsp, N</code>.</td></tr>
+    <tr><td>Linux <b>kernel</b> code</td><td class="no">✗ no</td>
+        <td>An interrupt pushes its data onto the current stack, under rsp. The kernel is built with
+            <code>-mno-red-zone</code>.</td></tr>
+    <tr><td><b>Windows</b> x64</td><td class="no">✗ no</td>
+        <td>The Microsoft ABI has no red zone. It has <b>shadow space</b> instead: 32 bytes <b>above</b>
+            the return address, reserved by the caller
+            (see <a href="../../as/006_Pass1Parameter-stepper.html">006</a> vs
+            <a href="../../as/007_Pass1Parameter_Linux-stepper.html">007</a>).</td></tr>
+  </table>
+  <h3>"But a signal can come at any moment!"</h3>
+  <p>True. A signal handler runs on the same stack, so it needs stack space too. The kernel knows
+     about the red zone: when it delivers a signal, it <b>first skips 128 bytes under rsp</b>, and only
+     then builds the signal frame. So the red zone survives. That is the "promise" of the ABI.</p>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect">
+  <h2><span class="n">4</span>See it yourself in gdb</h2>
+  <p>Your old <code>view.gdb</code> printed only <code>$rsp</code> and <b>up</b>, so the two
+     <code>mov</code>s looked like they changed nothing. The new version also prints rows <b>under</b> rsp:</p>
+  <div class="cmp-grid">
+    <div>
+      <div class="mini-title">run main's prologue, the call, and both <code>mov</code>s:</div>
+      <div class="codecard"><span class="pr">$</span> gcc -O0 main.c &amp;&amp; gdb -q -x view.gdb ./a.out
+<span class="cm"># break main stops at main+4 (gdb skips the prologue)</span>
+<span class="pr">(gdb)</span> stepi 6
+<span class="pr">(gdb)</span> x/gx  $rsp-8
+0x7fffffffdad8: <span class="num">0x00000dad0000b00d</span>
+<span class="pr">(gdb)</span> x/2wx $rbp-8
+0x7fffffffdad8: <span class="num">0x0000b00d</span>  <span class="num">0x00000dad</span>
+           <span class="cm">var_b ↑      var_a ↑</span></div>
+    </div>
+    <div>
+      <div class="mini-title">the <code>stack</code> part of the new <code>view.gdb</code>:</div>
+      <div class="codecard">0x7fffffffdaf8: 0x7ffff7df9d7a &lt;__libc_start_main+234&gt;
+0x7fffffffdaf0: 0x555555555150 &lt;__libc_csu_init&gt;
+0x7fffffffdae8: 0x555555555148 &lt;main+14&gt;
+0x7fffffffdae0: 0x7fffffffdaf0   <span class="rzl">&lt;------- rsp</span>
+<span class="rzl">-------- below rsp (red zone) --------</span>
+0x7fffffffdad8: <span class="num">0xdad0000b00d</span>
+0x7fffffffdad0: …</div>
+    </div>
+  </div>
+  <p style="margin-top:.7rem">Why do two <code>int</code>s look like one number? Both live in the same
+     8-byte row. x86 is <b>little-endian</b>: the lowest address holds the lowest byte. var_b is at
+     <code>dad8</code> (low half), var_a at <code>dadc</code> (high half). So <code>x/gx</code> prints
+     var_a's digits first.</p>
+</div>
+
+<!-- ===================================================================== -->
+<div class="sect takeaways">
+  <h2>Takeaways</h2>
+  <ul>
+    <li>The red zone = the <b>128 bytes under rsp</b> (<code>rsp−0x80 … rsp−1</code>). It moves when rsp moves.</li>
+    <li><b>Leaf functions</b> put small locals there <b>without</b> <code>sub rsp</code>. In a listing:
+        <code>push rbp / mov rbp,rsp</code>, then <code>[rbp−X]</code> writes with no <code>sub rsp</code> in between.</li>
+    <li>Data under rsp is <b>real data</b>. When you debug, look below rsp too.</li>
+    <li>Linux / macOS user space only (System V ABI). Not in the kernel, not on Windows.</li>
+  </ul>
+</div>
+
+<footer>
+  RE4B notes · main.c compiled with gcc 10.2.1 (Debian) -O0 · addresses from a gdb session (ASLR off)<br>
+  <a href="alloca.html">alloca() stepper</a> ·
+  <a href="x86_instruction_length.html">x86 instruction length</a> ·
+  <a href="../../as/007_Pass1Parameter_Linux-stepper.html">OST2 007: red zone on Linux</a>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------- helpers ---------------- */
+
+const $  = id => document.getElementById(id);
+const hx = (n, w = 16) => n.toString(16).padStart(w, '0');
+const Q  = n => { const s = hx(n); return s.slice(0, 8) + '`' + s.slice(8); };   // 00007fff`ffffdaf8
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------------- data ---------------- */
+
+const CSRC = [
+  {id:'c0', h:'<span class="kw">void</span> <span class="fn">local</span>() {'},
+  {id:'c1', h:'    <span class="kw">int</span> var_a = <span class="num">0xdad</span>;'},
+  {id:'c2', h:'    <span class="kw">int</span> var_b = <span class="num">0xb00d</span>;'},
+  {id:'c3', h:'}'},
+  {id:'c4', h:' '},
+  {id:'c5', h:'<span class="kw">void</span> <span class="fn">main</span>()'},
+  {id:'c6', h:'{'},
+  {id:'c7', h:'    <span class="fn">local</span>();'},
+  {id:'c8', h:'};'},
+];
+
+const LISTING = [
+  {label:'local:'},
+  {key:'5125', mn:'push', ops:'rbp'},
+  {key:'5126', mn:'mov',  ops:'rbp, rsp'},
+  {key:'5129', mn:'mov',  ops:'<span class="rzop">DWORD PTR [rbp-0x4]</span>, 0xdad'},
+  {key:'5130', mn:'mov',  ops:'<span class="rzop">DWORD PTR [rbp-0x8]</span>, 0xb00d'},
+  {key:'5137', mn:'nop',  ops:''},
+  {key:'5138', mn:'pop',  ops:'rbp'},
+  {key:'5139', mn:'ret',  ops:''},
+  {label:'main:'},
+  {key:'513a', mn:'push', ops:'rbp'},
+  {key:'513b', mn:'mov',  ops:'rbp, rsp'},
+  {key:'513e', mn:'mov',  ops:'eax, 0x0'},
+  {key:'5143', mn:'call', ops:'5125 &lt;local&gt;'},
+  {key:'5148', mn:'nop',  ops:''},
+  {key:'5149', mn:'pop',  ops:'rbp'},
+  {key:'514a', mn:'ret',  ops:''},
+];
+const BASE = 0x555555550000;
+
+/* stack rows, high → low (8 bytes each) */
+const ROWS = [
+  {addr:0x7fffffffdaf8, label:'return addr → libc', wcls:'w-ret'},
+  {addr:0x7fffffffdaf0, label:'saved rbp (libc’s)', wcls:'w-sav'},
+  {addr:0x7fffffffdae8, label:'return addr → main', wcls:'w-ret'},
+  {addr:0x7fffffffdae0, label:'saved rbp (main’s)', wcls:'w-sav'},
+  {addr:0x7fffffffdad8, label:'var_a · var_b',      wcls:'w-loc'},
+  {addr:0x7fffffffdad0},
+  {addr:0x7fffffffdac8, dots:13, low:0x7fffffffda68},
+  {addr:0x7fffffffda60},
+  {addr:0x7fffffffda58},
+];
+
+const RA_LIBC = 0x7ffff7df9d7a;   // __libc_start_main+234
+const RBP_LIBC = 0x555555555150;  // libc's rbp at main entry (= &__libc_csu_init)
+
+const INIT = {
+  rip: 0x55555555513a,
+  rax: 0x55555555513a, rsp: 0x7fffffffdaf8, rbp: RBP_LIBC,
+  mem: [Q(RA_LIBC), null, null, null, null, null, null, null, null],
+};
+
+/* meta for state 0, then one entry per executed instruction:
+   exec = key of the instruction that just ran, run = what it did */
+const META0 = {
+  cur:'513a', cline:'c5', ctx:'— nothing executed yet',
+  bubble:{row:0, text:'Pushed by call in __libc_start_main. main will return here.'},
+  title:'Step 0 — We are at the first instruction of main',
+  note:`<p>Nothing has run yet. <code>rsp</code> points to the <b>return address</b>:
+    <code>__libc_start_main</code> called <code>main</code>, and <code>call</code> pushed it.</p>
+    <p>Now look <b>under</b> rsp. The red rows are the <b style="color:var(--red)">red zone</b>:
+    the 128 bytes just below rsp. The red zone is not a fixed place in memory. It is always
+    <code>rsp−0x80 … rsp−1</code>, so <b>it moves every time rsp moves</b>. Press Next and watch it.</p>`,
+};
+
+const TRACE = [
+  { exec:'513a', run:s=>{ s.rsp -= 8; s.mem[1] = Q(RBP_LIBC); },
+    cur:'513b', cline:'c5', ctx:'— after push rbp',
+    title:'Step 1 — push rbp (main saves the caller’s rbp)',
+    note:`<p><code>push</code> = move rsp down 8, then write. rsp: <code>daf8 → daf0</code>.
+      The caller's rbp (<code>0x555555555150</code>) is now safe on the stack.</p>
+      <p>Look at the right column: every red row moved, too. Each row's distance to rsp changed by 8.</p>` },
+
+  { exec:'513b', run:s=>{ s.rbp = s.rsp; },
+    cur:'513e', cline:'c7', ctx:'— main’s frame is ready',
+    title:'Step 2 — mov rbp, rsp (main’s frame base)',
+    note:`<p>rbp = rsp = <code>daf0</code>. This is main's <b>frame base</b>: a fixed point that does
+      not move while main runs.</p>
+      <p>main has no local variables, so it needs no more space.</p>` },
+
+  { exec:'513e', run:s=>{ s.rax = 0; },
+    cur:'5143', cline:'c7', ctx:'— about to call local',
+    title:'Step 3 — mov eax, 0x0',
+    note:`<p>eax = 0. Why? <code>local()</code> is declared with empty <code>()</code>. In C that means
+      "unknown arguments", so it <i>could</i> be a varargs function like <code>printf</code>. For such
+      calls the ABI wants <code>al</code> = the number of vector registers used for arguments. Here: 0.</p>
+      <p>(Writing <code>eax</code> also clears the upper half of <code>rax</code>.)</p>` },
+
+  { exec:'5143', run:s=>{ s.rsp -= 8; s.mem[2] = Q(0x555555555148); s.rip = 0x555555555125; },
+    cur:'5125', cline:'c0', ctx:'— call jumped into local',
+    bubble:{row:2, text:'call wrote here. One step ago this row was in main’s red zone!'},
+    title:'Step 4 — call local (push return address + jump)',
+    note:`<p><code>call</code> pushes the address of the next instruction, <code>0x555555555148</code>
+      (main+14), to <code>dae8</code>, and jumps to <code>local</code>.</p>
+      <div class="rz-box"><b>Look at row dae8.</b> In step 3 it was inside <b>main's red zone</b>
+      (rsp−0x8). <code>call</code> just wrote over it. This is why only <b>leaf functions</b>
+      (functions that call nothing) can trust the red zone: every call, push, or interrupt-like
+      event writes under rsp.</div>` },
+
+  { exec:'5125', run:s=>{ s.rsp -= 8; s.mem[3] = Q(0x7fffffffdaf0); },
+    cur:'5126', cline:'c0', ctx:'— inside local',
+    title:'Step 5 — push rbp (local saves main’s rbp)',
+    note:`<p>The same prologue as main: save main's rbp (<code>daf0</code>). rsp: <code>dae8 → dae0</code>.</p>` },
+
+  { exec:'5126', run:s=>{ s.rbp = s.rsp; },
+    cur:'5129', cline:'c1', ctx:'— local’s frame base set',
+    bubble:{row:4, text:'local will write its two ints here: under rsp, in the red zone.'},
+    title:'Step 6 — mov rbp, rsp … and no sub rsp!',
+    note:`<p>rbp = rsp = <code>dae0</code>. Now look at the <b>next</b> instruction.</p>
+      <p>A normal function would do <code>sub rsp, 0x10</code> here to reserve space for its two
+      <code>int</code>s. <b>local doesn't.</b> rsp will not move again until the end of local. It is a
+      leaf function, so it uses the red zone instead.</p>` },
+
+  { exec:'5129', run:s=>{ s.mem[4] = {hi:'00000dad', lo:null}; }, live:[4],
+    cur:'5130', cline:'c2', ctx:'— var_a stored',
+    bubble:{row:4, text:'var_a = 0xdad at rbp−4 = dadc: the HIGH half of this row'},
+    title:'Step 7 — mov DWORD PTR [rbp-0x4], 0xdad (var_a)',
+    note:`<p>var_a = 0xdad. Address: rbp−4 = <code>dadc</code>. That is <b>under rsp</b>, inside the red zone.</p>
+      <p>One stack row is 8 bytes (<code>dad8 … dadf</code>). var_a fills the <b>high</b> 4 bytes
+      (<code>dadc … dadf</code>). The low 4 bytes still hold old garbage, shown as <span class="undef">undef</span>.</p>` },
+
+  { exec:'5130', run:s=>{ s.mem[4] = {hi:'00000dad', lo:'0000b00d'}; }, live:[4],
+    cur:'5137', cline:'c3', ctx:'— var_b stored',
+    bubble:{row:4, text:'Full row = 0x00000dad0000b00d. Old view.gdb never printed it!'},
+    title:'Step 8 — mov DWORD PTR [rbp-0x8], 0xb00d (var_b)',
+    note:`<p>var_b = 0xb00d at rbp−8 = <code>dad8</code>, the <b>low</b> half of the same row.
+      x86 is little-endian, so the whole row reads <code>0x00000dad0000b00d</code>.</p>
+      <div class="rz-box"><b>This is your missing value.</b> The old <code>view.gdb</code> printed
+      <code>$rsp</code> and up. rsp is <code>dae0</code>, and these bytes are at <code>dad8</code>:
+      8 bytes <b>under</b> rsp. The write worked. It was just outside the window.</div>` },
+
+  { exec:'5137', run:s=>{}, live:[4],
+    cur:'5138', cline:'c3', ctx:'— end of local’s body',
+    title:'Step 9 — nop',
+    note:`<p>Does nothing. gcc -O0 often puts a <code>nop</code> at the closing <code>}</code> of a function.</p>
+      <p>Notice: local is almost finished, and rsp has <b>never</b> moved since step 5.</p>` },
+
+  { exec:'5138', run:s=>{ s.rbp = 0x7fffffffdaf0; s.rsp += 8; },
+    cur:'5139', cline:'c3', ctx:'— main’s rbp restored',
+    bubble:{row:4, text:'Still in memory, but dead now. Nobody owns these bytes.'},
+    title:'Step 10 — pop rbp (restore main’s rbp)',
+    note:`<p>rbp = <code>daf0</code> again (main's frame base). rsp: <code>dae0 → dae8</code>.</p>
+      <p>var_a and var_b are now <b>dead</b>. The bytes are still in memory (faded), but they are
+      just garbage now. The next function that uses this stack will overwrite them.</p>` },
+
+  { exec:'5139', run:s=>{ s.rsp += 8; s.rip = 0x555555555148; },
+    cur:'5148', cline:'c8', ctx:'— ret popped us back into main',
+    title:'Step 11 — ret (back to main)',
+    note:`<p><code>ret</code> pops the return address <code>0x555555555148</code> into rip. We are back
+      in main, right after the call. rsp: <code>dae8 → daf0</code>.</p>` },
+
+  { exec:'5148', run:s=>{},
+    cur:'5149', cline:'c8', ctx:'— main’s epilogue',
+    title:'Step 12 — nop',
+    note:`<p>Another -O0 <code>nop</code>, at main's closing <code>}</code>.</p>` },
+
+  { exec:'5149', run:s=>{ s.rbp = RBP_LIBC; s.rsp += 8; },
+    cur:'514a', cline:'c8', ctx:'— libc’s rbp restored',
+    title:'Step 13 — pop rbp (restore libc’s rbp)',
+    note:`<p>rbp = <code>0x555555555150</code> again. rsp: <code>daf0 → daf8</code>. It points to
+      main's return address, exactly like in step 0.</p>` },
+
+  { exec:'514a', run:s=>{ s.rsp += 8; s.rip = RA_LIBC; },
+    cur:null, cline:null, ctx:'— back in __libc_start_main+234',
+    bubble:{row:0, text:'ret popped this into rip'},
+    title:'Step 14 — ret (main returns)',
+    note:`<p>main returns into <code>__libc_start_main+234</code>, which calls <code>exit(eax)</code>.
+      eax is still 0 from step 3, so the exit code is 0.</p>
+      <p>Every row is now under rsp. All of it is old garbage, waiting for the next function.</p>` },
+];
+
+/* ---------------- build states ---------------- */
+
+const STATES = [Object.assign(clone(INIT), {live:[]}, META0)];
+TRACE.forEach(t => {
+  const prev = STATES[STATES.length - 1];
+  const s = clone({rip:prev.rip, rax:prev.rax, rsp:prev.rsp, rbp:prev.rbp, mem:prev.mem});
+  s.rip = t.cur ? BASE + parseInt(t.cur, 16) : prev.rip;
+  t.run(s);
+  Object.assign(s, {live: t.live || [], cur:t.cur, cline:t.cline, ctx:t.ctx,
+                    bubble:t.bubble, title:t.title, note:t.note, exec:t.exec});
+  s.executed = (prev.executed || []).concat([t.exec]);
+  STATES.push(s);
+});
+STATES[0].executed = [];
+
+/* ---------------- build static DOM ---------------- */
+
+const asmEl = $('asm'), stackEl = $('stack'), dotsEl = $('dots'), csrcEl = $('csrc');
+
+const clineEls = {};
+CSRC.forEach(l => {
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = l.h;
+  csrcEl.appendChild(d); clineEls[l.id] = d;
+});
+
+const asmRows = {};
+LISTING.forEach(ins => {
+  if (ins.label){
+    const d = document.createElement('div');
+    d.className = 'lbl'; d.textContent = ins.label;
+    asmEl.appendChild(d); return;
+  }
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.innerHTML = `<span class="rip-ptr">RIP▶</span>` +
+    `<span class="addr">${hx(BASE + parseInt(ins.key, 16), 12)}</span>` +
+    `<span class="mark">☒</span><span class="mn">${ins.mn}</span><span class="ops">${ins.ops}</span>`;
+  asmEl.appendChild(r); asmRows[ins.key] = r;
+});
+
+const stackRows = ROWS.map(rw => {
+  const r = document.createElement('div');
+  r.className = 'srow';
+  const a = rw.dots ? `${hx(rw.addr, 12).slice(-4)} … ${hx(rw.low, 12).slice(-4)}` : '0x' + hx(rw.addr, 12);
+  r.innerHTML = `<div class="cell addr">${a}</div><div class="cell val"></div><div class="cell who"></div>`;
+  stackEl.appendChild(r);
+  return r;
+});
+
+STATES.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot'; d.title = 'Step ' + i;
+  d.addEventListener('click', () => { stopPlay(); go(i); });
+  dotsEl.appendChild(d);
+});
+
+/* ---------------- rendering ---------------- */
+
+const BADGE_MOD   = '<span class="badge mod">♍</span>';
+const BADGE_START = '<span class="badge start">⌘</span>';
+
+/* 'mod' if changed by the last instruction, 'start' if never changed, else '' */
+function tagOf(get, i){
+  const v = get(STATES[i]);
+  if (i > 0 && get(STATES[i - 1]) !== v) return 'mod';
+  for (let k = 0; k <= i; k++) if (get(STATES[k]) !== v) return '';
+  return 'start';
+}
+const clsOf = t => t === 'mod' ? 'v-mod' : t === 'start' ? 'v-start' : 'v-plain';
+
+function regHTML(name, i){
+  const t = tagOf(s => s[name], i);
+  return `<span class="${clsOf(t)}">${Q(STATES[i][name])}</span>` +
+         (t === 'mod' ? BADGE_MOD : t === 'start' ? BADGE_START : '');
+}
+
+const memKey = v => v === null ? 'undef' : typeof v === 'string' ? v : v.hi + '`' + v.lo;
+
+function half(t, tag){
+  if (t === null) return '<span class="undef">undef</span>';
+  return `<span class="${tag === 'mod' ? 'v-mod' : 'v-plain'}">${t}</span>`;
+}
+
+function memHTML(idx, i){
+  const v = STATES[i].mem[idx];
+  if (v === null) return '<span class="undef">undef</span>';
+  if (typeof v === 'object'){
+    const p = i > 0 ? STATES[i - 1].mem[idx] : null;
+    const ph = p && typeof p === 'object' ? p.hi : null, pl = p && typeof p === 'object' ? p.lo : null;
+    const th = v.hi !== ph ? 'mod' : '', tl = v.lo !== pl ? 'mod' : '';
+    return half(v.hi, th) + '<span class="sep">`</span>' + half(v.lo, tl) + (th || tl ? BADGE_MOD : '');
+  }
+  const t = tagOf(s => memKey(s.mem[idx]), i);
+  return `<span class="${clsOf(t)}">${v}</span>` + (t === 'mod' ? BADGE_MOD : t === 'start' ? BADGE_START : '');
+}
+
+/* who owns this row right now? depends on rsp */
+function whoOf(rw, idx, s){
+  if (rw.addr >= s.rsp) return [rw.label || '', rw.label ? rw.wcls : '', ''];
+  const off = s.rsp - rw.addr;
+  if (off <= 0x80){
+    if (s.live.includes(idx)) return [`${rw.label}<br><i>in the red zone</i>`, rw.wcls, 'rz'];
+    return [rw.dots ? `red zone ⋮` : `red zone · rsp−0x${off.toString(16)}`, 'w-rz', 'rz'];
+  }
+  return [rw.dots ? 'not yours ⋮' : `not yours · rsp−0x${off.toString(16)}`, 'w-no', 'no'];
+}
+
+function rowOf(addr){
+  if (addr > ROWS[0].addr) return -1;
+  return ROWS.findIndex(r => !r.dots && r.addr === addr);
+}
+
+function placeArrow(arrow, idx){
+  const top = idx < 0 ? stackEl.offsetTop - 10
+                      : stackEl.offsetTop + stackRows[idx].offsetTop + stackRows[idx].offsetHeight / 2;
+  arrow.style.top = top + 'px';
+}
+
+let cur = 0, prevSnap = null, timer = null;
+
+function render(i, animate = true){
+  const s = STATES[i];
+
+  const ripEl = $('ripVal');
+  if (animate && prevSnap && prevSnap.rip !== s.rip){ ripEl.classList.remove('flash'); void ripEl.offsetWidth; ripEl.classList.add('flash'); }
+  ripEl.textContent = Q(s.rip);
+  $('ripCtx').textContent = s.ctx;
+
+  for (const id in clineEls) clineEls[id].classList.toggle('cur', s.cline === id);
+
+  for (const name of ['rax', 'rsp', 'rbp']){
+    const el = $(name);
+    el.innerHTML = regHTML(name, i);
+    if (animate && prevSnap && prevSnap[name] !== s[name]){
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+
+  for (const key in asmRows){
+    const r = asmRows[key];
+    r.classList.toggle('executed', s.executed.includes(key));
+    r.classList.toggle('current', s.cur === key);
+    r.classList.remove('just-executed');
+  }
+  if (animate && s.exec && prevSnap && prevSnap.step === i - 1){
+    const r = asmRows[s.exec]; void r.offsetWidth; r.classList.add('just-executed');
+  }
+  $('exitRow').classList.toggle('on', s.cur === null);
+
+  ROWS.forEach((rw, idx) => {
+    const row = stackRows[idx];
+    const cell = row.querySelector('.val'), who = row.querySelector('.who');
+    if (rw.dots){
+      cell.innerHTML = `<span class="dotsv">⋮ ${rw.dots} more rows ⋮</span>`;
+    } else {
+      let html = memHTML(idx, i);
+      const v = s.mem[idx];
+      if (v !== null && rw.addr < s.rsp && !s.live.includes(idx)) html = `<span class="stale">${html}</span>`;
+      cell.innerHTML = html;
+      if (animate && prevSnap && prevSnap.mem[idx] !== memKey(v)){
+        const sp = cell.firstElementChild; if (sp) sp.classList.add('pop-in');
+      }
+    }
+    const [txt, wcls, zone] = whoOf(rw, idx, s);
+    who.className = 'cell who ' + wcls;
+    who.innerHTML = txt;
+    row.classList.toggle('rz', zone === 'rz');
+    row.classList.toggle('no', zone === 'no');
+  });
+
+  placeArrow($('rspArrow'), rowOf(s.rsp));
+  placeArrow($('rbpArrow'), rowOf(s.rbp));
+  $('rbpArrow').title = rowOf(s.rbp) < 0 ? 'rbp = ' + Q(s.rbp) + ' (not in this part of the stack)' : '';
+
+  const bub = $('bubble');
+  if (s.bubble){
+    const row = stackRows[s.bubble.row];
+    bub.textContent = s.bubble.text;
+    bub.style.top = (stackEl.offsetTop + row.offsetTop + row.offsetHeight) + 'px';
+    bub.classList.add('on');
+  } else bub.classList.remove('on');
+
+  $('noteTitle').textContent = s.title;
+  $('noteBody').innerHTML = s.note;
+
+  $('stepInd').textContent = `Step ${i} / ${STATES.length - 1}`;
+  $('btnPrev').disabled = $('btnReset').disabled = (i === 0);
+  $('btnNext').disabled = $('btnEnd').disabled = (i === STATES.length - 1);
+  [...dotsEl.children].forEach((d, k) => { d.classList.toggle('now', k === i); d.classList.toggle('done', k < i); });
+
+  prevSnap = {step:i, rip:s.rip, rax:s.rax, rsp:s.rsp, rbp:s.rbp, mem:s.mem.map(memKey)};
+  cur = i;
+}
+
+function go(i, animate = true){
+  if (i < 0 || i >= STATES.length) return;
+  render(i, animate);
+  if (i === STATES.length - 1) stopPlay();
+}
+
+/* ---------------- autoplay + wiring ---------------- */
+
+function startPlay(){
+  if (cur === STATES.length - 1) go(0, false);
+  timer = setInterval(() => { if (cur >= STATES.length - 1) stopPlay(); else go(cur + 1); }, 3000);
+  $('btnPlay').textContent = '⏸ Pause'; $('btnPlay').classList.add('active');
+}
+function stopPlay(){
+  clearInterval(timer); timer = null;
+  $('btnPlay').textContent = '▶ Play'; $('btnPlay').classList.remove('active');
+}
+
+$('btnNext').addEventListener('click', () => { stopPlay(); go(cur + 1); });
+$('btnPrev').addEventListener('click', () => { stopPlay(); go(cur - 1); });
+$('btnReset').addEventListener('click', () => { stopPlay(); go(0); });
+$('btnEnd').addEventListener('click', () => { stopPlay(); go(STATES.length - 1); });
+$('btnPlay').addEventListener('click', () => timer ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  switch (e.key){
+    case 'ArrowRight': stopPlay(); go(cur + 1); e.preventDefault(); break;
+    case 'ArrowLeft':  stopPlay(); go(cur - 1); e.preventDefault(); break;
+    case 'Home':       stopPlay(); go(0); e.preventDefault(); break;
+    case 'End':        stopPlay(); go(STATES.length - 1); e.preventDefault(); break;
+    case ' ':          timer ? stopPlay() : startPlay(); e.preventDefault(); break;
+  }
+});
+
+window.addEventListener('resize', () => render(cur, false));
+window.addEventListener('load',   () => render(cur, false));
+render(0, false);
+</script>
+</body>
+</html>
