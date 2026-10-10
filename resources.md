@@ -61,6 +61,7 @@ tags: [security, pwn, reverse-engineering, malware, exploitation, resources, moc
 - [Stephen Eckels (Google/Mandiant FLARE)](#stephen-eckels-googlemandiant-flare)
 - [CVE / SBOM scanning — firmware & binaries](#cve--sbom-scanning--firmware--binaries)
 - [CTF competitions to watch — advanced livestreams & VODs](#ctf-competitions-to-watch--advanced-livestreams--vods)
+- [After pwn.college](#after-pwncollege)
 
 ---
 
@@ -1123,3 +1124,8 @@ Run `cve-bin-tool` first for a fast answer on the specific glibc → run EMBA on
 - IppSec (Insane boxes only) — https://www.youtube.com/@ippsec
 - SRLabs: competing at DEF CON CTF Finals 2025 — https://srlabs.de/blog/competing-at-the-def-con-ctf-finals-2025
 - CTF Radiooo (podcast) — https://ctfradi.ooo
+
+## After pwn.college
+- CSE466 — [Fall 2025](https://www.youtube.com/playlist?list=PL-ymxv0nOtqqly6KvcTQYgkNYBjBOYMJR) (23 videos) · [Fall 2024](https://www.youtube.com/playlist?list=PL-ymxv0nOtqqD1VLRpK0sS11-TJPwVYsK) (29 videos)
+- CSE598 — [Spring 2024](https://www.youtube.com/playlist?list=PL-ymxv0nOtqr7zM7ZBREoWa-eeSaKFJQd) (36 videos) · [Spring 2021](https://www.youtube.com/playlist?list=PL-ymxv0nOtqr5hH5V3fBWRTWyN33lpAKD) (1 video) · AVR [Fall 2024](https://www.youtube.com/playlist?list=PL-ymxv0nOtqqgWG_kT9WJ50MvHKWG9cFy) (12 videos) · AVR [Fall 2025](https://www.youtube.com/playlist?list=PL-ymxv0nOtqrgy4sjnu6JDkJe6KGmRtL4) (1 video so far)
+- CSE598 SE — [Spring 2025](https://www.youtube.com/playlist?list=PL-ymxv0nOtqoqSMi6euNpzHQkRT8HCgxE) (14 videos)
